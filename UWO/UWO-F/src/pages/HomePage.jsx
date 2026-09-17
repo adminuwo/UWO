@@ -36,7 +36,7 @@ export default function HomePage() {
         name: 'AISA',
         is_featured: true,
         project_url: 'https://aisa24.com/',
-        logo: '/images/AISA (2).png',
+        logo: '/images/aisa-logo.svg',
         short_description: 'Next-generation AI Operating System for autonomous enterprise agents and intelligent workflow orchestration.'
       },
       {
@@ -50,20 +50,34 @@ export default function HomePage() {
         name: 'AI Mall',
         is_featured: true,
         project_url: 'https://aimall24.com/',
-        logo: '/images/aimall logo.png',
+        logo: '/images/aimall-logo.webp',
         short_description: 'Universal decentralized marketplace for specialized AI models, enterprise agents, and cognitive microservices.'
       },
       {
         name: 'EFV',
         is_featured: true,
         project_url: 'https://efvframework.com/index.html',
-        logo: '/images/EFV.png',
+        logo: '/images/efv-logo.png',
         short_description: 'Enterprise Functional Visualizer - high-performance real-time visual modeling and enterprise architecture engine.'
       }
     ];
   }
 
-  const getLogoUrl = (logo) => {
+  const getLogoUrl = (logo, projectName = '') => {
+    const nameLower = (projectName || '').toLowerCase();
+    if (nameLower.includes('aimall') || nameLower.includes('ai mall')) {
+      return '/images/aimall-logo.webp';
+    }
+    if (nameLower.includes('aisa connect')) {
+      return '/images/aisa-connect-logo.png';
+    }
+    if (nameLower.includes('aisa')) {
+      return '/images/aisa-logo.svg';
+    }
+    if (nameLower.includes('efv')) {
+      return '/images/efv-logo.png';
+    }
+
     if (!logo) return '/images/uwo-logo.png';
     const cloudRunBase = 'https://uwo-backend-977864306871.asia-south1.run.app';
     if (logo.includes('storage.googleapis.com/uwo-document/')) {
@@ -189,11 +203,23 @@ export default function HomePage() {
                   className="project-card"
                 >
                   <img 
-                    src={getLogoUrl(project.logo)} 
+                    src={getLogoUrl(project.logo, project.name)} 
                     alt={project.name} 
                     className="project-icon" 
-                    crossOrigin="anonymous" 
-                    onError={(e) => { e.currentTarget.src = '/images/uwo-logo.png'; }} 
+                    onError={(e) => {
+                      const nameLower = (project.name || '').toLowerCase();
+                      if (nameLower.includes('aimall') || nameLower.includes('ai mall')) {
+                        e.currentTarget.src = '/images/aimall-logo.webp';
+                      } else if (nameLower.includes('aisa connect')) {
+                        e.currentTarget.src = '/images/aisa-connect-logo.png';
+                      } else if (nameLower.includes('aisa')) {
+                        e.currentTarget.src = '/images/aisa-logo.svg';
+                      } else if (nameLower.includes('efv')) {
+                        e.currentTarget.src = '/images/efv-logo.png';
+                      } else {
+                        e.currentTarget.src = '/images/uwo-logo.png';
+                      }
+                    }} 
                   />
                   <h3>
                     {project.name}

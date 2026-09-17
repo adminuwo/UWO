@@ -43,8 +43,8 @@ async function seedReferralSystem() {
         slug: 'ailegal',
         description: 'AI Legal Assistant & Advocates Practice Suite',
         webUrl: 'https://ailegal.aisa24.com',
-        androidUrl: 'https://play.google.com/store/apps/details?id=com.uwo.ailegal',
-        iosUrl: 'https://apps.apple.com/app/ai-legal/id6797449251',
+        androidUrl: 'https://play.google.com/store/apps/details?id=com.uwo.ailegal&pcampaignid=web_share',
+        iosUrl: 'https://apps.apple.com/in/app/ai-legal/id6797449251',
         active: true,
       },
       {

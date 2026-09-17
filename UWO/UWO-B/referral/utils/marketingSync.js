@@ -1,4 +1,9 @@
-const { MongoClient } = require('mongodb');
+let MongoClient;
+try {
+  MongoClient = require('mongodb').MongoClient;
+} catch (e) {
+  MongoClient = require('mongoose').mongo.MongoClient;
+}
 const dns = require('dns');
 
 // Configure public DNS resolvers to ensure robust SRV resolution
