@@ -308,9 +308,9 @@ document.addEventListener('DOMContentLoaded', () => {
             submitBtn.disabled = true;
             submitBtn.innerText = "Registering...";
             try {
-                const API_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+                const API_URL = (window.location.hostname === "localhost" && window.location.port === "3000")
                     ? "http://localhost:8080/api/register-email"
-                    : "https://uwo-backend-977864306871.asia-south1.run.app/api/register-email";
+                    : "/api/register-email";
                 const res = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -375,9 +375,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (suggestions) suggestions.remove();
         showLoading();
         try {
-            const API_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+            const API_URL = (window.location.hostname === "localhost" && window.location.port === "3000")
                 ? "http://localhost:8080/api/chat"
-                : "https://uwo-backend-977864306871.asia-south1.run.app/api/chat";
+                : "/api/chat";
             const res = await fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

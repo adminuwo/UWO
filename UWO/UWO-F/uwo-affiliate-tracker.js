@@ -5,9 +5,9 @@
  */
 
 (function () {
-    const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    const API_BASE = (window.location.hostname === 'localhost' && window.location.port === '3000')
         ? 'http://localhost:8080/api/affiliate'
-        : 'https://uwo-backend-977864306871.asia-south1.run.app/api/affiliate';
+        : '/api/affiliate';
 
     // Cookie Utilities
     function setCookie(name, value, days = 30) {

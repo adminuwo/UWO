@@ -2,9 +2,9 @@
 // 🌐 UWO™ CENTRAL API SERVICE
 // ========================================================
 
-export const BACKEND_BASE = typeof window !== 'undefined' && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
-  ? "http://localhost:8080"
-  : "https://uwo-backend-977864306871.asia-south1.run.app";
+export const BACKEND_BASE = typeof window !== 'undefined'
+  ? (window.location.hostname === "localhost" && window.location.port === "3000" ? "http://localhost:8080" : "")
+  : "";
 
 export const API_URL = `${BACKEND_BASE}/api`;
 
@@ -75,7 +75,9 @@ export function getBlogFallbackImage(category = '', title = '') {
   return 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=1200&q=80';
 }
 
-export const CLOUD_RUN_BACKEND = 'https://uwo-backend-977864306871.asia-south1.run.app';
+export const CLOUD_RUN_BACKEND = typeof window !== 'undefined'
+  ? (window.location.hostname === "localhost" && window.location.port === "3000" ? "http://localhost:8080" : window.location.origin)
+  : "https://uwo-backend-977864306871.asia-south1.run.app";
 
 export function resolveBlogImageUrl(blog) {
   if (!blog) return getBlogFallbackImage();

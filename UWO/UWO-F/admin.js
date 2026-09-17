@@ -1,7 +1,7 @@
 console.log("Admin.js loaded with API URL on port 8080");
-const API_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+const API_URL = (window.location.hostname === "localhost" && window.location.port === "3000")
   ? "http://localhost:8080/api"
-  : "https://uwo-backend-977864306871.asia-south1.run.app/api";
+  : "/api";
 
 // ✅ LOGIN
 async function login() {

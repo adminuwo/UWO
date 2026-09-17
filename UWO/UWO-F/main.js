@@ -1,7 +1,7 @@
 // 🔹 DYNAMIC BACKEND API URL
-const API_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+const API_URL = (window.location.hostname === "localhost" && window.location.port === "3000")
   ? "http://localhost:8080/api"
-  : "https://uwo-backend-977864306871.asia-south1.run.app/api";
+  : "/api";
 
 // UI Helper Functions
 function toggleDrawer() {

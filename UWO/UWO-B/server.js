@@ -4311,7 +4311,27 @@ app.post('/api/team-members', auth, checkPermission('team.create'), (req, res, n
                 res.status(500).json({ error: "Failed to create order", details: error.message });
             }
         });
+        // -------------------------------------------------------------
+        // Serve Frontend Static Files & SPA Routing (Unified Container)
+        // -------------------------------------------------------------
+        const frontendDistPath = path.join(__dirname, 'public');
+        if (fs.existsSync(frontendDistPath)) {
+            console.log(`📦 Serving frontend static files from: ${frontendDistPath}`);
+            app.use(express.static(frontendDistPath));
 
+            // SPA fallback: send index.html for all non-API routes
+            app.get('*', (req, res, next) => {
+                if (
+                    req.path.startsWith('/api') ||
+                    req.path.startsWith('/r/') ||
+                    req.path.startsWith('/affiliate') ||
+                    req.path.startsWith('/uploads')
+                ) {
+                    return next();
+                }
+                res.sendFile(path.join(frontendDistPath, 'index.html'));
+            });
+        }
 
         // Global Error Handler
         app.use((err, req, res, next) => {

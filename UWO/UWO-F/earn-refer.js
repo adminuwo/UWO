@@ -3,9 +3,9 @@
 // ==========================================
 
 (function() {
-  const BACKEND_API = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+  const BACKEND_API = (window.location.hostname === "localhost" && window.location.port === "3000")
     ? "http://localhost:8080/api"
-    : "https://uwo-backend-977864306871.asia-south1.run.app/api";
+    : "/api";
 
   // Dashboard login URL — dynamic per environment
   const DASHBOARD_LOGIN_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
