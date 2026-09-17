@@ -66,4 +66,7 @@ export const api = {
   verifyIosInstall: (data = {}) => request('/api/conversions/ios-verify', { method: 'POST', body: JSON.stringify(data) }),
   recordAndroidInstall: (data) => request('/api/conversions/android-install', { method: 'POST', body: JSON.stringify(data) }),
   getPendingIos: () => request('/api/conversions/pending-ios', { method: 'GET' }),
+
+  // Links
+  deleteLink: (id) => request(`/api/links/${id}`, { method: 'DELETE' }),
 };

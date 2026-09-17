@@ -53,6 +53,7 @@ export default function DashboardPage({ user, onLogout }) {
   });
   const [savingProduct, setSavingProduct] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const [deletingLinkId, setDeletingLinkId] = useState(null);
   const [productMessage, setProductMessage] = useState({ type: '', text: '' });
   const [linkMessage, setLinkMessage] = useState({ type: '', text: '' });
 
@@ -224,6 +225,22 @@ export default function DashboardPage({ user, onLogout }) {
       alert(`Failed to delete: ${err.message}`);
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleDeleteLink = async (id, code) => {
+    if (!window.confirm(`Are you sure you want to delete referral link "${code}"? This will also remove all its recorded clicks and download analytics.`)) {
+      return;
+    }
+
+    setDeletingLinkId(id);
+    try {
+      await api.deleteLink(id);
+      await Promise.all([loadLinks(), loadActivity()]);
+    } catch (err) {
+      alert(`Failed to delete link: ${err.message}`);
+    } finally {
+      setDeletingLinkId(null);
     }
   };
 
@@ -759,6 +776,19 @@ export default function DashboardPage({ user, onLogout }) {
                               className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
                             >
                               <QrCode className="w-4 h-4" />
+                            </button>
+
+                            <button
+                              onClick={() => handleDeleteLink(link._id, link.code)}
+                              disabled={deletingLinkId === link._id}
+                              title="Delete Referral Link"
+                              className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700/60 transition-colors cursor-pointer disabled:opacity-50"
+                            >
+                              {deletingLinkId === link._id ? (
+                                <RefreshCw className="w-4 h-4 animate-spin text-rose-400" />
+                              ) : (
+                                <Trash2 className="w-4 h-4" />
+                              )}
                             </button>
                           </div>
                         </td>

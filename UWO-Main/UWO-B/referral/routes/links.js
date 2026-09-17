@@ -214,4 +214,24 @@ router.post('/', protect, async (req, res) => {
   }
 });
 
+// @route   DELETE /api/links/:id
+// @desc    Delete a referral link (and its click/download logs)
+router.delete('/:id', protect, async (req, res) => {
+  try {
+    const link = await ReferralLink.findOne({ _id: req.params.id, user: req.user.id });
+    if (!link) {
+      return res.status(404).json({ error: 'Link not found or not authorized' });
+    }
+
+    // Remove associated logs
+    await ClickLog.deleteMany({ referralLink: link._id });
+    await DownloadLog.deleteMany({ referralLink: link._id });
+    await link.deleteOne();
+
+    res.json({ success: true, message: 'Referral link deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
