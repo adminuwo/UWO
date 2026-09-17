@@ -1,0 +1,239 @@
+from typing import Optional, List, Dict, Any
+from fastapi import APIRouter, Depends, HTTPException, Request, Query, Path  # type: ignore
+from fastapi.responses import RedirectResponse, JSONResponse  # type: ignore
+
+from src.admin.router import get_current_admin
+from src.config.settings import settings
+from src.marketing.models import (
+    MarketingLinkCreate,
+    BatchMarketingLinkCreate,
+    MarketingLinkResponse,
+    MarketingAnalyticsSummary,
+    InstallTelemetryCreate,
+)
+from src.marketing.service import MarketingService, PRODUCT_CATALOG, PLATFORM_CONFIG
+from src.marketing.referral_service import UserReferralService
+
+router = APIRouter(prefix="/api/marketing", tags=["Marketing & Referrals"])
+redirect_router = APIRouter(tags=["Public Redirector"])
+
+
+def _get_base_url(request: Request) -> str:
+    """Resolve current public host base URL."""
+    if settings.SHORT_LINK_BASE_URL:
+        return settings.SHORT_LINK_BASE_URL.rstrip('/')
+    proto = request.headers.get("x-forwarded-proto", request.url.scheme)
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host")
+    if host and "localhost" not in host and "127.0.0.1" not in host:
+        return f"{proto}://{host}"
+    if settings.BACKEND_URL and "localhost" not in settings.BACKEND_URL and "127.0.0.1" not in settings.BACKEND_URL:
+        return settings.BACKEND_URL.rstrip('/')
+    return f"{proto}://{host or 'localhost:8000'}"
+
+
+# ==============================================================================
+# 📊 1. Analytics & Metadata Endpoints
+# ==============================================================================
+@router.get("/config", summary="Get supported products & platform metadata")
+async def get_marketing_config():
+    return {
+        "products": PRODUCT_CATALOG,
+        "platforms": PLATFORM_CONFIG,
+    }
+
+
+@router.get("/analytics/summary", summary="Get overarching marketing telemetry KPI cards & graphs")
+async def get_analytics_summary(admin_user: str = Depends(get_current_admin)):
+    return MarketingService.get_analytics_summary()
+
+
+# ==============================================================================
+# 👥 1b. User Referral Program (Earn & Refer) Endpoints
+# ==============================================================================
+@router.get("/user-referrals/summary", summary="Get live User Referral KPIs from UWO database")
+async def get_user_referrals_summary(admin_user: str = Depends(get_current_admin)):
+    return UserReferralService.get_summary()
+
+
+@router.get("/user-referrals/links", summary="List all user-generated referral links")
+async def list_user_referral_links(
+    request: Request,
+    limit: int = Query(200, ge=1, le=1000),
+    admin_user: str = Depends(get_current_admin)
+):
+    base_url = _get_base_url(request)
+    return UserReferralService.list_user_links(limit=limit, base_url=base_url)
+
+
+@router.get("/user-referrals/registrations", summary="List all Earn & Refer website applications")
+async def list_user_referral_registrations(
+    limit: int = Query(100, ge=1, le=500),
+    admin_user: str = Depends(get_current_admin)
+):
+    return UserReferralService.list_registrations(limit=limit)
+
+
+@router.get("/user-referrals/activity", summary="Live stream of referral link clicks and conversions")
+async def get_user_referrals_activity(
+    limit: int = Query(50, ge=1, le=200),
+    admin_user: str = Depends(get_current_admin)
+):
+    return UserReferralService.get_activity_feed(limit=limit)
+
+
+# ==============================================================================
+# 🔗 2. Link Management Endpoints
+# ==============================================================================
+@router.post("/links", response_model=Dict[str, Any], summary="Create single marketing tracking link")
+async def create_marketing_link(
+    data: MarketingLinkCreate,
+    request: Request,
+    admin_user: str = Depends(get_current_admin)
+):
+    base_url = _get_base_url(request)
+    return MarketingService.create_link(data, base_request_url=base_url, creator=admin_user or "Admin")
+
+
+@router.post("/links/batch", response_model=List[Dict[str, Any]], summary="Batch generate tracking links across multiple platforms")
+async def create_batch_marketing_links(
+    data: BatchMarketingLinkCreate,
+    request: Request,
+    admin_user: str = Depends(get_current_admin)
+):
+    base_url = _get_base_url(request)
+    return MarketingService.create_batch_links(data, base_request_url=base_url, creator=admin_user or "Admin")
+
+
+@router.get("/links", summary="List all marketing links with filtering")
+async def list_marketing_links(
+    request: Request,
+    search: Optional[str] = Query(None, description="Search term for post or campaign name"),
+    product_id: Optional[str] = Query(None, description="Filter by product ID"),
+    platform: Optional[str] = Query(None, description="Filter by platform"),
+    is_active: Optional[bool] = Query(None, description="Filter active/paused"),
+    limit: int = Query(200, ge=1, le=1000),
+    admin_user: str = Depends(get_current_admin)
+):
+    base_url = _get_base_url(request)
+    return MarketingService.list_links(
+        search=search,
+        product_id=product_id,
+        platform=platform,
+        is_active=is_active,
+        limit=limit,
+        base_request_url=base_url
+    )
+
+
+@router.get("/links/{link_id}", summary="Get deep-dive telemetry for specific marketing link")
+async def get_link_details(
+    link_id: str,
+    request: Request,
+    admin_user: str = Depends(get_current_admin)
+):
+    base_url = _get_base_url(request)
+    details = MarketingService.get_link_details(link_id, base_request_url=base_url)
+    if not details:
+        raise HTTPException(status_code=404, detail="Marketing link not found")
+    return details
+
+
+@router.patch("/links/{link_id}/status", summary="Toggle link active or paused status")
+async def toggle_link_status(
+    link_id: str,
+    payload: Dict[str, bool],
+    admin_user: str = Depends(get_current_admin)
+):
+    is_active = payload.get("is_active", True)
+    success = MarketingService.toggle_status(link_id, is_active)
+    if not success:
+        raise HTTPException(status_code=404, detail="Failed to update link status")
+    return {"success": True, "link_id": link_id, "is_active": is_active}
+
+
+@router.delete("/links/{link_id}", summary="Archive/delete marketing link")
+async def delete_marketing_link(
+    link_id: str,
+    admin_user: str = Depends(get_current_admin)
+):
+    success = MarketingService.delete_link(link_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Failed to delete marketing link")
+    return {"success": True, "message": "Marketing link and associated telemetry deleted"}
+
+
+# ==============================================================================
+# 🚀 3. Public High-Speed Telemetry Redirector Endpoint (/r/{slug})
+# ==============================================================================
+@redirect_router.get("/r/{slug}", summary="Public redirection endpoint that logs telemetry and redirects")
+async def public_redirector(
+    slug: str,
+    request: Request,
+    fp: Optional[str] = Query(None, description="Client digital fingerprint"),
+    fingerprint: Optional[str] = Query(None, description="Client digital fingerprint alias")
+):
+    client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "127.0.0.1")
+    if "," in client_ip:
+        client_ip = client_ip.split(",")[0].strip()
+
+    user_agent = request.headers.get("user-agent", "")
+    referrer = request.headers.get("referer", request.headers.get("referrer", ""))
+    client_fingerprint = fp or fingerprint or request.headers.get("x-fingerprint") or request.headers.get("x-client-fingerprint") or request.headers.get("x-device-fingerprint")
+
+    dest_url = MarketingService.record_click(
+        slug=slug,
+        ip=client_ip,
+        user_agent=user_agent,
+        referrer=referrer,
+        fingerprint=client_fingerprint
+    )
+
+    if not dest_url:
+        # Fallback to main AISA landing if link paused or invalid
+        return RedirectResponse(url="https://aisa24.com?ref=invalid_or_expired_link", status_code=302)
+
+    return RedirectResponse(url=dest_url, status_code=302)
+
+
+# ==============================================================================
+# 🎯 4. Public Mobile App Install Telemetry Endpoints
+# ==============================================================================
+@router.post("/telemetry/install", summary="Record verified mobile app install from Google Play install referrer or iOS attribution")
+async def track_app_install(payload: InstallTelemetryCreate, request: Request):
+    client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "127.0.0.1")
+    if "," in client_ip:
+        client_ip = client_ip.split(",")[0].strip()
+
+    effective_ip = payload.ip or client_ip
+    effective_fingerprint = payload.effective_fingerprint or request.headers.get("x-fingerprint") or request.headers.get("x-client-fingerprint") or request.headers.get("x-device-fingerprint")
+
+    result = MarketingService.record_install(
+        slug=payload.slug,
+        product_id=payload.product_id,
+        app_code=payload.app_code,
+        referral_code=payload.referral_code,
+        ref_code=payload.ref_code,
+        install_referrer=payload.effective_install_referrer,
+        platform=payload.platform,
+        device_id=payload.device_id,
+        version=payload.version,
+        ip=effective_ip,
+        user_id=payload.user_id,
+        fingerprint=effective_fingerprint
+    )
+    return result
+
+
+@router.post("/install", summary="Direct alias for app install telemetry")
+async def track_app_install_direct(payload: InstallTelemetryCreate, request: Request):
+    return await track_app_install(payload, request)
+
+
+@redirect_router.post("/api/marketing/telemetry/install", summary="Alias for app install telemetry")
+async def track_app_install_alias(payload: InstallTelemetryCreate, request: Request):
+    return await track_app_install(payload, request)
+
+
+@redirect_router.post("/api/marketing/install", summary="Root alias for app install telemetry")
+async def track_app_install_root_alias(payload: InstallTelemetryCreate, request: Request):
+    return await track_app_install(payload, request)
