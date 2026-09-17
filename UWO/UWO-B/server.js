@@ -4319,8 +4319,11 @@ app.post('/api/team-members', auth, checkPermission('team.create'), (req, res, n
             console.log(`📦 Serving frontend static files from: ${frontendDistPath}`);
             app.use(express.static(frontendDistPath));
 
-            // SPA fallback: send index.html for all non-API routes
-            app.get('*', (req, res, next) => {
+            // SPA fallback: send index.html for all non-API GET requests (Express 5 compatible)
+            app.use((req, res, next) => {
+                if (req.method !== 'GET') {
+                    return next();
+                }
                 if (
                     req.path.startsWith('/api') ||
                     req.path.startsWith('/r/') ||
