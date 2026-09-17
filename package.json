@@ -1,0 +1,10 @@
+{
+  "name": "uwo-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:backend": "npm --prefix UWO-Main/UWO-B start",
+    "dev:frontend": "npm --prefix UWO-Main/UWO-F run dev",
+    "install:all": "npm --prefix UWO-Main/UWO-B install && npm --prefix UWO-Main/UWO-F install"
+  }
+}
