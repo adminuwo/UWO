@@ -6,6 +6,8 @@ const Product = require('../models/RefProduct');
 const ClickLog = require('../models/ClickLog');
 const DownloadLog = require('../models/DownloadLog');
 const { protect } = require('../middleware/auth');
+const { syncLinkToMarketing, deleteLinkFromMarketing } = require('../utils/marketingSync');
+
 
 function generateNanoId(size = 5) {
   const alphabet = '1234567890abcdefghijklmnopqrstuvwxyz';
@@ -201,6 +203,11 @@ router.post('/', protect, async (req, res) => {
 
     await link.populate('product');
 
+    // Automatically sync to marketing_links so https://admin.uwo24.com/r/:code redirects immediately
+    syncLinkToMarketing(link, link.product).catch((err) =>
+      console.warn('[Referral Links] Background sync error:', err.message)
+    );
+
     res.status(201).json({
       success: true,
       message: 'Referral link generated successfully!',
@@ -237,6 +244,11 @@ router.delete('/:id', protect, async (req, res) => {
       $or: [{ referralLink: link._id }, { code: link.code }],
     });
     await ReferralLink.findByIdAndDelete(link._id);
+
+    // Remove from marketing_links in unified_service_db as well
+    deleteLinkFromMarketing(link.code).catch((err) =>
+      console.warn('[Referral Links] Background delete sync error:', err.message)
+    );
 
     res.json({ success: true, message: 'Referral link deleted successfully' });
   } catch (error) {
