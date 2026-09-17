@@ -32,10 +32,15 @@ async function request(endpoint, options = {}) {
     headers,
   });
 
-  const data = await res.json().catch(() => ({}));
+  let data;
+  try {
+    data = await res.json();
+  } catch (e) {
+    data = {};
+  }
 
   if (!res.ok) {
-    throw new Error(data.error || 'Request failed');
+    throw new Error(data.error || data.message || `Server responded with status ${res.status} (${res.statusText || 'Error'})`);
   }
 
   return data;
