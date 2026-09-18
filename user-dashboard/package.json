@@ -1,14 +1,13 @@
 {
-  "name": "smart-referral-system",
+  "name": "uwo-user-dashboard",
   "version": "1.0.0",
   "private": true,
-  "description": "Multi-Device Smart Referral & Attribution System (Node.js Express API + React Vite Portal)",
+  "description": "UWO Smart Referral & Attribution User Dashboard",
   "scripts": {
-    "dev:backend": "npm --prefix backend run dev",
-    "dev:frontend": "npm --prefix frontend run dev",
-    "build:frontend": "npm --prefix frontend run build",
-    "start:backend": "npm --prefix backend run start",
-    "seed": "npm --prefix backend run seed",
-    "simulate": "npm --prefix backend run simulate"
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "preview": "npm --prefix frontend run preview",
+    "build:docker": "docker build -t uwo-user-dashboard .",
+    "deploy:cloudrun": "powershell -ExecutionPolicy Bypass -File ./deploy-cloudrun.ps1"
   }
 }
