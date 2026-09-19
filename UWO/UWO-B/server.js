@@ -4383,7 +4383,10 @@ app.post('/api/team-members', auth, checkPermission('team.create'), (req, res, n
         const frontendDistPath = path.join(__dirname, 'public');
         if (fs.existsSync(frontendDistPath)) {
             console.log(`📦 Serving frontend static files from: ${frontendDistPath}`);
-            app.use(express.static(frontendDistPath));
+            // Redirect /user to /user/ so GCP Load Balancer matches /user/* and routes to uwo-user
+            app.get('/user', (req, res) => {
+                res.redirect(301, '/user/');
+            });
 
             // SPA fallback: send index.html for all non-API GET requests (Express 5 compatible)
             app.use((req, res, next) => {
