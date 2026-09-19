@@ -15,28 +15,56 @@ COPY UWO-F/ ./
 RUN npm run build
 
 # ==========================================
-# Stage 2: Unified Production Container
+# Stage 2: Unified Production Container (Node.js + Python 3 FastAPI)
 # ==========================================
-FROM node:20-alpine
+FROM node:20-bookworm-slim
 WORKDIR /usr/src/app
 
-# Install backend production dependencies
+# Install system dependencies: Python 3, pip, venv, and curl
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    python3-venv \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Setup isolated Python virtual environment
+ENV VIRTUAL_ENV=/opt/venv
+RUN python3 -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+# Install Python backend dependencies
+COPY UWO-B/unified/requirements.txt ./unified/requirements.txt
+RUN pip install --no-cache-dir -r ./unified/requirements.txt
+
+# Install Node.js backend production dependencies
 COPY UWO-B/package*.json ./
 RUN npm ci --only=production
 
-# Copy backend source code
+# Copy backend source code (including unified/ and referral/)
 COPY UWO-B/ ./
 
-# Copy all static assets from UWO-F into public folder (images, admin.html, styles, scripts)
+# Copy all static assets from UWO-F into public folder
 COPY UWO-F/ ./public/
 
-# Overlay the compiled Vite production assets (compiled index.html, /assets)
+# Overlay the compiled Vite production assets
 COPY --from=frontend-builder /app/frontend/dist/ ./public/
 
-# Remove unnecessary dev and source files from the public folder
+# Clean up dev source files from the public folder
 RUN rm -rf ./public/src ./public/node_modules ./public/package*.json ./public/Dockerfile ./public/vite.config.js ./public/.gitignore ./public/.dockerignore
+
+# Copy and prepare startup script
+COPY start.sh /usr/src/app/start.sh
+RUN sed -i 's/\r$//' /usr/src/app/start.sh && chmod +x /usr/src/app/start.sh
+
+# Environment settings
+ENV NODE_ENV=production
+ENV ENVIRONMENT=production
+ENV PORT=8080
+ENV PYTHON_PORT=8000
 
 # Google Cloud Run default port
 EXPOSE 8080
 
-CMD ["npm", "start"]
+CMD ["/usr/src/app/start.sh"]

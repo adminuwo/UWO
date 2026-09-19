@@ -121,6 +121,72 @@ app.get('/my-ip', (req, res) => {
     });
 });
 
+// ================= UNIFIED DASHBOARD / FASTAPI REVERSE PROXY =================
+const { createProxyMiddleware, fixRequestBody } = require('http-proxy-middleware');
+
+const FASTAPI_TARGET = process.env.FASTAPI_INTERNAL_URL || `http://127.0.0.1:${process.env.PYTHON_PORT || 8000}`;
+console.log(`🔗 Configuring Unified FastAPI Proxy pointing to: ${FASTAPI_TARGET}`);
+
+const fastApiProxy = createProxyMiddleware({
+    target: FASTAPI_TARGET,
+    changeOrigin: true,
+    ws: true,
+    on: {
+        proxyReq: fixRequestBody,
+        error: (err, req, res) => {
+            console.error('[FastAPI Proxy Error]', err.message);
+            if (!res.headersSent) {
+                res.status(502).json({
+                    error: 'Unified Dashboard Backend (FastAPI) is temporarily unavailable.',
+                    details: err.message
+                });
+            }
+        }
+    }
+});
+
+const unifiedAuthProxy = createProxyMiddleware({
+    target: FASTAPI_TARGET,
+    changeOrigin: true,
+    ws: true,
+    pathRewrite: { '^/api/unified-auth': '/api/auth' },
+    on: {
+        proxyReq: fixRequestBody,
+        error: (err, req, res) => {
+            console.error('[FastAPI Auth Proxy Error]', err.message);
+            if (!res.headersSent) {
+                res.status(502).json({
+                    error: 'Unified Auth Service (FastAPI) is temporarily unavailable.',
+                    details: err.message
+                });
+            }
+        }
+    }
+});
+
+// Specific FastAPI auth endpoints (central identity)
+app.use('/api/auth/validate', fastApiProxy);
+app.use('/api/auth/refresh', fastApiProxy);
+app.use('/api/auth/verify-reset-otp', fastApiProxy);
+app.use('/api/unified-auth', unifiedAuthProxy);
+
+// Core Unified Dashboard FastAPI endpoints
+app.use('/api/admin', fastApiProxy);
+app.use('/api/telemetry', fastApiProxy);
+app.use('/api/applications', fastApiProxy);
+app.use('/api/verification', fastApiProxy);
+app.use('/api/payment', fastApiProxy);
+app.use('/api/logs', fastApiProxy);
+app.use('/api/analytics', fastApiProxy);
+app.use('/api/unified-analytics', fastApiProxy);
+app.use('/api/revenue', fastApiProxy);
+app.use('/api/marketing', fastApiProxy);
+app.use('/api/web-stats', fastApiProxy);
+app.use('/m', fastApiProxy);
+app.use('/docs', fastApiProxy);
+app.use('/openapi.json', fastApiProxy);
+app.use('/redoc', fastApiProxy);
+
 // MongoDB Connection with enhanced error handling for Cloud Run
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/uwo_database';
 console.log('🚀 Attempting to connect to MongoDB URI:', MONGO_URI.replace(/:[^@]+@/, ":****@"));
@@ -4327,6 +4393,10 @@ app.post('/api/team-members', auth, checkPermission('team.create'), (req, res, n
                 if (
                     req.path.startsWith('/api') ||
                     req.path.startsWith('/r/') ||
+                    req.path.startsWith('/m') ||
+                    req.path.startsWith('/docs') ||
+                    req.path.startsWith('/openapi.json') ||
+                    req.path.startsWith('/redoc') ||
                     req.path.startsWith('/affiliate') ||
                     req.path.startsWith('/uploads')
                 ) {

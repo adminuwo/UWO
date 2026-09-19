@@ -1,20 +1,21 @@
 #!/usr/bin/env bash
-# Deploy Unified Dashboard to Google Cloud Run
+# Deploy Service 3 (uwo-unified-dashboard) to Google Cloud Run
 set -e
 
-# Configuration Defaults (Override via environment variables if desired)
 PROJECT_ID=${GCP_PROJECT_ID:-$(gcloud config get-value project 2>/dev/null)}
-REGION=${GCP_REGION:-"us-central1"}
-SERVICE_NAME=${SERVICE_NAME:-"unified-dashboard"}
-REPO_NAME=${REPO_NAME:-"unified-dashboard-repo"}
+REGION=${GCP_REGION:-"asia-south1"}
+SERVICE_NAME=${SERVICE_NAME:-"uwo-unified-dashboard"}
+REPO_NAME=${REPO_NAME:-"uwo-docker-repo"}
 IMAGE_NAME="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${SERVICE_NAME}:latest"
+BACKEND_API_URL=${BACKEND_API_URL:-"https://uwo-unified-core-977864306871.asia-south1.run.app"}
 
 echo "========================================================"
-echo " Deploying Unified Dashboard to GCP Cloud Run"
-echo " Project ID:   ${PROJECT_ID}"
-echo " Region:       ${REGION}"
-echo " Service Name: ${SERVICE_NAME}"
-echo " Image:        ${IMAGE_NAME}"
+echo " Deploying Service 3: Unified Dashboard Frontend"
+echo " Project ID:      ${PROJECT_ID}"
+echo " Region:          ${REGION}"
+echo " Service Name:    ${SERVICE_NAME}"
+echo " Image:           ${IMAGE_NAME}"
+echo " Backend Core API: ${BACKEND_API_URL}"
 echo "========================================================"
 
 if [ -z "${PROJECT_ID}" ]; then
@@ -30,7 +31,7 @@ gcloud artifacts repositories describe "${REPO_NAME}" --location="${REGION}" --p
 gcloud artifacts repositories create "${REPO_NAME}" \
   --repository-format=docker \
   --location="${REGION}" \
-  --description="Docker repository for Unified Dashboard" \
+  --description="Docker repository for Unified Platform" \
   --project="${PROJECT_ID}"
 
 echo "3. Building and submitting image via Cloud Build..."
@@ -43,10 +44,15 @@ gcloud run deploy "${SERVICE_NAME}" \
   --platform=managed \
   --allow-unauthenticated \
   --port=8080 \
+  --memory=512Mi \
+  --cpu=1 \
+  --min-instances=0 \
+  --max-instances=10 \
+  --set-env-vars "BACKEND_API_URL=${BACKEND_API_URL}" \
   --project="${PROJECT_ID}"
 
 echo "========================================================"
-echo " Deployment Complete!"
-echo " Service URL:"
+echo " Service 3 Deployment Complete!"
+echo " Service 3 URL:"
 gcloud run services describe "${SERVICE_NAME}" --region="${REGION}" --project="${PROJECT_ID}" --format='value(status.url)'
 echo "========================================================"

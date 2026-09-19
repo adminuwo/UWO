@@ -6,7 +6,7 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
-    # Gzip Compression for fast delivery
+    # Gzip Compression
     gzip on;
     gzip_vary on;
     gzip_proxied any;
@@ -36,20 +36,34 @@ server {
         return 200 "healthy\n";
     }
 
-    # Static Vite Assets (Fingerprinted Chunks) - 1 Year Cache
-    location ~* \.(?:css|js|woff2?|eot|ttf|otf|svg|gif|png|jpe?g|ico|webp|avif)$ {
+    # Static Assets under /user/assets/ or /assets/
+    location ~* ^(?:/user)?/assets/(.*\.(?:css|js|woff2?|eot|ttf|otf|svg|gif|png|jpe?g|ico|webp|avif))$ {
+        alias /usr/share/nginx/html/assets/$1;
         expires 1y;
         add_header Cache-Control "public, max-age=31536000, immutable";
         access_log off;
     }
 
-    # Dynamic Runtime Environment Config - Never Cache
-    location = /env-config.js {
+    # Dynamic Runtime Environment Config under /user/env-config.js or /env-config.js
+    location ~* ^(?:/user)?/env-config\.js$ {
+        alias /usr/share/nginx/html/env-config.js;
         expires -1;
         add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
     }
 
-    # SPA Routing Fallback - Always serve index.html for client-side routing
+    # Handle /user/ subpath from GCP Load Balancer Rule 5
+    location ^~ /user/ {
+        alias /usr/share/nginx/html/;
+        try_files $uri $uri/ /index.html;
+        add_header Cache-Control "no-cache, must-revalidate";
+    }
+
+    # Redirect /user without slash to /user/
+    location = /user {
+        return 301 /user/;
+    }
+
+    # Fallback for direct / requests
     location / {
         try_files $uri $uri/ /index.html;
         add_header Cache-Control "no-cache, must-revalidate";

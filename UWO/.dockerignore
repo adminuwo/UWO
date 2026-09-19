@@ -1,5 +1,6 @@
 node_modules
 */node_modules
+*/*/node_modules
 .git
 .env
 .env.*
@@ -12,3 +13,9 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+__pycache__
+*/__pycache__
+*/*/__pycache__
+*.pyc
+*.pyo
+.pytest_cache
