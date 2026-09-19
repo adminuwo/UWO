@@ -171,14 +171,16 @@ if os.path.exists(frontend_dist_dir):
         app.mount("/app/assets", StaticFiles(directory=assets_dir), name="app_assets")
         app.mount("/assets", StaticFiles(directory=assets_dir), name="dist_assets")
     app.mount("/app", StaticFiles(directory=frontend_dist_dir, html=True), name="frontend_dist")
-else:
+elif os.path.exists(frontend_src_dir):
     app.mount("/app", StaticFiles(directory=frontend_src_dir, html=True), name="frontend_src")
 
 
 @app.get("/", include_in_schema=False)
 def root_redirect():
-    """Redirect root path to the Web Dashboard."""
-    return RedirectResponse(url="/app/")
+    """Root endpoint for health and redirection."""
+    if os.path.exists(frontend_dist_dir):
+        return RedirectResponse(url="/app/")
+    return {"status": "ok", "service": "unified-backend"}
 
 
 @app.get("/app/{full_path:path}", include_in_schema=False)

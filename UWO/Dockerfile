@@ -44,6 +44,7 @@ RUN npm ci --only=production
 
 # Copy backend source code (including unified/ and referral/)
 COPY UWO-B/ ./
+RUN if [ ! -f ./unified/.env ] && [ -f ./unified/.env.txt ]; then cp ./unified/.env.txt ./unified/.env; fi
 
 # Copy all static assets from UWO-F into public folder
 COPY UWO-F/ ./public/

@@ -29,7 +29,7 @@ trap cleanup SIGINT SIGTERM
 # 2. Wait for FastAPI to be responsive
 echo "⏳ Waiting for FastAPI service to initialize..."
 for i in $(seq 1 30); do
-    if curl -s "http://127.0.0.1:${PYTHON_PORT}/docs" > /dev/null 2>&1 || curl -s "http://127.0.0.1:${PYTHON_PORT}/api" > /dev/null 2>&1; then
+    if curl -s "http://127.0.0.1:${PYTHON_PORT}/api/health" > /dev/null 2>&1 || curl -s "http://127.0.0.1:${PYTHON_PORT}/" > /dev/null 2>&1; then
         echo "✅ FastAPI engine is online and responding."
         break
     fi
