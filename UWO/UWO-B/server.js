@@ -75,6 +75,23 @@ app.get('/api', (req, res) => {
     res.send('<h2>UWO Backend is Active and Running</h2><p>Server connected securely to MongoDB & Vertex AI.</p>');
 });
 
+app.get('/api/debug/fastapi', (req, res) => {
+    let logContent = 'No log file found';
+    try {
+        if (fs.existsSync('/tmp/fastapi.log')) {
+            logContent = fs.readFileSync('/tmp/fastapi.log', 'utf8');
+        }
+    } catch (e) {
+        logContent = e.message;
+    }
+    res.json({
+        time: new Date().toISOString(),
+        fastapi_target: FASTAPI_TARGET,
+        python_port: process.env.PYTHON_PORT || 8000,
+        log: logContent
+    });
+});
+
 // Affiliate Module Router Mount with live reloading
 app.use('/api/affiliate', (req, res, next) => {
     try { delete require.cache[require.resolve('./affiliate/routes')]; } catch (e) { }
