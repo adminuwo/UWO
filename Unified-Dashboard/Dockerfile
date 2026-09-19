@@ -37,7 +37,7 @@ RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
 
 # Cloud Run default port
 ENV PORT=8080
-ENV BACKEND_API_URL="http://localhost:8080"
+ENV BACKEND_API_URL="https://uwo24.com"
 
 EXPOSE 8080
 
