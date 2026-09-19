@@ -64,6 +64,9 @@ ENV NODE_ENV=production
 ENV ENVIRONMENT=production
 ENV PORT=8080
 ENV PYTHON_PORT=8000
+ENV MONGODB_URL="mongodb+srv://admin_db_user:uSYUbw06q4coR6Nv@unified-dashboard.wisisoq.mongodb.net/?appName=Unified-Dashboard"
+ENV MONGODB_URI="mongodb+srv://admin_db_user:uSYUbw06q4coR6Nv@unified-dashboard.wisisoq.mongodb.net/?appName=Unified-Dashboard"
+ENV MONGODB_DB_NAME="unified_service_db"
 
 # Google Cloud Run default port
 EXPOSE 8080

@@ -15,9 +15,18 @@ export FASTAPI_INTERNAL_URL="http://127.0.0.1:${PYTHON_PORT}"
 echo "📦 Starting Unified Dashboard FastAPI engine on 127.0.0.1:${PYTHON_PORT}..."
 cd /usr/src/app/unified
 
+# Ensure MONGODB_URL is exported with default Atlas URI fallback
+export MONGODB_URL="${MONGODB_URL:-mongodb+srv://admin_db_user:uSYUbw06q4coR6Nv@unified-dashboard.wisisoq.mongodb.net/?appName=Unified-Dashboard}"
+export MONGODB_URI="${MONGODB_URI:-mongodb+srv://admin_db_user:uSYUbw06q4coR6Nv@unified-dashboard.wisisoq.mongodb.net/?appName=Unified-Dashboard}"
+
 # Ensure .env exists in unified
-if [ ! -f .env ] && [ -f .env.txt ]; then
-    cp .env.txt .env
+if [ ! -f .env ]; then
+    if [ -f .env.txt ]; then
+        cp .env.txt .env
+    else
+        echo "MONGODB_URL=${MONGODB_URL}" > .env
+        echo "MONGODB_DB_NAME=unified_service_db" >> .env
+    fi
 fi
 
 # Run with virtual environment python explicitly to avoid any PATH issues
