@@ -2,7 +2,7 @@
 set -e
 
 export PORT="${PORT:-8080}"
-export BACKEND_API_URL="${BACKEND_API_URL:-http://localhost:8080}"
+export BACKEND_API_URL="${BACKEND_API_URL:-https://uwo24.com}"
 # Strip trailing slash if present
 export BACKEND_API_URL=$(echo "$BACKEND_API_URL" | sed 's:/*$::')
 
