@@ -158,7 +158,7 @@ export const MarketingCampaignsTab = () => {
 
   const handleSimulateUserClick = async (code, deviceType = 'desktop') => {
     try {
-      const res = await fetch('http://localhost:8080/api/conversions/simulate-click', {
+      const res = await fetch('/api/conversions/simulate-click', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, deviceType }),
