@@ -2,6 +2,10 @@ node_modules/
 .env
 .env.*
 !.env.example
+!Unified-Dashboard/frontend/.env
+!Unified-Dashboard/frontend/.env.*
+!frontend/.env
+!frontend/.env.*
 .DS_Store
 dist/
 build/

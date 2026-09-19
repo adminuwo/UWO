@@ -14,6 +14,9 @@ RUN npm ci || npm install
 # Copy frontend source code
 COPY frontend/ ./
 
+ARG VITE_API_URL=https://uwo24.com
+ENV VITE_API_URL=$VITE_API_URL
+
 # Build production bundle (outputs to /app/dist)
 RUN npm run build
 
