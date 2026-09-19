@@ -181,28 +181,37 @@ const unifiedAuthProxy = createProxyMiddleware({
     }
 });
 
-// Specific FastAPI auth endpoints (central identity)
-app.use('/api/auth/validate', fastApiProxy);
-app.use('/api/auth/refresh', fastApiProxy);
-app.use('/api/auth/verify-reset-otp', fastApiProxy);
-app.use('/api/unified-auth', unifiedAuthProxy);
+// Helper to preserve full original URL when passing through Express mount points
+const forwardToFastApi = (req, res, next) => {
+    req.url = req.originalUrl;
+    return fastApiProxy(req, res, next);
+};
 
-// Core Unified Dashboard FastAPI endpoints
-app.use('/api/admin', fastApiProxy);
-app.use('/api/telemetry', fastApiProxy);
-app.use('/api/applications', fastApiProxy);
-app.use('/api/verification', fastApiProxy);
-app.use('/api/payment', fastApiProxy);
-app.use('/api/logs', fastApiProxy);
-app.use('/api/analytics', fastApiProxy);
-app.use('/api/unified-analytics', fastApiProxy);
-app.use('/api/revenue', fastApiProxy);
-app.use('/api/marketing', fastApiProxy);
-app.use('/api/web-stats', fastApiProxy);
-app.use('/m', fastApiProxy);
-app.use('/docs', fastApiProxy);
-app.use('/openapi.json', fastApiProxy);
-app.use('/redoc', fastApiProxy);
+// Specific FastAPI auth endpoints (central identity)
+app.use('/api/auth/validate', forwardToFastApi);
+app.use('/api/auth/refresh', forwardToFastApi);
+app.use('/api/auth/verify-reset-otp', forwardToFastApi);
+app.use('/api/unified-auth', (req, res, next) => {
+    req.url = req.originalUrl;
+    return unifiedAuthProxy(req, res, next);
+});
+
+// Core Unified Dashboard FastAPI endpoints (routed with full path preserved)
+app.use('/api/admin', forwardToFastApi);
+app.use('/api/telemetry', forwardToFastApi);
+app.use('/api/applications', forwardToFastApi);
+app.use('/api/verification', forwardToFastApi);
+app.use('/api/payment', forwardToFastApi);
+app.use('/api/logs', forwardToFastApi);
+app.use('/api/analytics', forwardToFastApi);
+app.use('/api/unified-analytics', forwardToFastApi);
+app.use('/api/revenue', forwardToFastApi);
+app.use('/api/marketing', forwardToFastApi);
+app.use('/api/web-stats', forwardToFastApi);
+app.use('/m', forwardToFastApi);
+app.use('/docs', forwardToFastApi);
+app.use('/openapi.json', forwardToFastApi);
+app.use('/redoc', forwardToFastApi);
 
 // MongoDB Connection with enhanced error handling for Cloud Run
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/uwo_database';
