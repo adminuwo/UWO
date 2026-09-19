@@ -15,7 +15,8 @@ server {
     gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml application/javascript application/json;
 
     # Reverse proxy API requests to Service 1 (Unified Backend)
-    location /api {
+    # ^~ priority modifier ensures static regex doesn't capture /api/*.js (like /api/web-stats/tracker.js)
+    location ^~ /api {
         proxy_pass ${BACKEND_API_URL}/api;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
@@ -26,21 +27,21 @@ server {
     }
 
     # Reverse proxy short URL redirect routes
-    location /m {
+    location ^~ /m {
         proxy_pass ${BACKEND_API_URL}/m;
         proxy_http_version 1.1;
         proxy_set_header Host uwo24.com;
         proxy_ssl_server_name on;
     }
 
+    # Cache static frontend assets exclusively under /assets/
+    location ~* ^/assets/.*\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+        expires 1y;
+        add_header Cache-Control "public, no-transform";
+    }
+
     # SPA routing fallback
     location / {
         try_files $uri $uri/ /index.html;
-    }
-
-    # Cache static assets
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
-        expires 1y;
-        add_header Cache-Control "public, no-transform";
     }
 }
