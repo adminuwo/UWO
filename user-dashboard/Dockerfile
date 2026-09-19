@@ -32,9 +32,6 @@ RUN apk add --no-cache gettext
 # Copy compiled assets from builder
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Create symlink for /user path compatibility
-RUN ln -s /usr/share/nginx/html /usr/share/nginx/html/user || true
-
 # Copy Nginx configuration template and entrypoint script
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY entrypoint.sh /entrypoint.sh

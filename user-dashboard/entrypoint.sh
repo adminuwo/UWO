@@ -28,12 +28,8 @@ done
 
 echo "};" >> "$CONFIG_FILE"
 
-# Also ensure /user/env-config.js exists directly
-mkdir -p /usr/share/nginx/html/user
-cp -f "$CONFIG_FILE" /usr/share/nginx/html/user/env-config.js
-
 echo "📋 Runtime Environment Configuration generated:"
 cat "$CONFIG_FILE"
 echo ""
-echo "🌟 Starting Nginx web server..."
+echo "🌟 Starting Nginx web server on port ${PORT}..."
 exec nginx -g 'daemon off;'

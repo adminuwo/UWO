@@ -1,6 +1,5 @@
 server {
     listen ${PORT};
-    listen [::]:${PORT};
     server_name _;
 
     root /usr/share/nginx/html;
@@ -30,40 +29,29 @@ server {
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
     # Health Check Endpoint for Cloud Run / GCP Load Balancers
-    location /healthz {
+    location = /healthz {
         access_log off;
         default_type text/plain;
         return 200 "healthy\n";
     }
 
-    # Static Assets under /user/assets/ or /assets/
-    location ~* ^(?:/user)?/assets/(.*\.(?:css|js|woff2?|eot|ttf|otf|svg|gif|png|jpe?g|ico|webp|avif))$ {
-        alias /usr/share/nginx/html/assets/$1;
+    # Rewrite /user and /user/* requests from GCP Load Balancer Rule 5 internally to root
+    rewrite ^/user/?(.*)$ /$1 last;
+
+    # Dynamic Runtime Environment Config - Never Cache
+    location = /env-config.js {
+        expires -1;
+        add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
+    }
+
+    # Static Assets (Fingerprinted) - 1 Year Cache
+    location ~* \.(?:css|js|woff2?|eot|ttf|otf|svg|gif|png|jpe?g|ico|webp|avif)$ {
         expires 1y;
         add_header Cache-Control "public, max-age=31536000, immutable";
         access_log off;
     }
 
-    # Dynamic Runtime Environment Config under /user/env-config.js or /env-config.js
-    location ~* ^(?:/user)?/env-config\.js$ {
-        alias /usr/share/nginx/html/env-config.js;
-        expires -1;
-        add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
-    }
-
-    # Handle /user/ subpath from GCP Load Balancer Rule 5
-    location ^~ /user/ {
-        alias /usr/share/nginx/html/;
-        try_files $uri $uri/ /index.html;
-        add_header Cache-Control "no-cache, must-revalidate";
-    }
-
-    # Redirect /user without slash to /user/
-    location = /user {
-        return 301 /user/;
-    }
-
-    # Fallback for direct / requests
+    # SPA Routing Fallback - Always serve index.html for client-side routing
     location / {
         try_files $uri $uri/ /index.html;
         add_header Cache-Control "no-cache, must-revalidate";
