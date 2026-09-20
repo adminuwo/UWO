@@ -4406,13 +4406,27 @@ app.post('/api/team-members', auth, checkPermission('team.create'), (req, res, n
         // -------------------------------------------------------------
         // Serve Frontend Static Files & SPA Routing (Unified Container)
         // -------------------------------------------------------------
-        const frontendDistPath = path.join(__dirname, 'public');
+        const frontendDistPath = fs.existsSync(path.join(__dirname, 'public'))
+            ? path.join(__dirname, 'public')
+            : path.join(__dirname, '../UWO-F/dist');
+
         if (fs.existsSync(frontendDistPath)) {
             console.log(`📦 Serving frontend static files from: ${frontendDistPath}`);
             // Redirect /user to /user/ so GCP Load Balancer matches /user/* and routes to uwo-user
             app.get('/user', (req, res) => {
                 res.redirect(301, '/user/');
             });
+
+            // Serve static files (HTML, JS, CSS, images, etc.) with proper MIME types
+            app.use(express.static(frontendDistPath, {
+                maxAge: '1h',
+                etag: true,
+                setHeaders: (res, filePath) => {
+                    if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+                        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+                    }
+                }
+            }));
 
             // SPA fallback: send index.html for all non-API GET requests (Express 5 compatible)
             app.use((req, res, next) => {
@@ -4431,6 +4445,12 @@ app.post('/api/team-members', auth, checkPermission('team.create'), (req, res, n
                 ) {
                     return next();
                 }
+
+                // If requesting a missing static file (e.g. broken /assets/*.js), return 404 instead of index.html
+                if (req.path.startsWith('/assets/') || /\.(js|css|map|png|jpg|jpeg|gif|svg|ico|woff2?|ttf|eot)$/i.test(req.path)) {
+                    return res.status(404).send('Not Found');
+                }
+
                 res.sendFile(path.join(frontendDistPath, 'index.html'));
             });
         }
