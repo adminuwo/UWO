@@ -383,34 +383,41 @@ export const UserReferralsView = ({
 
                       {/* Referral Code & URL */}
                       <td style={{ padding: '14px 16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ fontFamily: 'monospace', fontWeight: '800', color: '#818CF8' }}>{l.code}</span>
-                          <button
-                            onClick={() => handleCopy(l.fullUrl, 'Referral Link')}
-                            title="Copy full tracking link"
-                            style={{
-                              background: '#1E293B',
-                              border: '1px solid #334155',
-                              color: '#94A3B8',
-                              borderRadius: '6px',
-                              padding: '2px 8px',
-                              fontSize: '11px',
-                              cursor: 'pointer',
-                            }}
-                          >
-                            📋 Copy
-                          </button>
-                          <a
-                            href={l.fullUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title="Open redirection link"
-                            style={{ color: '#38BDF8', textDecoration: 'none', fontSize: '12px' }}
-                          >
-                            ↗
-                          </a>
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>{l.fullUrl}</div>
+                        {(() => {
+                          const cleanUrl = (l.fullUrl || '').replace(/^https?:\/\/admin\.uwo24\.com\/r\//i, 'https://uwo24.com/r/');
+                          return (
+                            <>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontFamily: 'monospace', fontWeight: '800', color: '#818CF8' }}>{l.code}</span>
+                                <button
+                                  onClick={() => handleCopy(cleanUrl, 'Referral Link')}
+                                  title="Copy full tracking link"
+                                  style={{
+                                    background: '#1E293B',
+                                    border: '1px solid #334155',
+                                    color: '#94A3B8',
+                                    borderRadius: '6px',
+                                    padding: '2px 8px',
+                                    fontSize: '11px',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  📋 Copy
+                                </button>
+                                <a
+                                  href={cleanUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title="Open redirection link"
+                                  style={{ color: '#38BDF8', textDecoration: 'none', fontSize: '12px' }}
+                                >
+                                  ↗
+                                </a>
+                              </div>
+                              <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>{cleanUrl}</div>
+                            </>
+                          );
+                        })()}
                       </td>
 
                       {/* Clicks */}

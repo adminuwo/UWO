@@ -88,11 +88,20 @@ export default function DashboardPage({ user, onLogout }) {
     }
   };
 
+  const sanitizeReferralUrl = (url, code) => {
+    if (!url) return code ? `https://uwo24.com/r/${code}` : '';
+    return url.replace(/^https?:\/\/admin\.uwo24\.com\/r\//i, 'https://uwo24.com/r/');
+  };
+
   const loadLinks = async () => {
     try {
       const data = await api.getLinks();
       if (data.links) {
-        setLinks(data.links);
+        const sanitized = data.links.map(link => ({
+          ...link,
+          fullUrl: sanitizeReferralUrl(link.fullUrl, link.code)
+        }));
+        setLinks(sanitized);
       }
     } catch (err) {
       console.error('Failed to load links:', err);

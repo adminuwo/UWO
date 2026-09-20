@@ -20,7 +20,7 @@ function generateNanoId(size = 5) {
 }
 
 function getReferralBaseUrl(req) {
-  if (process.env.REFERRAL_BASE_URL) {
+  if (process.env.REFERRAL_BASE_URL && !process.env.REFERRAL_BASE_URL.includes('admin.uwo24.com')) {
     return process.env.REFERRAL_BASE_URL.replace(/\/+$/, '');
   }
   const host = req.get('host') || '';
