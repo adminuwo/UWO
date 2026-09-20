@@ -584,7 +584,7 @@ exports.submitReferral = async (req, res) => {
 
         let userDashboardUserId = '';
         let userDashboardPassword = '';
-        let userDashboardLoginUrl = process.env.REFERRAL_DASHBOARD_URL || 'http://localhost:5173/login';
+        let userDashboardLoginUrl = process.env.REFERRAL_DASHBOARD_URL || 'https://uwo24.com/user';
 
         try {
             const RefUser = require('../referral/models/RefUser');

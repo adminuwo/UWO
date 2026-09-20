@@ -1620,8 +1620,8 @@ app.post('/api/referrals', async (req, res) => {
         // ================= CREATE REFERRAL-USER ACCOUNT IN USER DASHBOARD =================
         let userDashboardUserId = '';
         let userDashboardPassword = '';
-        const frontendUrl = process.env.REFERRAL_FRONTEND_URL || process.env.FRONTEND_URL || 'http://localhost:5173';
-        let userDashboardLoginUrl = `${frontendUrl}/login`;
+        const frontendUrl = process.env.REFERRAL_FRONTEND_URL || process.env.FRONTEND_URL || 'https://uwo24.com/user';
+        let userDashboardLoginUrl = frontendUrl.includes('localhost') ? `${frontendUrl}/login` : frontendUrl;
 
         try {
             const RefUser = require('./referral/models/RefUser');
