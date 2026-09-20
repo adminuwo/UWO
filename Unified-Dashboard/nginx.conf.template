@@ -34,6 +34,14 @@ server {
         proxy_ssl_server_name on;
     }
 
+    # Reverse proxy referral redirect routes (backward compatibility for any shared admin.uwo24.com/r/ links)
+    location ^~ /r {
+        proxy_pass ${BACKEND_API_URL}/r;
+        proxy_http_version 1.1;
+        proxy_set_header Host uwo24.com;
+        proxy_ssl_server_name on;
+    }
+
     # Cache static frontend assets exclusively under /assets/
     location ~* ^/assets/.*\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
         expires 1y;

@@ -147,7 +147,10 @@ class UserReferralService:
                 })
 
                 code = l.get("code", "")
-                redirect_base = base_url.rstrip('/') if base_url else "https://admin.uwo24.com"
+                if base_url and ("localhost" in base_url or "127.0.0.1" in base_url):
+                    redirect_base = base_url.rstrip('/')
+                else:
+                    redirect_base = "https://uwo24.com"
 
                 links_out.append({
                     "id": str(l["_id"]),
