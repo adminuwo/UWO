@@ -102,15 +102,6 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
               )}
             </button>
           </form>
-
-          <div className="mt-6 pt-6 border-t border-slate-800 text-center">
-            <button
-              onClick={() => onNavigate('home')}
-              className="text-xs text-indigo-400 hover:text-indigo-300 font-medium hover:underline cursor-pointer"
-            >
-              ← Back to homepage
-            </button>
-          </div>
         </div>
 
         <div className="flex items-center justify-center gap-2 mt-6 text-slate-500 text-xs">

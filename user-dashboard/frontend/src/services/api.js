@@ -2,7 +2,7 @@ const rawBase = (typeof window !== 'undefined' && window._env_ && window._env_.V
   ? window._env_.VITE_API_BASE_URL
   : (import.meta.env.VITE_API_BASE_URL !== undefined
       ? import.meta.env.VITE_API_BASE_URL
-      : (import.meta.env.DEV ? 'http://localhost:5000' : ''));
+      : (import.meta.env.DEV ? 'http://localhost:8080' : ''));
 
 const API_BASE = (rawBase || '').replace(/\/+$/, '');
 

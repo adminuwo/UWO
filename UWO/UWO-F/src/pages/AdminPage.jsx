@@ -1,26 +1,27 @@
-import React from 'react';
+import { useEffect } from 'react';
 
 export default function AdminPage() {
+  useEffect(() => {
+    const adminUrl =
+      window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:5174'
+        : 'https://admin.uwo24.com';
+    window.location.replace(adminUrl);
+  }, []);
+
   return (
     <div
       style={{
-        width: '100%',
         minHeight: '100vh',
         background: '#0f172a',
         display: 'flex',
-        flexDirection: 'column'
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#94a3b8',
+        fontFamily: 'sans-serif'
       }}
     >
-      <iframe
-        src="/admin.html"
-        title="UWO Admin Portal"
-        style={{
-          width: '100%',
-          height: '100vh',
-          border: 'none',
-          display: 'block'
-        }}
-      />
+      <p>Redirecting to Unified Admin Dashboard...</p>
     </div>
   );
 }

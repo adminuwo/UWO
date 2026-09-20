@@ -12,7 +12,7 @@
 const rawBaseUrl = 
   (typeof import.meta !== 'undefined' && import.meta.env && (import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL)) ||
   (typeof window !== 'undefined' && window.__ENV__ && (window.__ENV__.VITE_API_URL || window.__ENV__.BACKEND_API_URL)) ||
-  'https://uwo24.com';
+  (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV ? 'http://localhost:8080' : 'https://uwo24.com');
 
 // Clean trailing slashes
 export const API_BASE_URL = (rawBaseUrl || '').replace(/\/+$/, '');

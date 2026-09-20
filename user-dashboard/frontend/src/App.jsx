@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import { api, getToken, removeToken } from './services/api';
-import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState('home'); // 'home' | 'login' | 'dashboard'
+  const [currentPage, setCurrentPage] = useState('login'); // 'login' | 'dashboard'
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -58,14 +57,10 @@ export default function App() {
     return <DashboardPage user={user} onLogout={handleLogout} />;
   }
 
-  if (currentPage === 'login') {
-    return (
-      <LoginPage
-        onLoginSuccess={handleLoginSuccess}
-        onNavigate={(page) => setCurrentPage(page)}
-      />
-    );
-  }
-
-  return <HomePage onNavigate={(page) => setCurrentPage(page)} />;
+  return (
+    <LoginPage
+      onLoginSuccess={handleLoginSuccess}
+      onNavigate={(page) => setCurrentPage(page)}
+    />
+  );
 }

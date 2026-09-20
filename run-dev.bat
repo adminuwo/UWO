@@ -5,7 +5,7 @@ echo ===================================================
 echo.
 
 echo [1/5] Starting Internal FastAPI Engine on http://localhost:8000...
-start "FastAPI Internal Engine [Port 8000]" cmd /k "cd /d "%~dp0UWO\UWO-B\unified" && python -m uvicorn src.main:app --port 8000 --reload"
+start "FastAPI Internal Engine [Port 8000]" cmd /k "cd /d "%~dp0UWO\UWO-B\unified" && if exist .venv\Scripts\python.exe (.venv\Scripts\python.exe -m uvicorn src.main:app --port 8000 --reload) else (python -m uvicorn src.main:app --port 8000 --reload)"
 echo.
 
 echo [2/5] Starting Unified Core Backend on http://localhost:8080...

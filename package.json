@@ -3,8 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev:backend": "npm --prefix UWO-Main/UWO-B start",
-    "dev:frontend": "npm --prefix UWO-Main/UWO-F run dev",
-    "install:all": "npm --prefix UWO-Main/UWO-B install && npm --prefix UWO-Main/UWO-F install"
+    "dev:backend": "npm --prefix UWO/UWO-B start",
+    "dev:frontend": "npm --prefix UWO/UWO-F run dev",
+    "dev:user-dashboard": "npm --prefix user-dashboard/frontend run dev",
+    "dev:unified-dashboard": "npm --prefix Unified-Dashboard/frontend run dev",
+    "install:all": "npm --prefix UWO/UWO-B install && npm --prefix UWO/UWO-F install && npm --prefix user-dashboard/frontend install && npm --prefix Unified-Dashboard/frontend install"
   }
 }

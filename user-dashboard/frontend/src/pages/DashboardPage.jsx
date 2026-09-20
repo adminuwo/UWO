@@ -381,22 +381,6 @@ export default function DashboardPage({ user, onLogout }) {
 
           <div className="flex items-center gap-2 sm:gap-3">
             <button
-              onClick={() => setActiveModal('simulator')}
-              className="px-3 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/50 text-xs font-semibold text-indigo-200 flex items-center gap-1.5 transition-colors cursor-pointer shadow-md shadow-indigo-600/20"
-            >
-              <Sparkles className="w-4 h-4 text-indigo-400" />
-              <span>Device Simulator 🧪</span>
-            </button>
-
-            <button
-              onClick={() => setActiveModal('attributionInfo')}
-              className="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-xs font-medium text-emerald-300 flex items-center gap-1.5 transition-colors cursor-pointer"
-            >
-              <Download className="w-4 h-4" />
-              <span className="hidden sm:inline">Attribution Guide</span>
-            </button>
-
-            <button
               onClick={() => setActiveModal('manageProjects')}
               className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer"
             >
@@ -410,15 +394,6 @@ export default function DashboardPage({ user, onLogout }) {
             >
               <PackagePlus className="w-4 h-4" />
               <span className="hidden sm:inline">Add Project</span>
-            </button>
-
-            <button
-              onClick={() => setActiveModal('embedCode')}
-              className="p-1.5 sm:px-3 sm:py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-300 flex items-center gap-1.5 cursor-pointer"
-              title="Website Button Code"
-            >
-              <Code2 className="w-4 h-4 text-indigo-400" />
-              <span className="hidden md:inline">Embed Code</span>
             </button>
 
             <div className="h-6 w-px bg-slate-800" />
@@ -836,7 +811,7 @@ export default function DashboardPage({ user, onLogout }) {
               <History className="w-8 h-8 text-slate-600 mx-auto mb-2 opacity-60" />
               <p>No referral activity recorded yet.</p>
               <p className="text-xs text-slate-600 mt-1">
-                Share your referral links or use the Device Simulator to trigger live events.
+                Share your referral links to track live events and conversions.
               </p>
             </div>
           ) : (
