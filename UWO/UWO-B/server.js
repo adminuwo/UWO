@@ -3525,6 +3525,19 @@ async function seedTeamMembers() {
                     short_description: 'Engineers automation pipelines and intelligence integration engines.',
                     full_biography: '',
                     linkedin: 'https://linkedin.com'
+                },
+                {
+                    name: 'Milind Jha',
+                    designation: 'Marketing Executive',
+                    image: 'images/milind-jha.png',
+                    display_order: 18,
+                    status: 'active',
+                    is_leadership: false,
+                    category: 'Marketing',
+                    short_description: 'Drives marketing initiatives, campaign execution, and brand outreach across the UWO ecosystem.',
+                    full_biography: '<p>Milind Jha serves as a Marketing Executive at UWO, driving multi-channel marketing campaigns, user engagement strategies, and digital brand expansion across ecosystem platforms.</p>',
+                    email: 'm.jha1432@gmail.com',
+                    linkedin: 'https://linkedin.com'
                 }
         ];
         for (const dm of defaultMembers) {

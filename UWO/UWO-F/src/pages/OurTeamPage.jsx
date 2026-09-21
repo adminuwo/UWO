@@ -128,6 +128,9 @@ export default function OurTeamPage() {
             if (n.includes('aman kharare')) {
               return { ...m, image: 'images/aman-kharare..webp', designation: 'Business Development Associate' };
             }
+            if (n.includes('milind jha')) {
+              return { ...m, image: 'images/milind-jha.png', designation: 'Marketing Executive' };
+            }
             return m;
           });
 
@@ -391,6 +394,16 @@ export default function OurTeamPage() {
         is_leadership: false,
         image: 'images/team-8..webp',
         full_biography: ''
+      },
+      {
+        _id: '18',
+        name: 'Milind Jha',
+        designation: 'Marketing Executive',
+        category: 'Marketing',
+        is_leadership: false,
+        image: 'images/milind-jha.png',
+        short_description: 'Drives marketing initiatives, campaign execution, and brand outreach across the UWO ecosystem.',
+        full_biography: '<p>Milind Jha serves as a Marketing Executive at UWO, driving multi-channel marketing campaigns, user engagement strategies, and digital brand expansion across ecosystem platforms.</p>'
       }
     ];
   }
@@ -402,6 +415,7 @@ export default function OurTeamPage() {
     if (img.includes('sandeep-yadav')) return '/images/sandeep-yadav..webp';
     if (img.includes('sukhmani-kaur')) return '/images/sukhmani-kaur..webp';
     if (img.includes('aman-kharare')) return '/images/aman-kharare..webp';
+    if (img.includes('milind-jha')) return '/images/milind-jha.png';
     if (img.startsWith('http://') || img.startsWith('https://')) return img;
     if (img.includes('storage.googleapis.com/uwo-document/')) {
       const objectPath = img.split('storage.googleapis.com/uwo-document/')[1];
