@@ -30,7 +30,7 @@ async function getUnifiedDb() {
 
 /**
  * Upserts a referral link into marketing_links collection in unified_service_db
- * so that https://admin.uwo24.com/r/:code redirects properly across Android, iOS & Desktop.
+ * so that https://uwo24.com/r/:code redirects properly across Android, iOS & Desktop.
  */
 async function syncLinkToMarketing(link, product) {
   try {

@@ -203,12 +203,20 @@ export const MarketingCampaignsTab = () => {
 
   const getShortUrl = (linkObj) => {
     if (!linkObj) return '';
-    // If backend provided a custom short URL that doesn't point to localhost, use it
-    if (linkObj.short_url && !linkObj.short_url.includes('localhost') && !linkObj.short_url.includes('127.0.0.1')) {
+    const code = linkObj.slug || linkObj.code;
+    if (!code) return '';
+
+    const origin = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
+      ? window.location.origin
+      : 'https://uwo24.com';
+
+    if (linkObj.short_url && /^https?:\/\//i.test(linkObj.short_url)) {
+      if (!linkObj.short_url.includes('localhost') && !linkObj.short_url.includes('127.0.0.1')) {
+        return linkObj.short_url.replace(/https?:\/\/admin\.uwo24\.com/gi, 'https://uwo24.com');
+      }
       return linkObj.short_url;
     }
-    // In production or browser, dynamically use current window origin (e.g. https://unified.aisa24.com)
-    return `${window.location.origin}/r/${linkObj.slug}`;
+    return `${origin}/r/${code}`;
   };
 
   const handleCopy = (text, label) => {
@@ -263,6 +271,12 @@ export const MarketingCampaignsTab = () => {
             notes: notes.trim() || undefined,
           }),
         });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          const errMsg = errData.detail || errData.message || `Server error (${res.status})`;
+          alert(`Failed to create marketing link: ${errMsg}`);
+          return;
+        }
         const data = await res.json();
         result = [data];
       } else {
@@ -280,13 +294,28 @@ export const MarketingCampaignsTab = () => {
             notes: notes.trim() || undefined,
           }),
         });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          const errMsg = errData.detail || errData.message || `Server error (${res.status})`;
+          alert(`Failed to create marketing links: ${errMsg}`);
+          return;
+        }
         result = await res.json();
       }
 
-      setGeneratedBatchResult(Array.isArray(result) ? result : [result]);
-      fetchData();
+      const validLinks = (Array.isArray(result) ? result : [result]).filter(
+        (l) => l && (l.slug || l.code)
+      );
+
+      if (validLinks.length > 0) {
+        setGeneratedBatchResult(validLinks);
+        fetchData();
+      } else {
+        alert('Failed to generate marketing link. Please check parameters and try again.');
+      }
     } catch (err) {
       console.error('Failed to create marketing links:', err);
+      alert('Network error while creating marketing link.');
     } finally {
       setIsSubmitting(false);
     }
@@ -1492,9 +1521,9 @@ export const MarketingCampaignsTab = () => {
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                           <span style={{ fontWeight: '800', fontSize: '13px' }}>
-                            {p.icon} {p.name} — {resLink.post_name}
+                            {p.icon} {p.name} — {resLink.post_name || 'Link'}
                           </span>
-                          <span style={{ color: '#94A3B8', fontSize: '11px' }}>/r/{resLink.slug}</span>
+                          <span style={{ color: '#94A3B8', fontSize: '11px' }}>/r/{resLink.slug || resLink.code}</span>
                         </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <input

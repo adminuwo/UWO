@@ -237,7 +237,9 @@ class MarketingService:
         
         # Build short redirect URL
         base_host = base_request_url.rstrip('/') if base_request_url else ""
-        doc["short_url"] = f"{base_host}/r/{slug}" if base_host else f"/r/{slug}"
+        if not base_host or "admin.uwo24.com" in base_host:
+            base_host = "https://uwo24.com"
+        doc["short_url"] = f"{base_host}/r/{slug}"
         return doc
 
     @staticmethod
@@ -294,6 +296,8 @@ class MarketingService:
         cursor = db.marketing_links.find(query).sort("created_at", -1).limit(limit)
         results = []
         base_host = base_request_url.rstrip('/') if base_request_url else ""
+        if not base_host or "admin.uwo24.com" in base_host:
+            base_host = "https://uwo24.com"
 
         for item in cursor:
             item["id"] = str(item["_id"])
@@ -306,7 +310,7 @@ class MarketingService:
             item["unique_installs"] = int(item.get("unique_installs") or 0)
             total_c = item.get("total_clicks", 0)
             item["conversion_rate"] = round((item["total_downloads"] / total_c * 100), 1) if total_c > 0 else 0.0
-            item["short_url"] = f"{base_host}/r/{item['slug']}" if base_host else f"/r/{item['slug']}"
+            item["short_url"] = f"{base_host}/r/{item['slug']}"
             results.append(item)
 
         return results
@@ -1036,7 +1040,9 @@ class MarketingService:
         link["id"] = str(link["_id"])
         link["_id"] = str(link["_id"])
         base_host = base_request_url.rstrip('/') if base_request_url else ""
-        link["short_url"] = f"{base_host}/r/{link['slug']}" if base_host else f"/r/{link['slug']}"
+        if not base_host or "admin.uwo24.com" in base_host:
+            base_host = "https://uwo24.com"
+        link["short_url"] = f"{base_host}/r/{link['slug']}"
 
         # Get device and browser breakdown for this link
         clicks = list(db.marketing_clicks.find({"slug": link["slug"]}).sort("timestamp", -1).limit(50))

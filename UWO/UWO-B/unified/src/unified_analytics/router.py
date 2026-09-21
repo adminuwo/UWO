@@ -80,7 +80,7 @@ def get_tracker_script():
         return u.origin;
       }
     } catch(e){}
-    return window.location.hostname === 'localhost' ? window.location.origin : 'https://admin.uwo24.com';
+    return window.location.hostname === 'localhost' ? window.location.origin : 'https://uwo24.com';
   })();
   var endpoint = (script && (script.getAttribute('data-endpoint') || script.dataset.endpoint)) || (scriptOrigin + '/api/web-stats/collect');
   var visitorId = localStorage.getItem('_unf_vis') || (function(){

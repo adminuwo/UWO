@@ -19,16 +19,14 @@ redirect_router = APIRouter(tags=["Public Redirector"])
 
 
 def _get_base_url(request: Request) -> str:
-    """Resolve current public host base URL."""
-    if settings.SHORT_LINK_BASE_URL:
+    """Resolve current public host base URL for marketing & referral short links."""
+    if settings.SHORT_LINK_BASE_URL and "admin.uwo24.com" not in settings.SHORT_LINK_BASE_URL:
         return settings.SHORT_LINK_BASE_URL.rstrip('/')
     proto = request.headers.get("x-forwarded-proto", request.url.scheme)
-    host = request.headers.get("x-forwarded-host") or request.headers.get("host")
-    if host and "localhost" not in host and "127.0.0.1" not in host:
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host") or ""
+    if "localhost" in host or "127.0.0.1" in host:
         return f"{proto}://{host}"
-    if settings.BACKEND_URL and "localhost" not in settings.BACKEND_URL and "127.0.0.1" not in settings.BACKEND_URL:
-        return settings.BACKEND_URL.rstrip('/')
-    return f"{proto}://{host or 'localhost:8000'}"
+    return "https://uwo24.com"
 
 
 # ==============================================================================
