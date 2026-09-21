@@ -252,6 +252,24 @@ export default function BlogSinglePage() {
     }
   };
 
+  const getAuthorDetails = (authorName = '') => {
+    const a = (authorName || '').toLowerCase();
+    const isFounder = a.includes('gurumukh') || a.includes('ahuja') || a.includes('founder');
+    if (isFounder) {
+      return {
+        image: '/images/founder..webp',
+        isPerson: true,
+        bio: "Founder & CEO at UWO™ (Unified Web Options & Services Pvt Ltd), architecting India's unified AI ecosystem from Madhya Pradesh."
+      };
+    }
+    return {
+      image: '/images/uwo-logo.png',
+      isPerson: false,
+      bio: "UWO's core engineering and product research teams collaborate to analyze and publish deep insights on autonomous intelligence architectures, decentralized digital commerce, and universal scale systems."
+    };
+  };
+
+  const authorDetails = getAuthorDetails(blog?.author);
   const avatarInitial = (blog?.author || 'UWO').charAt(0).toUpperCase();
 
   return (
@@ -505,15 +523,21 @@ export default function BlogSinglePage() {
           width: 75px;
           height: 75px;
           border-radius: 50%;
-          background: linear-gradient(135deg, var(--champagne), #E8C87A);
+          background: #FFFFFF;
+          border: 2px solid var(--champagne);
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #fff;
-          font-weight: 900;
-          font-size: 28px;
           flex-shrink: 0;
-          box-shadow: 0 8px 20px rgba(201, 166, 107, 0.25);
+          box-shadow: 0 8px 20px rgba(201, 166, 107, 0.20);
+          overflow: hidden;
+        }
+
+        .single-theme-page .author-avatar-img {
+          width: 100%;
+          height: 100%;
+          border-radius: 50%;
+          display: block;
         }
 
         /* ---- SIDEBAR ---- */
@@ -788,13 +812,34 @@ export default function BlogSinglePage() {
 
               {/* Author Biography */}
               <div className="author-bio">
-                <div className="author-avatar">{avatarInitial}</div>
+                <div 
+                  className="author-avatar"
+                  style={{
+                    padding: authorDetails.isPerson ? '0' : '8px',
+                    background: '#FFFFFF',
+                    border: '2px solid rgba(201, 166, 107, 0.45)'
+                  }}
+                >
+                  <img
+                    src={authorDetails.image}
+                    alt={blog.author || 'UWO Core Team'}
+                    className="author-avatar-img"
+                    style={{
+                      objectFit: authorDetails.isPerson ? 'cover' : 'contain',
+                      objectPosition: 'center'
+                    }}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = '/images/logo..webp';
+                    }}
+                  />
+                </div>
                 <div>
                   <h3 style={{ margin: '0 0 8px 0', color: '#1F1A17', fontSize: '18px', fontWeight: 800 }}>
                     {blog.author || 'UWO Intelligence Desk'}
                   </h3>
                   <p style={{ margin: 0, color: '#6E6257', fontSize: '14px', lineHeight: 1.6 }}>
-                    UWO's core engineering and product research teams collaborate to analyze and publish deep insights on autonomous intelligence architectures, decentralized digital commerce, and universal scale systems.
+                    {blog.authorBio || authorDetails.bio}
                   </p>
                 </div>
               </div>

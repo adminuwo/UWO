@@ -675,6 +675,7 @@ export const MarketingCampaignsTab = () => {
           loading={userReferralLoading}
           onRefresh={() => fetchUserReferrals(false)}
           onSimulateClick={handleSimulateUserClick}
+          token={token}
         />
       ) : (
         <>

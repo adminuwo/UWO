@@ -42,19 +42,7 @@ export default function DashboardPage({ user, onLogout }) {
   const [activeModal, setActiveModal] = useState(null); // 'addProduct' | 'editProduct' | 'embedCode' | 'qrCode' | 'manageProjects' | 'attributionInfo'
   const [selectedQrLink, setSelectedQrLink] = useState(null);
 
-  // Add / Edit Project form state
-  const [projectForm, setProjectForm] = useState({
-    id: '',
-    name: '',
-    description: '',
-    webUrl: '',
-    androidUrl: '',
-    iosUrl: '',
-  });
-  const [savingProduct, setSavingProduct] = useState(false);
-  const [deletingId, setDeletingId] = useState(null);
   const [deletingLinkId, setDeletingLinkId] = useState(null);
-  const [productMessage, setProductMessage] = useState({ type: '', text: '' });
   const [linkMessage, setLinkMessage] = useState({ type: '', text: '' });
 
   // iOS Simulation Testing State
@@ -135,105 +123,6 @@ export default function DashboardPage({ user, onLogout }) {
       setLinkMessage({ type: 'error', text: err.message });
     } finally {
       setGenerating(false);
-    }
-  };
-
-  const openAddProjectModal = () => {
-    setProjectForm({
-      id: '',
-      name: '',
-      description: '',
-      webUrl: '',
-      androidUrl: '',
-      iosUrl: '',
-    });
-    setProductMessage({ type: '', text: '' });
-    setActiveModal('addProduct');
-  };
-
-  const openEditProjectModal = (prod) => {
-    setProjectForm({
-      id: prod._id,
-      name: prod.name,
-      description: prod.description || '',
-      webUrl: prod.webUrl || '',
-      androidUrl: prod.androidUrl || '',
-      iosUrl: prod.iosUrl || '',
-    });
-    setProductMessage({ type: '', text: '' });
-    setActiveModal('editProduct');
-  };
-
-  const handleSaveProject = async (e) => {
-    e.preventDefault();
-    setProductMessage({ type: '', text: '' });
-
-    const hasWeb = projectForm.webUrl && projectForm.webUrl.trim().length > 0;
-    const hasAndroid = projectForm.androidUrl && projectForm.androidUrl.trim().length > 0;
-    const hasIos = projectForm.iosUrl && projectForm.iosUrl.trim().length > 0;
-
-    if (!hasWeb && !hasAndroid && !hasIos) {
-      setProductMessage({
-        type: 'error',
-        text: 'At least one URL (Web, Android Play Store, or iOS App Store) is required.',
-      });
-      return;
-    }
-
-    setSavingProduct(true);
-
-    try {
-      if (projectForm.id) {
-        await api.updateProduct(projectForm.id, {
-          name: projectForm.name,
-          description: projectForm.description,
-          webUrl: projectForm.webUrl,
-          androidUrl: projectForm.androidUrl,
-          iosUrl: projectForm.iosUrl,
-        });
-        setProductMessage({ type: 'success', text: 'Project updated successfully in MongoDB!' });
-      } else {
-        await api.addProduct({
-          name: projectForm.name,
-          description: projectForm.description,
-          webUrl: projectForm.webUrl,
-          androidUrl: projectForm.androidUrl,
-          iosUrl: projectForm.iosUrl,
-        });
-        setProductMessage({ type: 'success', text: 'Project added successfully to MongoDB!' });
-      }
-
-      await loadProducts();
-      await loadLinks();
-
-      setTimeout(() => {
-        setActiveModal(null);
-        setProductMessage({ type: '', text: '' });
-      }, 1000);
-    } catch (err) {
-      setProductMessage({ type: 'error', text: err.message });
-    } finally {
-      setSavingProduct(false);
-    }
-  };
-
-  const handleDeleteProject = async (id, name) => {
-    if (!window.confirm(`Are you sure you want to delete "${name}"? This will also remove any referral links generated for this project.`)) {
-      return;
-    }
-
-    setDeletingId(id);
-    try {
-      await api.deleteProduct(id);
-      if (selectedProductId === id) {
-        setSelectedProductId('');
-      }
-      await loadProducts();
-      await loadLinks();
-    } catch (err) {
-      alert(`Failed to delete: ${err.message}`);
-    } finally {
-      setDeletingId(null);
     }
   };
 
@@ -391,18 +280,10 @@ export default function DashboardPage({ user, onLogout }) {
           <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={() => setActiveModal('manageProjects')}
-              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer"
-            >
-              <FolderGit2 className="w-4 h-4 text-indigo-400" />
-              <span className="hidden md:inline">Projects ({products.length})</span>
-            </button>
-
-            <button
-              onClick={openAddProjectModal}
               className="px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-xs font-medium text-indigo-300 flex items-center gap-1.5 transition-colors cursor-pointer"
             >
-              <PackagePlus className="w-4 h-4" />
-              <span className="hidden sm:inline">Add Project</span>
+              <FolderGit2 className="w-4 h-4 text-indigo-400" />
+              <span>Official Ecosystem Projects ({products.length})</span>
             </button>
 
             <div className="h-6 w-px bg-slate-800" />
@@ -432,15 +313,15 @@ export default function DashboardPage({ user, onLogout }) {
               Welcome back, {user?.name}! 👋
             </h1>
             <p className="text-sm text-slate-400 mt-1">
-              Centralized referral tracking across all UWO products (AISA, AI Legal, AI Ads, AI CashFlow, AI Mall, AISA Connect, EFV, and corporate platforms).
+              Centralized referral tracking across official UWO ecosystem products (AISA, AI Legal, AI Ads, AI CashFlow, AI Mall, AISA Connect, EFV, and corporate platforms).
             </p>
           </div>
           <button
-            onClick={openAddProjectModal}
-            className="self-start sm:self-auto px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition-all cursor-pointer"
+            onClick={() => setActiveModal('manageProjects')}
+            className="self-start sm:self-auto px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold rounded-xl shadow-md flex items-center gap-2 transition-all cursor-pointer"
           >
-            <PackagePlus className="w-4 h-4" />
-            <span>+ Add New Project</span>
+            <FolderGit2 className="w-4 h-4 text-indigo-400" />
+            <span>Browse Ecosystem Projects ({products.length})</span>
           </button>
         </div>
 
@@ -538,7 +419,7 @@ export default function DashboardPage({ user, onLogout }) {
                   className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   {products.length === 0 ? (
-                    <option value="">No projects found in MongoDB (click Add Project)</option>
+                    <option value="">No projects found. Please contact administrator.</option>
                   ) : (
                     products.map((prod) => (
                       <option key={prod._id} value={prod._id}>
@@ -569,14 +450,11 @@ export default function DashboardPage({ user, onLogout }) {
               <div className="mt-6 p-4 rounded-xl bg-slate-900/80 border border-slate-800 text-xs space-y-2">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-semibold text-slate-300">
-                    Routing Configuration for "{selectedProduct.name}":
+                    Official Routing Configuration for "{selectedProduct.name}":
                   </span>
-                  <button
-                    onClick={() => openEditProjectModal(selectedProduct)}
-                    className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-medium cursor-pointer"
-                  >
-                    <Pencil className="w-3 h-3" /> Edit Project
-                  </button>
+                  <span className="text-[11px] text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 font-medium">
+                    Admin Managed
+                  </span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800">
@@ -1118,146 +996,6 @@ export default function DashboardPage({ user, onLogout }) {
         </div>
       )}
 
-      {/* Modal: Add or Edit Project */}
-      {(activeModal === 'addProduct' || activeModal === 'editProduct') && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg p-6 shadow-2xl relative">
-            <button
-              onClick={() => setActiveModal(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 rounded-lg bg-indigo-600/20 text-indigo-400 border border-indigo-500/30">
-                {activeModal === 'editProduct' ? <Pencil className="w-5 h-5" /> : <PackagePlus className="w-5 h-5" />}
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-white">
-                  {activeModal === 'editProduct' ? 'Edit Project' : 'Add New Project'}
-                </h3>
-                <p className="text-xs text-slate-400">
-                  All link fields are optional, but at least 1 destination link is necessary.
-                </p>
-              </div>
-            </div>
-
-            {productMessage.text && (
-              <div
-                className={`mb-4 p-3 rounded-xl text-xs flex items-center gap-2 ${
-                  productMessage.type === 'success'
-                    ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
-                    : 'bg-red-500/10 border border-red-500/30 text-red-400'
-                }`}
-              >
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                <span>{productMessage.text}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSaveProject} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Project / Product Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={projectForm.name}
-                  onChange={(e) => setProjectForm({ ...projectForm, name: e.target.value })}
-                  placeholder="e.g. My SaaS Platform or Fitness App"
-                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs focus:ring-2 focus:ring-indigo-500 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Description (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={projectForm.description}
-                  onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })}
-                  placeholder="Short note about the project"
-                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs focus:ring-2 focus:ring-indigo-500 outline-none"
-                />
-              </div>
-
-              <div className="pt-2 border-t border-slate-800">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-slate-200">Destination Links:</span>
-                  <span className="text-[11px] text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
-                    Fill any 1, 2, or all 3
-                  </span>
-                </div>
-
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-blue-400 mb-1 flex items-center gap-1.5">
-                      <Laptop className="w-3.5 h-3.5" />
-                      Desktop / Laptop Web URL (Optional)
-                    </label>
-                    <input
-                      type="url"
-                      value={projectForm.webUrl}
-                      onChange={(e) => setProjectForm({ ...projectForm, webUrl: e.target.value })}
-                      placeholder="https://yourwebsite.com/signup"
-                      className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs focus:ring-2 focus:ring-indigo-500 outline-none font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-green-400 mb-1 flex items-center gap-1.5">
-                      <Smartphone className="w-3.5 h-3.5" />
-                      Android Google Play Store URL (Optional)
-                    </label>
-                    <input
-                      type="url"
-                      value={projectForm.androidUrl}
-                      onChange={(e) => setProjectForm({ ...projectForm, androidUrl: e.target.value })}
-                      placeholder="https://play.google.com/store/apps/details?id=com.your.app"
-                      className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs focus:ring-2 focus:ring-indigo-500 outline-none font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
-                      <Apple className="w-3.5 h-3.5" />
-                      iOS Apple App Store URL (Optional)
-                    </label>
-                    <input
-                      type="url"
-                      value={projectForm.iosUrl}
-                      onChange={(e) => setProjectForm({ ...projectForm, iosUrl: e.target.value })}
-                      placeholder="https://apps.apple.com/app/your-app/id123456789"
-                      className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs focus:ring-2 focus:ring-indigo-500 outline-none font-mono"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-3 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setActiveModal(null)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingProduct}
-                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-semibold rounded-xl shadow-md cursor-pointer"
-                >
-                  {savingProduct ? 'Saving to MongoDB...' : activeModal === 'editProduct' ? 'Save Changes' : 'Add Project'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* Modal: App Download Attribution & First-Open Simulation */}
       {activeModal === 'attributionInfo' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
@@ -1369,7 +1107,7 @@ Body: { "referralCode": "code_from_play_store" }`}
         </div>
       )}
 
-      {/* Modal: Manage All Projects */}
+      {/* Modal: Browse Ecosystem Projects */}
       {activeModal === 'manageProjects' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-3xl p-6 shadow-2xl relative max-h-[85vh] flex flex-col">
@@ -1386,31 +1124,26 @@ Body: { "referralCode": "code_from_play_store" }`}
                   <FolderGit2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">Manage Projects</h3>
-                  <p className="text-xs text-slate-400">View, edit destination links, or delete projects from MongoDB.</p>
+                  <h3 className="text-lg font-bold text-white">Official Ecosystem Projects & Destination Links</h3>
+                  <p className="text-xs text-slate-400">
+                    Official projects configured by administrators. Select any project to generate your personalized referral link.
+                  </p>
                 </div>
               </div>
-              <button
-                onClick={openAddProjectModal}
-                className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer mr-6"
-              >
-                <PlusCircle className="w-4 h-4" />
-                <span>Add Project</span>
-              </button>
             </div>
 
             <div className="overflow-y-auto flex-1 space-y-3 pr-1">
               {products.length === 0 ? (
                 <div className="py-12 text-center text-slate-500 text-xs">
-                  No projects currently in MongoDB. Click "Add Project" to create one.
+                  No ecosystem projects currently active. Please contact administrator.
                 </div>
               ) : (
                 products.map((prod) => (
                   <div
                     key={prod._id}
-                    className="p-4 rounded-xl bg-slate-950 border border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    className="p-4 rounded-xl bg-slate-950 border border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-slate-700 transition-colors"
                   >
-                    <div className="space-y-1 max-w-md">
+                    <div className="space-y-1.5 max-w-md">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-white text-sm">{prod.name}</span>
                         <span className="text-[10px] font-mono text-indigo-400 bg-indigo-950/60 px-2 py-0.5 rounded border border-indigo-800/40">
@@ -1420,52 +1153,67 @@ Body: { "referralCode": "code_from_play_store" }`}
                       {prod.description && (
                         <p className="text-xs text-slate-400">{prod.description}</p>
                       )}
-                      <div className="flex items-center gap-2 pt-1 text-[10px]">
-                        <span
-                          className={`px-2 py-0.5 rounded flex items-center gap-1 ${
-                            prod.webUrl
-                              ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                              : 'bg-slate-800/40 text-slate-600 border border-slate-800'
-                          }`}
-                        >
-                          <Laptop className="w-3 h-3" /> {prod.webUrl ? 'Web Link' : 'No Web'}
-                        </span>
-                        <span
-                          className={`px-2 py-0.5 rounded flex items-center gap-1 ${
-                            prod.androidUrl
-                              ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                              : 'bg-slate-800/40 text-slate-600 border border-slate-800'
-                          }`}
-                        >
-                          <Smartphone className="w-3 h-3" /> {prod.androidUrl ? 'Play Store' : 'No Android'}
-                        </span>
-                        <span
-                          className={`px-2 py-0.5 rounded flex items-center gap-1 ${
-                            prod.iosUrl
-                              ? 'bg-slate-500/10 text-slate-300 border border-slate-500/20'
-                              : 'bg-slate-800/40 text-slate-600 border border-slate-800'
-                          }`}
-                        >
-                          <Apple className="w-3 h-3" /> {prod.iosUrl ? 'App Store' : 'No iOS'}
-                        </span>
+                      <div className="flex flex-wrap items-center gap-2 pt-1 text-[10px]">
+                        {prod.webUrl ? (
+                          <a
+                            href={prod.webUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-2 py-0.5 rounded flex items-center gap-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:underline"
+                            title={prod.webUrl}
+                          >
+                            <Laptop className="w-3 h-3" /> Web App
+                          </a>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded flex items-center gap-1 bg-slate-800/40 text-slate-600 border border-slate-800">
+                            <Laptop className="w-3 h-3" /> No Web
+                          </span>
+                        )}
+
+                        {prod.androidUrl ? (
+                          <a
+                            href={prod.androidUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-2 py-0.5 rounded flex items-center gap-1 bg-green-500/10 text-green-400 border border-green-500/20 hover:underline"
+                            title={prod.androidUrl}
+                          >
+                            <Smartphone className="w-3 h-3" /> Play Store
+                          </a>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded flex items-center gap-1 bg-slate-800/40 text-slate-600 border border-slate-800">
+                            <Smartphone className="w-3 h-3" /> No Android
+                          </span>
+                        )}
+
+                        {prod.iosUrl ? (
+                          <a
+                            href={prod.iosUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-2 py-0.5 rounded flex items-center gap-1 bg-slate-500/10 text-slate-300 border border-slate-500/20 hover:underline"
+                            title={prod.iosUrl}
+                          >
+                            <Apple className="w-3 h-3" /> App Store
+                          </a>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded flex items-center gap-1 bg-slate-800/40 text-slate-600 border border-slate-800">
+                            <Apple className="w-3 h-3" /> No iOS
+                          </span>
+                        )}
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2 self-end sm:self-center">
                       <button
-                        onClick={() => openEditProjectModal(prod)}
-                        className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                        onClick={() => {
+                          setSelectedProductId(prod._id);
+                          setActiveModal(null);
+                        }}
+                        className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md shadow-indigo-600/30 cursor-pointer"
                       >
-                        <Pencil className="w-3.5 h-3.5 text-indigo-400" />
-                        <span>Edit</span>
-                      </button>
-                      <button
-                        onClick={() => handleDeleteProject(prod._id, prod.name)}
-                        disabled={deletingId === prod._id}
-                        className="px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>{deletingId === prod._id ? 'Deleting...' : 'Delete'}</span>
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Select to Generate</span>
                       </button>
                     </div>
                   </div>
@@ -1476,7 +1224,7 @@ Body: { "referralCode": "code_from_play_store" }`}
             <div className="pt-4 border-t border-slate-800 flex justify-end">
               <button
                 onClick={() => setActiveModal(null)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl"
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl cursor-pointer"
               >
                 Close
               </button>
