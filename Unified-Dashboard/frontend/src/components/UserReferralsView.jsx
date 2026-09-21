@@ -523,15 +523,15 @@ export const UserReferralsView = ({
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
               <thead>
                 <tr style={{ background: '#1E293B', color: '#94A3B8', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.6px' }}>
-                  <th style={{ padding: '12px 16px' }}>Referrer User</th>
-                  <th style={{ padding: '12px 16px' }}>User ID</th>
-                  <th style={{ padding: '12px 16px' }}>Product</th>
-                  <th style={{ padding: '12px 16px' }}>Referral Link & Code</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'center' }}>Clicks</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'center' }}>Unique</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'center' }}>Downloads</th>
-                  <th style={{ padding: '12px 16px' }}>Created</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'center' }}>Quick Test</th>
+                  <th style={{ padding: '12px 16px', minWidth: '170px' }}>Referrer User</th>
+                  <th style={{ padding: '12px 16px', minWidth: '110px', whiteSpace: 'nowrap' }}>User ID</th>
+                  <th style={{ padding: '12px 16px', minWidth: '120px', whiteSpace: 'nowrap' }}>Product</th>
+                  <th style={{ padding: '12px 16px', minWidth: '320px' }}>Referral Link & Code</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'center', minWidth: '70px', whiteSpace: 'nowrap' }}>Clicks</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'center', minWidth: '70px', whiteSpace: 'nowrap' }}>Unique</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'center', minWidth: '90px', whiteSpace: 'nowrap' }}>Downloads</th>
+                  <th style={{ padding: '12px 16px', minWidth: '95px', whiteSpace: 'nowrap' }}>Created</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'center', minWidth: '110px', whiteSpace: 'nowrap' }}>Quick Test</th>
                 </tr>
               </thead>
               <tbody>
@@ -559,17 +559,19 @@ export const UserReferralsView = ({
                       </td>
 
                       {/* User ID */}
-                      <td style={{ padding: '14px 16px' }}>
+                      <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
                         <span
                           style={{
                             background: 'rgba(250, 190, 86, 0.12)',
                             color: '#FABE56',
-                            padding: '3px 8px',
+                            padding: '4px 9px',
                             borderRadius: '6px',
                             fontFamily: 'monospace',
                             fontWeight: '700',
                             fontSize: '12px',
                             border: '1px solid rgba(250, 190, 86, 0.3)',
+                            whiteSpace: 'nowrap',
+                            display: 'inline-block',
                           }}
                         >
                           {l.userId}
@@ -577,7 +579,7 @@ export const UserReferralsView = ({
                       </td>
 
                       {/* Product */}
-                      <td style={{ padding: '14px 16px' }}>
+                      <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
                         <span
                           style={{
                             background: '#1E293B',
@@ -587,6 +589,8 @@ export const UserReferralsView = ({
                             fontWeight: '700',
                             fontSize: '12px',
                             border: '1px solid #334155',
+                            whiteSpace: 'nowrap',
+                            display: 'inline-block',
                           }}
                         >
                           {l.product?.name || 'UWO Product'}
@@ -594,93 +598,128 @@ export const UserReferralsView = ({
                       </td>
 
                       {/* Referral Code & URL */}
-                      <td style={{ padding: '14px 16px' }}>
+                      <td style={{ padding: '14px 16px', minWidth: '320px' }}>
                         {(() => {
-                          const cleanUrl = (l.fullUrl || '').replace(/^https?:\/\/admin\.uwo24\.com\/r\//i, 'https://uwo24.com/r/');
+                          const cleanUrl = l.code 
+                            ? `https://uwo24.com/r/${l.code}` 
+                            : ((l.fullUrl || '').replace(/^https?:\/\/[^\/]+\/r\//i, 'https://uwo24.com/r/'));
                           return (
-                            <>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                <span style={{ fontFamily: 'monospace', fontWeight: '800', color: '#818CF8' }}>{l.code}</span>
-                                <button
-                                  onClick={() => handleCopy(cleanUrl, 'Referral Link')}
-                                  title="Copy full tracking link"
-                                  style={{
-                                    background: '#1E293B',
-                                    border: '1px solid #334155',
-                                    color: '#94A3B8',
-                                    borderRadius: '6px',
-                                    padding: '2px 8px',
-                                    fontSize: '11px',
-                                    cursor: 'pointer',
-                                  }}
-                                >
-                                  📋 Link
-                                </button>
-                                <button
-                                  onClick={() => handleCopy(l.code, 'Referral Code')}
-                                  title="Copy referral code only"
-                                  style={{
-                                    background: '#1E293B',
-                                    border: '1px solid #334155',
-                                    color: '#94A3B8',
-                                    borderRadius: '6px',
-                                    padding: '2px 8px',
-                                    fontSize: '11px',
-                                    cursor: 'pointer',
-                                  }}
-                                >
-                                  🏷️ Code
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    setUserQrModal({
-                                      code: l.code,
-                                      fullUrl: cleanUrl,
-                                      productName: l.product?.name,
-                                      userName: l.user?.name,
-                                    })
-                                  }
-                                  title="Show QR Code"
-                                  style={{
-                                    background: '#1E293B',
-                                    border: '1px solid #334155',
-                                    color: '#F59E0B',
-                                    borderRadius: '6px',
-                                    padding: '2px 8px',
-                                    fontSize: '11px',
-                                    cursor: 'pointer',
-                                  }}
-                                >
-                                  🏁 QR
-                                </button>
-                                <a
-                                  href={cleanUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  title="Open redirection link"
-                                  style={{ color: '#38BDF8', textDecoration: 'none', fontSize: '13px', marginLeft: '2px' }}
-                                >
-                                  ↗
-                                </a>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                <span style={{ fontFamily: 'monospace', fontWeight: '800', color: '#818CF8', fontSize: '13px', whiteSpace: 'nowrap' }}>
+                                  {l.code}
+                                </span>
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
+                                  <button
+                                    onClick={() => handleCopy(cleanUrl, 'Referral Link')}
+                                    title="Copy full tracking link"
+                                    style={{
+                                      background: '#1E293B',
+                                      border: '1px solid #334155',
+                                      color: '#94A3B8',
+                                      borderRadius: '6px',
+                                      padding: '3px 8px',
+                                      fontSize: '11px',
+                                      fontWeight: '600',
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    📋 Link
+                                  </button>
+                                  <button
+                                    onClick={() => handleCopy(l.code, 'Referral Code')}
+                                    title="Copy referral code only"
+                                    style={{
+                                      background: '#1E293B',
+                                      border: '1px solid #334155',
+                                      color: '#94A3B8',
+                                      borderRadius: '6px',
+                                      padding: '3px 8px',
+                                      fontSize: '11px',
+                                      fontWeight: '600',
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    🏷️ Code
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      setUserQrModal({
+                                        code: l.code,
+                                        fullUrl: cleanUrl,
+                                        productName: l.product?.name,
+                                        userName: l.user?.name,
+                                      })
+                                    }
+                                    title="Show QR Code"
+                                    style={{
+                                      background: '#1E293B',
+                                      border: '1px solid #334155',
+                                      color: '#F59E0B',
+                                      borderRadius: '6px',
+                                      padding: '3px 8px',
+                                      fontSize: '11px',
+                                      fontWeight: '600',
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    🏁 QR
+                                  </button>
+                                  <a
+                                    href={cleanUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title="Open redirection link"
+                                    style={{
+                                      background: '#1E293B',
+                                      border: '1px solid #334155',
+                                      color: '#38BDF8',
+                                      textDecoration: 'none',
+                                      borderRadius: '6px',
+                                      padding: '2px 7px',
+                                      fontSize: '12px',
+                                      fontWeight: '700',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                    }}
+                                  >
+                                    ↗
+                                  </a>
+                                </div>
                               </div>
-                              <div style={{ fontSize: '11px', color: '#64748B', marginTop: '3px' }}>{cleanUrl}</div>
-                            </>
+                              <div style={{ fontSize: '11px', color: '#64748B', fontFamily: 'monospace', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {cleanUrl}
+                              </div>
+                            </div>
                           );
                         })()}
                       </td>
 
                       {/* Clicks */}
-                      <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                      <td style={{ padding: '14px 16px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <span style={{ fontWeight: '900', fontSize: '15px', color: '#38BDF8' }}>{l.clicks}</span>
                       </td>
 
                       {/* Unique Clicks */}
-                      <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                      <td style={{ padding: '14px 16px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <span style={{ fontWeight: '800', fontSize: '13px', color: '#34D399' }}>{l.uniqueClicks || 0}</span>
                       </td>
 
                       {/* Downloads */}
-                      <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                      <td style={{ padding: '14px 16px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <span
                           style={{
                             fontWeight: '900',
@@ -696,7 +735,7 @@ export const UserReferralsView = ({
                       </td>
 
                       {/* Created At */}
-                      <td style={{ padding: '14px 16px', color: '#94A3B8', fontSize: '12px' }}>
+                      <td style={{ padding: '14px 16px', color: '#94A3B8', fontSize: '12px', whiteSpace: 'nowrap' }}>
                         {l.createdAt ? new Date(l.createdAt).toLocaleDateString() : 'Active'}
                       </td>
 

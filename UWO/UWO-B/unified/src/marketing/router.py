@@ -22,10 +22,6 @@ def _get_base_url(request: Request) -> str:
     """Resolve current public host base URL for marketing & referral short links."""
     if settings.SHORT_LINK_BASE_URL and "admin.uwo24.com" not in settings.SHORT_LINK_BASE_URL:
         return settings.SHORT_LINK_BASE_URL.rstrip('/')
-    proto = request.headers.get("x-forwarded-proto", request.url.scheme)
-    host = request.headers.get("x-forwarded-host") or request.headers.get("host") or ""
-    if "localhost" in host or "127.0.0.1" in host:
-        return f"{proto}://{host}"
     return "https://uwo24.com"
 
 
@@ -34,8 +30,28 @@ def _get_base_url(request: Request) -> str:
 # ==============================================================================
 @router.get("/config", summary="Get supported products & platform metadata")
 async def get_marketing_config():
+    catalog = dict(PRODUCT_CATALOG)
+    try:
+        from src.marketing.referral_service import get_uwo_db
+        uwo_db = get_uwo_db()
+        for p in uwo_db.ref_products.find({"active": True}):
+            slug = p.get("slug")
+            if slug:
+                existing = catalog.get(slug, {})
+                catalog[slug] = {
+                    "name": p.get("name") or existing.get("name") or slug,
+                    "url": p.get("webUrl") or existing.get("url") or "",
+                    "web_url": p.get("webUrl") or existing.get("web_url") or "",
+                    "play_store_url": p.get("androidUrl") or existing.get("play_store_url") or "",
+                    "app_store_url": p.get("iosUrl") or existing.get("app_store_url") or "",
+                    "description": p.get("description") or existing.get("description") or "",
+                    "color": existing.get("color") or "#3B82F6",
+                }
+    except Exception as e:
+        print(f"[Marketing Config] Dynamic catalog fetch notice: {e}")
+
     return {
-        "products": PRODUCT_CATALOG,
+        "products": catalog,
         "platforms": PLATFORM_CONFIG,
     }
 
