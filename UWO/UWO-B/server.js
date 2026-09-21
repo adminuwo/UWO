@@ -3762,6 +3762,8 @@ app.get('/api/team-members/public', async (req, res) => {
                 members[idx].image = reqMem.image;
                 if (!members[idx].designation) members[idx].designation = reqMem.designation;
             }
+        });
+
         const getSectionRank = (m) => {
             if (m.is_leadership) return 1;
             const cat = (m.category || '').toLowerCase();
