@@ -3364,10 +3364,8 @@ async function seedTeamMembers() {
             }
         }
 
-        const count = await TeamMember.countDocuments();
-        if (count === 0) {
-            console.log('🌱 Seeding default team members with new schema...');
-            const defaultMembers = [
+        console.log('🌱 Checking and seeding default team members...');
+        const defaultMembers = [
                 {
                     name: 'Gurumukh P. Ahuja',
                     designation: 'Founder & Director',
@@ -3528,10 +3526,18 @@ async function seedTeamMembers() {
                     full_biography: '',
                     linkedin: 'https://linkedin.com'
                 }
-            ];
-            await TeamMember.insertMany(defaultMembers);
-            console.log('✅ Default team members seeded successfully');
+        ];
+        for (const dm of defaultMembers) {
+            const cleanName = (dm.name || '').trim();
+            const existing = await TeamMember.findOne({
+                name: new RegExp('^' + cleanName.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + '$', 'i')
+            });
+            if (!existing) {
+                await TeamMember.create(dm);
+                console.log(`✅ Default member ${dm.name} added to database`);
+            }
         }
+        console.log('✅ Default team members verification complete');
     } catch (err) {
         console.error('❌ Error seeding team members:', err.message);
     }

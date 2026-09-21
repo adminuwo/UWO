@@ -101,6 +101,15 @@ export default function OurTeamPage() {
             }
           });
 
+          // Also guarantee all standard team members (Leadership & Core Collective) are present
+          const defaultTeam = getDefaultTeam();
+          defaultTeam.forEach(defMem => {
+            const idx = filtered.findIndex(m => (m.name || '').toLowerCase().includes(defMem.name.toLowerCase()));
+            if (idx === -1) {
+              filtered.push(defMem);
+            }
+          });
+
           // Guarantee clean portrait images for all special members & normalize names
           filtered = filtered.map(m => {
             const n = (m.name || '').toLowerCase();
