@@ -11,7 +11,7 @@ const DEFAULT_BLOGS = [
     readTime: 3,
     views: 140,
     createdAt: '2026-08-06T12:17:39.508Z',
-    coverImage: null,
+    coverImage: 'https://storage.googleapis.com/uwo-document/blogs/images/blog-1786018463038-52f42a85.webp',
     seoDescription: 'Every day, professionals switch between multiple apps just to complete one task. One tool to search for information, one to write, one to analyze data—the list goes on.',
     is_featured: true
   },
@@ -23,7 +23,7 @@ const DEFAULT_BLOGS = [
     readTime: 3,
     views: 98,
     createdAt: '2026-08-05T00:00:00Z',
-    coverImage: null,
+    coverImage: 'https://storage.googleapis.com/uwo-document/blogs/images/blog-1786018519262-5c172b24.webp',
     seoDescription: 'A step-by-step guide to permanently removing your account, data, and associated credentials from the AISA™ platform.'
   },
   {
@@ -34,7 +34,7 @@ const DEFAULT_BLOGS = [
     readTime: 5,
     views: 74,
     createdAt: '2026-07-22T00:00:00Z',
-    coverImage: null,
+    coverImage: 'https://storage.googleapis.com/uwo-document/blogs/images/blog-1786018046106-7b841386.webp',
     seoDescription: 'How AI & Automation can save time, reduce stress, and boost productivity across modern professional workflows.'
   },
   {
@@ -45,7 +45,7 @@ const DEFAULT_BLOGS = [
     readTime: 8,
     views: 38,
     createdAt: '2026-05-19T13:02:48.786Z',
-    coverImage: null,
+    coverImage: 'https://storage.googleapis.com/uwo-document/blogs/images/blog-1786018657975-b245bfc3.webp',
     seoDescription: "What if one company could give you the AI tools to create, automate, connect, empower, and transform - all under a single ecosystem? That is exactly what UWO™ has built from the heart of Madhya Pradesh."
   }
 ];

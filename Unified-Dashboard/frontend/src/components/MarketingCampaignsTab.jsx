@@ -475,53 +475,102 @@ export const MarketingCampaignsTab = () => {
         </div>
       )}
 
-      {/* Top Header & Action Bar */}
+      {/* Top Section Navigation & Action Bar */}
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
-          gap: '16px',
-          marginBottom: '28px',
+          gap: '12px',
+          marginBottom: '14px',
         }}
       >
-        <div>
-          <h2 style={{ fontSize: '24px', fontWeight: '900', margin: 0, letterSpacing: '-0.5px' }}>
-            📢 Marketing Campaigns & Referral Tracking
-          </h2>
-          <p style={{ color: '#94A3B8', fontSize: '13px', margin: '4px 0 0 0' }}>
-            Generate multi-platform UTM URLs, short links & track exact reach per post across all 7 products
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', gap: '12px' }}>
+        {/* Section Switcher Tabs */}
+        <div
+          style={{
+            display: 'flex',
+            gap: '8px',
+            background: '#0F172A',
+            padding: '5px',
+            borderRadius: '14px',
+            border: '1px solid #1E293B',
+          }}
+        >
           <button
-            onClick={fetchData}
+            onClick={() => setActiveSection('user_referrals')}
             style={{
-              padding: '10px 18px',
-              borderRadius: '12px',
-              backgroundColor: '#1E293B',
-              border: '1px solid #334155',
-              color: '#F8FAFC',
-              fontWeight: '700',
+              padding: '9px 18px',
+              borderRadius: '10px',
+              border: 'none',
+              background: activeSection === 'user_referrals' ? 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)' : 'transparent',
+              color: activeSection === 'user_referrals' ? '#FFFFFF' : '#94A3B8',
+              fontWeight: '800',
               fontSize: '13px',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
+              gap: '8px',
+              boxShadow: activeSection === 'user_referrals' ? '0 4px 15px rgba(99,102,241,0.3)' : 'none',
             }}
           >
-            🔄 Refresh
+            <span>👥 User Referral Program (Earn &amp; Refer)</span>
+            {userReferralSummary?.total_referral_users !== undefined && (
+              <span
+                style={{
+                  background: 'rgba(255,255,255,0.2)',
+                  padding: '2px 8px',
+                  borderRadius: '9999px',
+                  fontSize: '11px',
+                }}
+              >
+                {userReferralSummary.total_referral_users} Users
+              </span>
+            )}
           </button>
 
+          <button
+            onClick={() => setActiveSection('campaigns')}
+            style={{
+              padding: '9px 18px',
+              borderRadius: '10px',
+              border: 'none',
+              background: activeSection === 'campaigns' ? 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)' : 'transparent',
+              color: activeSection === 'campaigns' ? '#FFFFFF' : '#94A3B8',
+              fontWeight: '800',
+              fontSize: '13px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: activeSection === 'campaigns' ? '0 4px 15px rgba(99,102,241,0.3)' : 'none',
+            }}
+          >
+            <span>📢 Admin Marketing Campaigns</span>
+            {links.length > 0 && (
+              <span
+                style={{
+                  background: 'rgba(255,255,255,0.2)',
+                  padding: '2px 8px',
+                  borderRadius: '9999px',
+                  fontSize: '11px',
+                }}
+              >
+                {links.length} Links
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Contextual Action: only visible when viewing Admin Marketing Campaigns */}
+        {activeSection === 'campaigns' && (
           <button
             onClick={() => {
               setGeneratedBatchResult(null);
               setShowModal(true);
             }}
             style={{
-              padding: '10px 22px',
+              padding: '9px 20px',
               borderRadius: '12px',
               background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
               border: 'none',
@@ -529,7 +578,7 @@ export const MarketingCampaignsTab = () => {
               fontWeight: '800',
               fontSize: '13px',
               cursor: 'pointer',
-              boxShadow: '0 8px 25px rgba(99,102,241,0.35)',
+              boxShadow: '0 4px 15px rgba(99,102,241,0.35)',
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
@@ -537,7 +586,7 @@ export const MarketingCampaignsTab = () => {
           >
             🚀 + Generate Tracked Link
           </button>
-        </div>
+        )}
       </div>
 
       {/* Live Real-time Auto-Sync Status Bar */}
@@ -548,37 +597,37 @@ export const MarketingCampaignsTab = () => {
           alignItems: 'center',
           background: isLiveActive ? 'rgba(16, 185, 129, 0.08)' : 'rgba(245, 158, 11, 0.08)',
           border: `1px solid ${isLiveActive ? 'rgba(16, 185, 129, 0.25)' : 'rgba(245, 158, 11, 0.25)'}`,
-          borderRadius: '14px',
-          padding: '10px 18px',
-          marginBottom: '20px',
+          borderRadius: '12px',
+          padding: '8px 16px',
+          marginBottom: '16px',
           flexWrap: 'wrap',
           gap: '12px',
-          boxShadow: '0 4px 15px rgba(0,0,0,0.15)',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span
             style={{
-              width: '9px',
-              height: '9px',
+              width: '8px',
+              height: '8px',
               borderRadius: '50%',
               background: isLiveActive ? '#10B981' : '#F59E0B',
-              boxShadow: isLiveActive ? '0 0 10px #10B981' : '0 0 10px #F59E0B',
+              boxShadow: isLiveActive ? '0 0 8px #10B981' : '0 0 8px #F59E0B',
               flexShrink: 0,
             }}
           />
-          <span style={{ fontSize: '13px', color: isLiveActive ? '#34D399' : '#FBBF24', fontWeight: '800' }}>
-            {isLiveActive ? '⚡ Real-time Referral & Install Telemetry Active' : '⏸️ Auto-Sync Paused'}
+          <span style={{ fontSize: '12px', color: isLiveActive ? '#34D399' : '#FBBF24', fontWeight: '800' }}>
+            {isLiveActive ? '⚡ Real-time Telemetry Active' : '⏸️ Auto-Sync Paused'}
           </span>
           {lastSynced && (
-            <span style={{ fontSize: '12px', color: '#94A3B8' }}>
+            <span style={{ fontSize: '11px', color: '#94A3B8' }}>
               • Last synced: {lastSynced.toLocaleTimeString()}
             </span>
           )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {isLiveActive && (
-            <span style={{ fontSize: '12px', color: '#94A3B8' }}>
+            <span style={{ fontSize: '11px', color: '#94A3B8' }}>
               Auto-refresh in <strong style={{ color: '#38BDF8', fontWeight: '800' }}>{autoRefreshCountdown}s</strong>
             </span>
           )}
@@ -588,8 +637,8 @@ export const MarketingCampaignsTab = () => {
               background: 'transparent',
               border: '1px solid #334155',
               color: '#94A3B8',
-              borderRadius: '8px',
-              padding: '5px 12px',
+              borderRadius: '6px',
+              padding: '4px 10px',
               fontSize: '11px',
               fontWeight: '700',
               cursor: 'pointer',
@@ -604,8 +653,8 @@ export const MarketingCampaignsTab = () => {
               background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(99, 102, 241, 0.2) 100%)',
               border: '1px solid rgba(56, 189, 248, 0.4)',
               color: '#38BDF8',
-              borderRadius: '8px',
-              padding: '5px 14px',
+              borderRadius: '6px',
+              padding: '4px 12px',
               fontSize: '11px',
               fontWeight: '800',
               cursor: loading ? 'not-allowed' : 'pointer',
@@ -614,84 +663,6 @@ export const MarketingCampaignsTab = () => {
             {loading ? '⟳ Syncing...' : '⟳ Refresh Now'}
           </button>
         </div>
-      </div>
-
-      {/* Top Section Navigation: User Referral Program vs Admin Marketing Campaigns */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '8px',
-          background: '#0F172A',
-          padding: '6px',
-          borderRadius: '14px',
-          border: '1px solid #1E293B',
-          marginBottom: '20px',
-          width: 'fit-content',
-        }}
-      >
-        <button
-          onClick={() => setActiveSection('user_referrals')}
-          style={{
-            padding: '9px 18px',
-            borderRadius: '10px',
-            border: 'none',
-            background: activeSection === 'user_referrals' ? 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)' : 'transparent',
-            color: activeSection === 'user_referrals' ? '#FFFFFF' : '#94A3B8',
-            fontWeight: '800',
-            fontSize: '13px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            boxShadow: activeSection === 'user_referrals' ? '0 4px 15px rgba(99,102,241,0.3)' : 'none',
-          }}
-        >
-          <span>👥 User Referral Program (Earn &amp; Refer)</span>
-          {userReferralSummary?.total_referral_users !== undefined && (
-            <span
-              style={{
-                background: 'rgba(255,255,255,0.2)',
-                padding: '2px 8px',
-                borderRadius: '9999px',
-                fontSize: '11px',
-              }}
-            >
-              {userReferralSummary.total_referral_users} Users
-            </span>
-          )}
-        </button>
-
-        <button
-          onClick={() => setActiveSection('campaigns')}
-          style={{
-            padding: '9px 18px',
-            borderRadius: '10px',
-            border: 'none',
-            background: activeSection === 'campaigns' ? 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)' : 'transparent',
-            color: activeSection === 'campaigns' ? '#FFFFFF' : '#94A3B8',
-            fontWeight: '800',
-            fontSize: '13px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            boxShadow: activeSection === 'campaigns' ? '0 4px 15px rgba(99,102,241,0.3)' : 'none',
-          }}
-        >
-          <span>📢 Admin Marketing Campaigns</span>
-          {links.length > 0 && (
-            <span
-              style={{
-                background: 'rgba(255,255,255,0.2)',
-                padding: '2px 8px',
-                borderRadius: '9999px',
-                fontSize: '11px',
-              }}
-            >
-              {links.length} Links
-            </span>
-          )}
-        </button>
       </div>
 
       {/* Conditional View: User Referrals vs Admin Campaigns */}

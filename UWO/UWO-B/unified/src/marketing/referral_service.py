@@ -175,9 +175,21 @@ class UserReferralService:
         db = get_uwo_db()
         submissions = []
 
+        # Build user email map to check active accounts
+        email_user_map = {}
+        try:
+            for u in db.ref_users.find({}, {"email": 1, "userId": 1, "name": 1}):
+                em = (u.get("email") or "").strip().lower()
+                if em:
+                    email_user_map[em] = u.get("userId")
+        except Exception as e:
+            print(f"[UserReferralService] User email map notice: {e}")
+
         try:
             raw = list(db.referralsubmissions.find({}).sort("createdAt", -1).limit(limit))
             for s in raw:
+                email_clean = (s.get("email") or "").strip().lower()
+                active_user_id = email_user_map.get(email_clean)
                 submissions.append({
                     "id": str(s["_id"]),
                     "name": s.get("name", "Applicant"),
@@ -188,6 +200,8 @@ class UserReferralService:
                     "upiId": s.get("upiId", ""),
                     "message": s.get("message", ""),
                     "affiliateCode": s.get("affiliateCode", ""),
+                    "has_account": bool(active_user_id),
+                    "userId": active_user_id or "",
                     "createdAt": s.get("createdAt", datetime.now(timezone.utc)).isoformat() if isinstance(s.get("createdAt"), datetime) else str(s.get("createdAt") or "")
                 })
         except Exception as e:

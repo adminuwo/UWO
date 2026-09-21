@@ -1449,6 +1449,28 @@ app.delete('/api/admin/delete-doc/:id', async (req, res) => {
 
 // 1. Submit Contact Form
 // Dynamic Media Proxy for Google Cloud Storage (handles non-public buckets)
+let cachedGcloudToken = null;
+let gcloudTokenExpiry = 0;
+
+function getGcloudAccessToken() {
+    const now = Date.now();
+    if (cachedGcloudToken && now < gcloudTokenExpiry) {
+        return cachedGcloudToken;
+    }
+    try {
+        const { execSync } = require('child_process');
+        const token = execSync('gcloud auth print-access-token', { encoding: 'utf8', timeout: 4000 }).trim();
+        if (token && token.startsWith('ya29.')) {
+            cachedGcloudToken = token;
+            gcloudTokenExpiry = now + 40 * 60 * 1000; // cache for 40 minutes
+            return cachedGcloudToken;
+        }
+    } catch (e) {
+        // gcloud not available or failed
+    }
+    return null;
+}
+
 app.get(/^\/api\/media\/(.+)$/, async (req, res) => {
     try {
         const filePath = req.params[0];
@@ -1479,11 +1501,34 @@ app.get(/^\/api\/media\/(.+)$/, async (req, res) => {
                         .pipe(res);
                 }
             } catch (gcsErr) {
-                console.warn(`Local GCS stream failed for ${filePath}, falling back to Cloud Run media proxy:`, gcsErr.message);
+                console.warn(`Local GCS stream failed for ${filePath}, falling back:`, gcsErr.message);
             }
         }
 
-        // 2. Fallback: Proxy directly from production Cloud Run backend
+        // 2. Fallback: Stream directly from GCS using active gcloud CLI OAuth token
+        try {
+            const token = getGcloudAccessToken();
+            if (token) {
+                const gcsUrl = `https://storage.googleapis.com/${bucketName || 'uwo-document'}/${filePath}`;
+                const gcsRes = await fetch(gcsUrl, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (gcsRes.ok) {
+                    res.setHeader('Content-Type', gcsRes.headers.get('content-type') || 'application/octet-stream');
+                    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+                    res.setHeader('Access-Control-Allow-Origin', '*');
+                    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+                    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+
+                    const arrayBuffer = await gcsRes.arrayBuffer();
+                    return res.send(Buffer.from(arrayBuffer));
+                }
+            }
+        } catch (tokErr) {
+            // continue to Cloud Run proxy
+        }
+
+        // 3. Fallback: Proxy directly from production Cloud Run backend
         try {
             const prodUrl = `https://uwo-backend-977864306871.asia-south1.run.app/api/media/${filePath}`;
             const prodRes = await fetch(prodUrl);

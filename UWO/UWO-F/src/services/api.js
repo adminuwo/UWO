@@ -92,30 +92,19 @@ export const CLOUD_RUN_BACKEND = typeof window !== 'undefined'
   ? (window.location.hostname === "localhost" && window.location.port === "3000" ? "http://localhost:8080" : window.location.origin)
   : "https://uwo-backend-977864306871.asia-south1.run.app";
 
-// True when running on a local dev server (the /api/media proxy only exists in Cloud Run with GCP credentials)
-const IS_LOCAL_DEV = typeof window !== 'undefined' &&
-  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-
 export function resolveBlogImageUrl(blog) {
   if (!blog) return getBlogFallbackImage();
   const img = blog.coverImage || blog.featuredImage || blog.image;
   if (!img) return getBlogFallbackImage(blog.category, blog.title);
 
-  // GCS Private assets must be fetched via Cloud Run media proxy which has valid GCP IAM credentials.
-  // On localhost the /api/media endpoint doesn't exist, so fall back to Unsplash immediately.
+  // GCS Private assets must be fetched via media proxy
   if (img.includes('storage.googleapis.com/uwo-document/')) {
-    if (IS_LOCAL_DEV) {
-      return getBlogFallbackImage(blog.category, blog.title);
-    }
     const objectPath = img.split('storage.googleapis.com/uwo-document/')[1];
-    return `${CLOUD_RUN_BACKEND}/api/media/${objectPath.replace(/^\/+/, '')}`;
+    return `${API_URL}/media/${objectPath.replace(/^\/+/, '')}`;
   }
   if (img.includes('/api/media/')) {
-    if (IS_LOCAL_DEV) {
-      return getBlogFallbackImage(blog.category, blog.title);
-    }
     const mediaPath = img.split('/api/media/')[1];
-    return `${CLOUD_RUN_BACKEND}/api/media/${mediaPath.replace(/^\/+/, '')}`;
+    return `${API_URL}/media/${mediaPath.replace(/^\/+/, '')}`;
   }
   if (img.startsWith('http://') || img.startsWith('https://') || img.startsWith('data:')) {
     return img;
@@ -123,10 +112,7 @@ export function resolveBlogImageUrl(blog) {
   if (img.startsWith('/uploads/')) {
     return `${BACKEND_BASE}${img}`;
   }
-  if (IS_LOCAL_DEV) {
-    return getBlogFallbackImage(blog.category, blog.title);
-  }
-  return `${CLOUD_RUN_BACKEND}/api/media/${img.replace(/^\/+/, '')}`;
+  return `${API_URL}/media/${img.replace(/^\/+/, '')}`;
 }
 
 // Contact Form submission
