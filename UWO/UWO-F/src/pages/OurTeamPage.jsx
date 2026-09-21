@@ -129,7 +129,13 @@ export default function OurTeamPage() {
               return { ...m, image: 'images/aman-kharare..webp', designation: 'Business Development Associate' };
             }
             if (n.includes('milind jha')) {
-              return { ...m, image: 'images/milind-jha..webp', designation: 'Marketing Executive' };
+              return {
+                ...m,
+                image: (m.image && !m.image.includes('lh3.googleusercontent.com'))
+                  ? m.image
+                  : 'images/milind-jha..webp',
+                designation: 'Marketing Executive'
+              };
             }
             return m;
           });
@@ -410,13 +416,6 @@ export default function OurTeamPage() {
 
   const resolveImageUrl = (img) => {
     if (!img) return '/images/uwo-logo.png';
-    if (img.startsWith('http://') || img.startsWith('https://')) return img;
-    if (img.includes('prateek-sharma')) return '/images/prateek-sharma..webp';
-    if (img.includes('ayush-dubey')) return '/images/ayush-dubey..webp';
-    if (img.includes('sandeep-yadav')) return '/images/sandeep-yadav..webp';
-    if (img.includes('sukhmani-kaur')) return '/images/sukhmani-kaur..webp';
-    if (img.includes('aman-kharare')) return '/images/aman-kharare..webp';
-    if (img.includes('milind-jha')) return '/images/milind-jha..webp';
     if (img.includes('storage.googleapis.com/uwo-document/')) {
       const objectPath = img.split('storage.googleapis.com/uwo-document/')[1];
       return `${API_URL}/media/${objectPath}`;
@@ -425,6 +424,13 @@ export default function OurTeamPage() {
       const mediaPath = img.split('/api/media/')[1];
       return `${API_URL}/media/${mediaPath}`;
     }
+    if (img.startsWith('http://') || img.startsWith('https://')) return img;
+    if (img.includes('prateek-sharma')) return '/images/prateek-sharma..webp';
+    if (img.includes('ayush-dubey')) return '/images/ayush-dubey..webp';
+    if (img.includes('sandeep-yadav')) return '/images/sandeep-yadav..webp';
+    if (img.includes('sukhmani-kaur')) return '/images/sukhmani-kaur..webp';
+    if (img.includes('aman-kharare')) return '/images/aman-kharare..webp';
+    if (img.includes('milind-jha')) return '/images/milind-jha..webp';
     if (img.startsWith('/uploads/')) {
       return `${BACKEND_BASE}${img}`;
     }
