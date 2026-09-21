@@ -51,6 +51,7 @@ export default function MobileDrawer({ isOpen, onClose, onOpenEarnRefer }) {
           <Link to="/aisa" onClick={handleLinkClick}>AISA<sup>™</sup></Link>
           <a href="/aisa-connect/" target="_blank" rel="noopener noreferrer" onClick={handleLinkClick}>AISA Connect</a>
           <a href="https://aimall24.com/" target="_blank" rel="noopener noreferrer" onClick={handleLinkClick}>AI Mall<sup>™</sup></a>
+          <a href="https://convee-education-977864306871.asia-south1.run.app" target="_blank" rel="noopener noreferrer" onClick={handleLinkClick}>AI-Education<sup>™</sup></a>
           <Link to="/efv" onClick={handleLinkClick}>EFV<sup>™</sup></Link>
         </div>
 

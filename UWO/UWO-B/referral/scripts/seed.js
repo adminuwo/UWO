@@ -101,6 +101,15 @@ async function seedReferralSystem() {
         iosUrl: '',
         active: true,
       },
+      {
+        name: 'AI-Education™',
+        slug: 'aieducation',
+        description: 'Unified Enterprise Digital Campus & AI Collaboration Operating System',
+        webUrl: 'https://convee-education-977864306871.asia-south1.run.app',
+        androidUrl: '',
+        iosUrl: '',
+        active: true,
+      },
     ];
 
     const createdProducts = [];

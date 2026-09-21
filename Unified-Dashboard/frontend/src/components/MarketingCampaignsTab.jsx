@@ -27,8 +27,10 @@ export const MarketingCampaignsTab = () => {
   // Generator Modal State
   const [showModal, setShowModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState('aisa');
+  const [selectedDestinationType, setSelectedDestinationType] = useState('smart'); // 'smart' | 'web' | 'android' | 'ios' | 'custom'
   const [customTargetUrl, setCustomTargetUrl] = useState('');
   const [isSmartLink, setIsSmartLink] = useState(false);
+  const [ecosystemProducts, setEcosystemProducts] = useState([]);
   const [campaignName, setCampaignName] = useState('');
   const [postName, setPostName] = useState('');
   const [selectedPlatforms, setSelectedPlatforms] = useState(['instagram']);
@@ -68,6 +70,7 @@ export const MarketingCampaignsTab = () => {
     uwo: { name: 'UWO Web', url: 'https://uwo24.com', color: '#3B82F6', icon: '🌐' },
     uwoconnect: { name: 'UWO Connect', url: 'https://connect.uwo24.com', color: '#EC4899', icon: '🔐' },
     yugamc: { name: 'Yugamc', url: 'https://yugamc.com', color: '#F59E0B', icon: '🏭' },
+    aieducation: { name: 'AI-Education', url: 'https://convee-education-977864306871.asia-south1.run.app', color: '#0284C7', icon: '🎓' },
     custom: { name: 'Custom URL', url: '', color: '#94A3B8', icon: '🔗' },
   };
 
@@ -86,19 +89,155 @@ export const MarketingCampaignsTab = () => {
     other: { name: 'Custom Ref', icon: '🔗', color: '#475569' },
   };
 
-  const products = config?.products || defaultProducts;
   const platforms = config?.platforms || defaultPlatforms;
+
+  const PRODUCT_META = {
+    aisa: { color: '#6366F1', icon: '🤖' },
+    aimall: { color: '#8B5CF6', icon: '🛍️' },
+    efv: { color: '#10B981', icon: '⚡' },
+    ailegal: { color: '#D4AF37', icon: '⚖️' },
+    uwo: { color: '#3B82F6', icon: '🌐' },
+    uwoconnect: { color: '#EC4899', icon: '🔐' },
+    yugamc: { color: '#F59E0B', icon: '🏭' },
+    aicashflow: { color: '#10B981', icon: '💵' },
+    aiads: { color: '#3B82F6', icon: '📢' },
+    custom: { color: '#94A3B8', icon: '🔗' },
+  };
+
+  // Dynamically build products catalog from Ecosystem Projects & Links (/api/products) + backend config
+  const products = React.useMemo(() => {
+    const map = {};
+
+    // 1. Add all active ecosystem products from database
+    if (Array.isArray(ecosystemProducts) && ecosystemProducts.length > 0) {
+      ecosystemProducts.forEach((p) => {
+        const slug = p.slug || p._id;
+        const meta = PRODUCT_META[slug] || { color: '#3B82F6', icon: '🚀' };
+        map[slug] = {
+          id: p._id,
+          slug: slug,
+          name: p.name,
+          description: p.description || '',
+          url: p.webUrl || p.url || '',
+          webUrl: p.webUrl || p.url || '',
+          androidUrl: p.androidUrl || '',
+          iosUrl: p.iosUrl || '',
+          play_store_url: p.androidUrl || '',
+          app_store_url: p.iosUrl || '',
+          color: meta.color,
+          icon: meta.icon,
+        };
+      });
+    }
+
+    // 2. Merge with backend config products if any are missing or have extra URLs
+    const baseCatalog = config?.products || defaultProducts;
+    Object.entries(baseCatalog).forEach(([k, v]) => {
+      if (!map[k]) {
+        const meta = PRODUCT_META[k] || { color: v.color || '#3B82F6', icon: v.icon || '🚀' };
+        map[k] = {
+          ...v,
+          slug: k,
+          webUrl: v.web_url || v.url || '',
+          androidUrl: v.play_store_url || v.androidUrl || '',
+          iosUrl: v.app_store_url || v.iosUrl || '',
+          color: meta.color,
+          icon: meta.icon,
+        };
+      } else {
+        if (v.play_store_url && !map[k].androidUrl) {
+          map[k].androidUrl = v.play_store_url;
+          map[k].play_store_url = v.play_store_url;
+        }
+        if (v.app_store_url && !map[k].iosUrl) {
+          map[k].iosUrl = v.app_store_url;
+          map[k].app_store_url = v.app_store_url;
+        }
+      }
+    });
+
+    // 3. Ensure Custom Destination is always available
+    if (!map.custom) {
+      map.custom = {
+        name: 'Custom Destination',
+        url: '',
+        webUrl: '',
+        description: 'Custom Landing Page / Sub-Page / Event URL',
+        color: '#94A3B8',
+        icon: '🔗',
+      };
+    }
+
+    return map;
+  }, [ecosystemProducts, config]);
+
+  const handleSelectProduct = (pKey, prodObj) => {
+    setSelectedProduct(pKey);
+    const p = prodObj || products[pKey] || {};
+
+    if (pKey === 'custom') {
+      setSelectedDestinationType('custom');
+      setIsSmartLink(false);
+      setCustomTargetUrl('');
+      return;
+    }
+
+    const web = p.webUrl || p.url || '';
+    const android = p.androidUrl || p.play_store_url || '';
+    const ios = p.iosUrl || p.app_store_url || '';
+    const hasApp = Boolean(android || ios);
+
+    if (hasApp) {
+      setSelectedDestinationType('smart');
+      setIsSmartLink(true);
+      setCustomTargetUrl('smart_app');
+    } else {
+      setSelectedDestinationType('web');
+      setIsSmartLink(false);
+      setCustomTargetUrl(web);
+    }
+  };
+
+  const handleSelectDestination = (destType, prodObj) => {
+    setSelectedDestinationType(destType);
+    const p = prodObj || products[selectedProduct] || {};
+    const web = p.webUrl || p.url || '';
+    const android = p.androidUrl || p.play_store_url || '';
+    const ios = p.iosUrl || p.app_store_url || '';
+
+    if (destType === 'smart') {
+      setIsSmartLink(true);
+      setCustomTargetUrl('smart_app');
+    } else if (destType === 'web') {
+      setIsSmartLink(false);
+      setCustomTargetUrl(web);
+    } else if (destType === 'android') {
+      setIsSmartLink(false);
+      setCustomTargetUrl(android);
+    } else if (destType === 'ios') {
+      setIsSmartLink(false);
+      setCustomTargetUrl(ios);
+    }
+  };
 
   const fetchData = async (silent = false) => {
     try {
       if (!silent) setLoading(true);
       const headers = { Authorization: `Bearer ${token}` };
 
-      const [cfgRes, sumRes, linksRes] = await Promise.all([
+      const [cfgRes, sumRes, linksRes, ecoRes] = await Promise.all([
         fetch('/api/marketing/config', { headers }).catch(() => null),
         fetch('/api/marketing/analytics/summary', { headers }).catch(() => null),
         fetch('/api/marketing/links?limit=300', { headers }).catch(() => null),
+        fetch('/api/products?includeInactive=false', { headers }).catch(() => null),
       ]);
+
+      if (ecoRes && ecoRes.ok) {
+        const ecoData = await ecoRes.json();
+        if (ecoData.success && Array.isArray(ecoData.products)) {
+          setEcosystemProducts(ecoData.products);
+        }
+      }
 
       if (cfgRes && cfgRes.ok) {
         const cfgData = await cfgRes.json();
@@ -254,21 +393,35 @@ export const MarketingCampaignsTab = () => {
         Authorization: `Bearer ${token}`,
       };
 
+      const currProd = products[selectedProduct] || {};
+      const prodName = currProd.name || selectedProduct;
+      const webUrl = currProd.webUrl || currProd.url;
+      const androidUrl = currProd.androidUrl || currProd.play_store_url;
+      const iosUrl = currProd.iosUrl || currProd.app_store_url;
+
+      const basePayload = {
+        product_id: selectedProduct,
+        product_name: prodName,
+        custom_target_url: customTargetUrl && customTargetUrl !== 'smart_app' ? customTargetUrl : undefined,
+        is_smart_link: isSmartLink,
+        android_url: isSmartLink ? androidUrl : (selectedDestinationType === 'android' ? androidUrl : undefined),
+        ios_url: isSmartLink ? iosUrl : (selectedDestinationType === 'ios' ? iosUrl : undefined),
+        web_url: webUrl || undefined,
+        channel_type: channelType,
+        notes: notes.trim() || undefined,
+      };
+
       let result;
       if (selectedPlatforms.length === 1) {
         const res = await fetch('/api/marketing/links', {
           method: 'POST',
           headers,
           body: JSON.stringify({
-            product_id: selectedProduct,
-            custom_target_url: customTargetUrl && customTargetUrl !== 'smart_app' ? customTargetUrl : undefined,
-            is_smart_link: isSmartLink,
+            ...basePayload,
             platform: selectedPlatforms[0],
             campaign_name: campaignName.trim(),
             post_name: postName.trim(),
-            channel_type: channelType,
             custom_slug: customSlug.trim() || undefined,
-            notes: notes.trim() || undefined,
           }),
         });
         if (!res.ok) {
@@ -284,14 +437,10 @@ export const MarketingCampaignsTab = () => {
           method: 'POST',
           headers,
           body: JSON.stringify({
-            product_id: selectedProduct,
-            custom_target_url: customTargetUrl && customTargetUrl !== 'smart_app' ? customTargetUrl : undefined,
-            is_smart_link: isSmartLink,
+            ...basePayload,
             campaign_name: campaignName.trim(),
             post_name: postName.trim(),
             platforms: selectedPlatforms,
-            channel_type: channelType,
-            notes: notes.trim() || undefined,
           }),
         });
         if (!res.ok) {
@@ -1561,12 +1710,12 @@ export const MarketingCampaignsTab = () => {
                       <button
                         type="button"
                         key={k}
-                        onClick={() => setSelectedProduct(k)}
+                        onClick={() => handleSelectProduct(k, v)}
                         style={{
                           padding: '10px 8px',
                           borderRadius: '12px',
-                          backgroundColor: selectedProduct === k ? `${v.color}25` : '#1E293B',
-                          border: `2px solid ${selectedProduct === k ? v.color : '#334155'}`,
+                          backgroundColor: selectedProduct === k ? `${v.color || '#3B82F6'}25` : '#1E293B',
+                          border: `2px solid ${selectedProduct === k ? (v.color || '#3B82F6') : '#334155'}`,
                           color: '#FFFFFF',
                           fontWeight: selectedProduct === k ? '800' : '600',
                           fontSize: '12px',
@@ -1575,6 +1724,7 @@ export const MarketingCampaignsTab = () => {
                           flexDirection: 'column',
                           alignItems: 'center',
                           gap: '4px',
+                          transition: 'all 0.15s ease',
                         }}
                       >
                         <span style={{ fontSize: '18px' }}>{v.icon || '🚀'}</span>
@@ -1583,174 +1733,124 @@ export const MarketingCampaignsTab = () => {
                     ))}
                   </div>
 
-                  {/* Quick Google Play Store Link Presets */}
-                  <div style={{ marginTop: '12px', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                    <span style={{ fontSize: '11px', color: '#94A3B8', fontWeight: '800', textTransform: 'uppercase' }}>
-                      App Store Presets:
-                    </span>
-                    {/* ⚡ Smart Dual-Platform Presets */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedProduct('ailegal');
-                        setIsSmartLink(true);
-                        setCustomTargetUrl('smart_app');
-                      }}
-                      style={{
-                        padding: '6px 12px',
-                        borderRadius: '8px',
-                        backgroundColor: isSmartLink && selectedProduct === 'ailegal' ? 'rgba(245,158,11,0.25)' : '#1E293B',
-                        border: `1px solid ${isSmartLink && selectedProduct === 'ailegal' ? '#F59E0B' : '#475569'}`,
-                        color: isSmartLink && selectedProduct === 'ailegal' ? '#FCD34D' : '#FBBF24',
-                        fontSize: '12px',
-                        fontWeight: '800',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        boxShadow: isSmartLink && selectedProduct === 'ailegal' ? '0 0 12px rgba(245,158,11,0.3)' : 'none',
-                      }}
-                    >
-                      ⚡ AI Legal (Smart: Android + iOS)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedProduct('aisa');
-                        setIsSmartLink(true);
-                        setCustomTargetUrl('smart_app');
-                      }}
-                      style={{
-                        padding: '6px 12px',
-                        borderRadius: '8px',
-                        backgroundColor: isSmartLink && selectedProduct === 'aisa' ? 'rgba(245,158,11,0.25)' : '#1E293B',
-                        border: `1px solid ${isSmartLink && selectedProduct === 'aisa' ? '#F59E0B' : '#475569'}`,
-                        color: isSmartLink && selectedProduct === 'aisa' ? '#FCD34D' : '#FBBF24',
-                        fontSize: '12px',
-                        fontWeight: '800',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        boxShadow: isSmartLink && selectedProduct === 'aisa' ? '0 0 12px rgba(245,158,11,0.3)' : 'none',
-                      }}
-                    >
-                      ⚡ AISA (Smart: Android + iOS)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedProduct('ailegal');
-                        setIsSmartLink(false);
-                        setCustomTargetUrl('https://play.google.com/store/apps/details?id=com.uwo.ailegal');
-                      }}
-                      style={{
-                        padding: '6px 12px',
-                        borderRadius: '8px',
-                        backgroundColor: !isSmartLink && customTargetUrl.includes('com.uwo.ailegal') ? 'rgba(16,185,129,0.2)' : '#1E293B',
-                        border: `1px solid ${!isSmartLink && customTargetUrl.includes('com.uwo.ailegal') ? '#10B981' : '#334155'}`,
-                        color: !isSmartLink && customTargetUrl.includes('com.uwo.ailegal') ? '#34D399' : '#CBD5E1',
-                        fontSize: '12px',
-                        fontWeight: '700',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                      }}
-                    >
-                      🤖 AI Legal Play Store
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedProduct('aisa');
-                        setIsSmartLink(false);
-                        setCustomTargetUrl('https://play.google.com/store/apps/details?id=com.uwo.aisa');
-                      }}
-                      style={{
-                        padding: '6px 12px',
-                        borderRadius: '8px',
-                        backgroundColor: !isSmartLink && customTargetUrl.includes('com.uwo.aisa') ? 'rgba(16,185,129,0.2)' : '#1E293B',
-                        border: `1px solid ${!isSmartLink && customTargetUrl.includes('com.uwo.aisa') ? '#10B981' : '#334155'}`,
-                        color: !isSmartLink && customTargetUrl.includes('com.uwo.aisa') ? '#34D399' : '#CBD5E1',
-                        fontSize: '12px',
-                        fontWeight: '700',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                      }}
-                    >
-                      🤖 AISA Play Store
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedProduct('ailegal');
-                        setIsSmartLink(false);
-                        setCustomTargetUrl('https://apps.apple.com/app/id6797449251');
-                      }}
-                      style={{
-                        padding: '6px 12px',
-                        borderRadius: '8px',
-                        backgroundColor: !isSmartLink && customTargetUrl.includes('id6797449251') ? 'rgba(59,130,246,0.2)' : '#1E293B',
-                        border: `1px solid ${!isSmartLink && customTargetUrl.includes('id6797449251') ? '#3B82F6' : '#334155'}`,
-                        color: !isSmartLink && customTargetUrl.includes('id6797449251') ? '#60A5FA' : '#CBD5E1',
-                        fontSize: '12px',
-                        fontWeight: '700',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                      }}
-                    >
-                      🍏 AI Legal App Store
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedProduct('aisa');
-                        setIsSmartLink(false);
-                        setCustomTargetUrl('https://apps.apple.com/app/id6779135418');
-                      }}
-                      style={{
-                        padding: '6px 12px',
-                        borderRadius: '8px',
-                        backgroundColor: !isSmartLink && customTargetUrl.includes('id6779135418') ? 'rgba(59,130,246,0.2)' : '#1E293B',
-                        border: `1px solid ${!isSmartLink && customTargetUrl.includes('id6779135418') ? '#3B82F6' : '#334155'}`,
-                        color: !isSmartLink && customTargetUrl.includes('id6779135418') ? '#60A5FA' : '#CBD5E1',
-                        fontSize: '12px',
-                        fontWeight: '700',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                      }}
-                    >
-                      🍏 AISA App Store
-                    </button>
-                    {customTargetUrl ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCustomTargetUrl('');
-                          setIsSmartLink(false);
-                        }}
-                        style={{
-                          padding: '6px 10px',
-                          borderRadius: '8px',
-                          backgroundColor: 'transparent',
-                          border: 'none',
-                          color: '#EF4444',
-                          fontSize: '11px',
-                          fontWeight: '700',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        ✕ Reset to Web Default
-                      </button>
-                    ) : null}
-                  </div>
+                  {/* Dynamic Destination Link Selection (from Ecosystem Projects & Links) */}
+                  {selectedProduct !== 'custom' && products[selectedProduct] && (
+                    <div style={{ marginTop: '14px', padding: '14px', background: '#0F172A', border: '1px solid #1E293B', borderRadius: '12px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '6px' }}>
+                        <span style={{ fontSize: '11px', color: '#94A3B8', fontWeight: '800', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span>🔗</span> Target Destination Link (From Ecosystem):
+                        </span>
+                        <span style={{ fontSize: '11px', color: '#38BDF8', fontWeight: '700' }}>
+                          {products[selectedProduct].name}
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                        {/* Universal Smart Link (if Android or iOS app exists) */}
+                        {(products[selectedProduct].androidUrl || products[selectedProduct].play_store_url || products[selectedProduct].iosUrl || products[selectedProduct].app_store_url) && (
+                          <button
+                            type="button"
+                            onClick={() => handleSelectDestination('smart', products[selectedProduct])}
+                            style={{
+                              padding: '7px 14px',
+                              borderRadius: '8px',
+                              backgroundColor: selectedDestinationType === 'smart' ? 'rgba(245,158,11,0.25)' : '#1E293B',
+                              border: `1.5px solid ${selectedDestinationType === 'smart' ? '#F59E0B' : '#334155'}`,
+                              color: selectedDestinationType === 'smart' ? '#FCD34D' : '#FBBF24',
+                              fontSize: '12px',
+                              fontWeight: '800',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              boxShadow: selectedDestinationType === 'smart' ? '0 0 12px rgba(245,158,11,0.3)' : 'none',
+                            }}
+                          >
+                            ⚡ Universal Smart Link (Android + iOS + Web)
+                          </button>
+                        )}
+
+                        {/* Web Application */}
+                        {(products[selectedProduct].webUrl || products[selectedProduct].url) && (
+                          <button
+                            type="button"
+                            onClick={() => handleSelectDestination('web', products[selectedProduct])}
+                            style={{
+                              padding: '7px 14px',
+                              borderRadius: '8px',
+                              backgroundColor: selectedDestinationType === 'web' ? 'rgba(59,130,246,0.25)' : '#1E293B',
+                              border: `1.5px solid ${selectedDestinationType === 'web' ? '#3B82F6' : '#334155'}`,
+                              color: selectedDestinationType === 'web' ? '#93C5FD' : '#CBD5E1',
+                              fontSize: '12px',
+                              fontWeight: '700',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                            }}
+                          >
+                            🌐 Web Application
+                          </button>
+                        )}
+
+                        {/* Android Google Play Store */}
+                        {(products[selectedProduct].androidUrl || products[selectedProduct].play_store_url) && (
+                          <button
+                            type="button"
+                            onClick={() => handleSelectDestination('android', products[selectedProduct])}
+                            style={{
+                              padding: '7px 14px',
+                              borderRadius: '8px',
+                              backgroundColor: selectedDestinationType === 'android' ? 'rgba(16,185,129,0.25)' : '#1E293B',
+                              border: `1.5px solid ${selectedDestinationType === 'android' ? '#10B981' : '#334155'}`,
+                              color: selectedDestinationType === 'android' ? '#34D399' : '#CBD5E1',
+                              fontSize: '12px',
+                              fontWeight: '700',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                            }}
+                          >
+                            🤖 Google Play Store
+                          </button>
+                        )}
+
+                        {/* Apple iOS App Store */}
+                        {(products[selectedProduct].iosUrl || products[selectedProduct].app_store_url) && (
+                          <button
+                            type="button"
+                            onClick={() => handleSelectDestination('ios', products[selectedProduct])}
+                            style={{
+                              padding: '7px 14px',
+                              borderRadius: '8px',
+                              backgroundColor: selectedDestinationType === 'ios' ? 'rgba(168,85,247,0.25)' : '#1E293B',
+                              border: `1.5px solid ${selectedDestinationType === 'ios' ? '#A855F7' : '#334155'}`,
+                              color: selectedDestinationType === 'ios' ? '#D8B4FE' : '#CBD5E1',
+                              fontSize: '12px',
+                              fontWeight: '700',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                            }}
+                          >
+                            🍏 Apple App Store
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Destination URL Display */}
+                      <div style={{ marginTop: '10px', fontSize: '11px', color: '#64748B', display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <span style={{ color: '#94A3B8', fontWeight: '700' }}>Resolved Ecosystem Link:</span>
+                        <span style={{ color: '#38BDF8', fontFamily: 'monospace' }}>
+                          {selectedDestinationType === 'smart'
+                            ? 'Auto device routing (Play Store / App Store / Web)'
+                            : (customTargetUrl || products[selectedProduct].webUrl || products[selectedProduct].url || 'Default ecosystem URL')}
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
                   {isSmartLink && (
                     <div

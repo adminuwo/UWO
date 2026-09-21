@@ -59,6 +59,13 @@ export default function HomePage() {
         project_url: 'https://efvframework.com/index.html',
         logo: '/images/efv-logo.png',
         short_description: 'Enterprise Functional Visualizer - high-performance real-time visual modeling and enterprise architecture engine.'
+      },
+      {
+        name: 'AI-Education',
+        is_featured: true,
+        project_url: 'https://convee-education-977864306871.asia-south1.run.app',
+        logo: '/images/ai-education-logo.jpg',
+        short_description: 'Unified Enterprise Digital Campus & AI Collaboration Operating System tailored for K-12 Schools, Colleges, and Universities.'
       }
     ];
   }
@@ -70,6 +77,9 @@ export default function HomePage() {
     }
     if (nameLower.includes('aisa connect')) {
       return '/images/aisa-connect-logo.png';
+    }
+    if (nameLower.includes('education') || nameLower.includes('convee')) {
+      return '/images/ai-education-logo.jpg';
     }
     if (nameLower.includes('aisa')) {
       return '/images/aisa-logo.svg';

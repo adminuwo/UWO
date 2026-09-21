@@ -66,6 +66,13 @@ PRODUCT_CATALOG: Dict[str, Dict[str, str]] = {
         "description": "Enterprise Manufacturing & Global Commerce Platform",
         "color": "#F59E0B",
     },
+    "aieducation": {
+        "name": "AI-Education",
+        "url": "https://convee-education-977864306871.asia-south1.run.app",
+        "web_url": "https://convee-education-977864306871.asia-south1.run.app",
+        "description": "Unified Enterprise Digital Campus & AI Collaboration Operating System",
+        "color": "#0284C7",
+    },
     "custom": {
         "name": "Custom Destination",
         "url": "",
@@ -148,7 +155,26 @@ class MarketingService:
     def create_link(data: MarketingLinkCreate, base_request_url: str = "", creator: str = "Admin") -> Dict[str, Any]:
         db = _get_db()
 
-        product_info = PRODUCT_CATALOG.get(data.product_id, PRODUCT_CATALOG["custom"])
+        product_info = None
+        try:
+            from src.marketing.referral_service import get_uwo_db
+            uwo_db = get_uwo_db()
+            db_prod = uwo_db.ref_products.find_one({"$or": [{"slug": data.product_id}, {"_id": data.product_id}]})
+            if db_prod:
+                product_info = {
+                    "name": db_prod.get("name") or data.product_id,
+                    "url": db_prod.get("webUrl") or "https://aisa24.com",
+                    "web_url": db_prod.get("webUrl") or "https://aisa24.com",
+                    "play_store_url": db_prod.get("androidUrl") or "",
+                    "app_store_url": db_prod.get("iosUrl") or "",
+                    "description": db_prod.get("description") or "",
+                    "color": "#3B82F6",
+                }
+        except Exception:
+            pass
+
+        if not product_info:
+            product_info = PRODUCT_CATALOG.get(data.product_id, PRODUCT_CATALOG["custom"])
 
         # Resolve smart link flags & platform URLs
         is_smart = bool(

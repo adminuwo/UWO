@@ -82,7 +82,8 @@ def get_unified_overview(
         ("uwo", "UWO Web Platform"),
         ("uwoconnect", "UWConnect"),
         ("ailegal", "AI Legal"),
-        ("yugamc", "YUG AMC")
+        ("yugamc", "YUG AMC"),
+        ("aieducation", "AI-Education")
     ]
     
     app_breakdown = []
