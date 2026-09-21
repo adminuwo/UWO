@@ -87,6 +87,32 @@ export default function OurTeamPage() {
               skills: ['Strategic Partnerships', 'Client Acquisition', 'Business Growth', 'Negotiations'],
               experience: ['Corporate Partnerships', 'Business Development'],
               achievements: []
+            },
+            {
+              _id: '6a5e0f50806e7889e3ea1c30',
+              name: 'Sonali Gupta',
+              designation: 'Junior AI Software Engineer',
+              category: 'Technology',
+              is_leadership: false,
+              image: 'images/sonali-gupta.jpg',
+              short_description: 'Develops AI-powered software applications, integrates intelligent models and APIs, and contributes to backend development and system optimization. Focuses on building reliable AI solutions, solving technical challenges, and improving application efficiency and user experience.',
+              full_biography: '<p>Develops AI-powered software applications, integrates intelligent models and APIs, and contributes to backend development and system optimization. Focuses on building reliable AI solutions, solving technical challenges, and improving application efficiency and user experience.</p>',
+              skills: ['AI Application Development', 'API Integration', 'Backend Development', 'System Optimization'],
+              experience: ['AI Solutions & Engineering'],
+              achievements: []
+            },
+            {
+              _id: '6a5e0f50806e7889e3ea1c31',
+              name: 'Anupama Awadhiya',
+              designation: 'Junior AI Software Engineer',
+              category: 'Technology',
+              is_leadership: false,
+              image: 'images/anupama-awadhiya.jpg',
+              short_description: 'Develops AI-powered software applications, integrates intelligent models and APIs, and contributes to backend development and system optimization. Focuses on building reliable AI solutions, solving technical challenges, and improving application efficiency and user experience.',
+              full_biography: '<p>Develops AI-powered software applications, integrates intelligent models and APIs, and contributes to backend development and system optimization. Focuses on building reliable AI solutions, solving technical challenges, and improving application efficiency and user experience.</p>',
+              skills: ['AI Application Development', 'API Integration', 'Backend Development', 'System Optimization'],
+              experience: ['AI Solutions & Engineering'],
+              achievements: []
             }
           ];
 
@@ -136,6 +162,12 @@ export default function OurTeamPage() {
                   : 'images/milind-jha..webp',
                 designation: 'Marketing Executive'
               };
+            }
+            if (n.includes('sonali gupta')) {
+              return { ...m, name: 'Sonali Gupta', image: 'images/sonali-gupta.jpg', designation: 'Junior AI Software Engineer' };
+            }
+            if (n.includes('anupama')) {
+              return { ...m, name: 'Anupama Awadhiya', image: 'images/anupama-awadhiya.jpg', designation: 'Junior AI Software Engineer' };
             }
             return m;
           });
@@ -353,6 +385,26 @@ export default function OurTeamPage() {
         full_biography: ''
       },
       {
+        _id: '18',
+        name: 'Sonali Gupta',
+        designation: 'Junior AI Software Engineer',
+        category: 'Technology',
+        is_leadership: false,
+        image: 'images/sonali-gupta.jpg',
+        short_description: 'Develops AI-powered software applications, integrates intelligent models and APIs, and contributes to backend development and system optimization. Focuses on building reliable AI solutions, solving technical challenges, and improving application efficiency and user experience.',
+        full_biography: '<p>Develops AI-powered software applications, integrates intelligent models and APIs, and contributes to backend development and system optimization. Focuses on building reliable AI solutions, solving technical challenges, and improving application efficiency and user experience.</p>'
+      },
+      {
+        _id: '19',
+        name: 'Anupama Awadhiya',
+        designation: 'Junior AI Software Engineer',
+        category: 'Technology',
+        is_leadership: false,
+        image: 'images/anupama-awadhiya.jpg',
+        short_description: 'Develops AI-powered software applications, integrates intelligent models and APIs, and contributes to backend development and system optimization. Focuses on building reliable AI solutions, solving technical challenges, and improving application efficiency and user experience.',
+        full_biography: '<p>Develops AI-powered software applications, integrates intelligent models and APIs, and contributes to backend development and system optimization. Focuses on building reliable AI solutions, solving technical challenges, and improving application efficiency and user experience.</p>'
+      },
+      {
         _id: '14',
         name: 'Ayush Dubey',
         designation: 'Business Development Associate',
@@ -416,6 +468,14 @@ export default function OurTeamPage() {
 
   const resolveImageUrl = (img) => {
     if (!img) return '/images/uwo-logo.png';
+    if (img.includes('prateek-sharma')) return '/images/prateek-sharma..webp';
+    if (img.includes('ayush-dubey')) return '/images/ayush-dubey..webp';
+    if (img.includes('sandeep-yadav')) return '/images/sandeep-yadav..webp';
+    if (img.includes('sukhmani-kaur')) return '/images/sukhmani-kaur..webp';
+    if (img.includes('aman-kharare')) return '/images/aman-kharare..webp';
+    if (img.includes('milind-jha')) return '/images/milind-jha..webp';
+    if (img.includes('sonali-gupta') || img.includes('junior-ai-engineer')) return '/images/sonali-gupta.jpg';
+    if (img.includes('anupama') || img.includes('anupama-awadhiya')) return '/images/anupama-awadhiya.jpg';
     if (img.includes('storage.googleapis.com/uwo-document/')) {
       const objectPath = img.split('storage.googleapis.com/uwo-document/')[1];
       return `${API_URL}/media/${objectPath}`;
@@ -425,12 +485,6 @@ export default function OurTeamPage() {
       return `${API_URL}/media/${mediaPath}`;
     }
     if (img.startsWith('http://') || img.startsWith('https://')) return img;
-    if (img.includes('prateek-sharma')) return '/images/prateek-sharma..webp';
-    if (img.includes('ayush-dubey')) return '/images/ayush-dubey..webp';
-    if (img.includes('sandeep-yadav')) return '/images/sandeep-yadav..webp';
-    if (img.includes('sukhmani-kaur')) return '/images/sukhmani-kaur..webp';
-    if (img.includes('aman-kharare')) return '/images/aman-kharare..webp';
-    if (img.includes('milind-jha')) return '/images/milind-jha..webp';
     if (img.startsWith('/uploads/')) {
       return `${BACKEND_BASE}${img}`;
     }

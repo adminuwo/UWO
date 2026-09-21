@@ -3720,6 +3720,36 @@ app.get('/api/team-members/public', async (req, res) => {
                 skills: ['Strategic Partnerships', 'Client Acquisition', 'Business Growth', 'Negotiations'],
                 experience: ['Corporate Partnerships', 'Business Development'],
                 achievements: []
+            },
+            {
+                _id: '6a5e0f50806e7889e3ea1c30',
+                name: 'Sonali Gupta',
+                designation: 'Junior AI Software Engineer',
+                image: 'images/sonali-gupta.jpg',
+                display_order: 18,
+                status: 'active',
+                is_leadership: false,
+                category: 'Technology',
+                short_description: 'Develops AI-powered software applications, integrates intelligent models and APIs, and contributes to backend development and system optimization. Focuses on building reliable AI solutions, solving technical challenges, and improving application efficiency and user experience.',
+                full_biography: '<p>Develops AI-powered software applications, integrates intelligent models and APIs, and contributes to backend development and system optimization. Focuses on building reliable AI solutions, solving technical challenges, and improving application efficiency and user experience.</p>',
+                skills: ['AI Application Development', 'Model & API Integration', 'Backend Development', 'System Optimization'],
+                experience: ['AI Engineering', 'Intelligent Systems'],
+                achievements: []
+            },
+            {
+                _id: '6a5e0f50806e7889e3ea1c31',
+                name: 'Anupama Awadhiya',
+                designation: 'Junior AI Software Engineer',
+                image: 'images/anupama-awadhiya.jpg',
+                display_order: 19,
+                status: 'active',
+                is_leadership: false,
+                category: 'Technology',
+                short_description: 'Develops AI-powered software applications, integrates intelligent models and APIs, and contributes to backend development and system optimization. Focuses on building reliable AI solutions, solving technical challenges, and improving application efficiency and user experience.',
+                full_biography: '<p>Develops AI-powered software applications, integrates intelligent models and APIs, and contributes to backend development and system optimization. Focuses on building reliable AI solutions, solving technical challenges, and improving application efficiency and user experience.</p>',
+                skills: ['AI Application Development', 'Model & API Integration', 'Backend Development', 'System Optimization'],
+                experience: ['AI Engineering', 'Intelligent Systems'],
+                achievements: []
             }
         ];
 
