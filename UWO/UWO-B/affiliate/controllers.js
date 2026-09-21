@@ -623,41 +623,67 @@ exports.submitReferral = async (req, res) => {
             console.warn('⚠️ user-dashboard direct provisioning fallback:', regErr.message);
         }
 
-        // Send confirmation email via Resend
+        // Send confirmation email via Resend / EmailService
+        const { renderWelcomeEmail, renderWelcomeEmailText } = require('../referral/templates/welcomeEmail');
         const { sendEmail } = require('../services/emailService');
-        const userMailOptions = {
-            from: process.env.RESEND_FROM || `"UWO™ Ecosystem" <admin@ai-mall.in>`,
-            to: email,
-            subject: `🎉 Welcome to UWO™ Earn & Refer Program - Application Received (${referralCode})`,
-            html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; background: #0b1120; border-radius: 16px; padding: 30px; color: #f8fafc; border: 1.5px solid #D6A559;">
-                <h1 style="color: #D6A559; margin-top: 0;">UWO™ EARN &amp; REFER</h1>
-                <h2>Hi ${name},</h2>
-                <p style="color: #cbd5e1;">Thank you for applying to the UWO™ Earn &amp; Refer Program.</p>
-                ${userDashboardUserId && userDashboardPassword ? `
-                <div style="background: rgba(214, 165, 89, 0.15); border: 1px solid #D6A559; border-radius: 10px; padding: 18px; margin: 20px 0;">
-                    <h3 style="color: #FABE56; margin-top: 0;">🔐 Your Referral Dashboard Credentials</h3>
-                    <p style="margin: 4px 0;"><strong>User ID:</strong> <span style="color:#FABE56; font-family:monospace;">${userDashboardUserId}</span></p>
-                    <p style="margin: 4px 0;"><strong>Password:</strong> <span style="font-family:monospace;">${userDashboardPassword}</span></p>
-                    <p style="margin-top: 14px;"><a href="${userDashboardLoginUrl}" style="background: #D6A559; color: #000; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold;" target="_blank">Login to Dashboard →</a></p>
-                </div>
-                ` : ''}
-                <p><strong>Application Ref:</strong> ${referralCode}</p>
-            </div>
-            `
-        };
+
+        const emailSubject = `🎉 Welcome to UWO™ Earn & Refer Program - Your Credentials (${referralCode})`;
+        const emailHtml = renderWelcomeEmail({
+            name,
+            email,
+            userDashboardUserId,
+            userDashboardPassword,
+            userDashboardLoginUrl,
+            referralCode,
+            phone: phone || '',
+            preferredProgram: preferredProgram || '',
+            upiId: upiId || ''
+        });
+        const emailText = renderWelcomeEmailText({
+            name,
+            email,
+            userDashboardUserId,
+            userDashboardPassword,
+            userDashboardLoginUrl,
+            referralCode,
+            preferredProgram: preferredProgram || ''
+        });
 
         let emailSent = false;
         try {
             const sendRes = await sendEmail({
                 to: email,
-                subject: userMailOptions.subject,
-                html: userMailOptions.html
+                subject: emailSubject,
+                html: emailHtml,
+                text: emailText
             });
             emailSent = sendRes.success;
             console.log(`✅ [Earn & Refer] Confirmation email dispatched to ${email}:`, sendRes);
         } catch (e) {
             console.error('Email error:', e.message);
+        }
+
+        // Send admin notification
+        try {
+            await sendEmail({
+                to: ['admin@uwo24.com', 'gurumukhahuja3@gmail.com'],
+                subject: `🎁 New Earn & Refer Application: ${name} (${referralCode})`,
+                html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-top: 5px solid #D6A559;">
+                    <h2 style="color: #162377;">🎁 New Earn &amp; Refer Application Received</h2>
+                    <p><strong>Application ID:</strong> ${referralCode}</p>
+                    <p><strong>User ID:</strong> ${userDashboardUserId || 'Created'}</p>
+                    <p><strong>Name:</strong> ${name}</p>
+                    <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
+                    <p><strong>Phone:</strong> ${phone || 'Not provided'}</p>
+                    <p><strong>Affiliate Code:</strong> ${affiliateCode || 'Direct'}</p>
+                    <hr>
+                    <p style="font-size: 12px; color: #666;">Automated notification from UWO website affiliate system.</p>
+                </div>
+                `
+            });
+        } catch (adminErr) {
+            console.warn('Admin notification warning:', adminErr.message);
         }
 
         res.status(201).json({

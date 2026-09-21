@@ -23,8 +23,8 @@ router.post('/register', async (req, res) => {
     const cleanEmail = email.trim().toLowerCase();
     const cleanName = name.trim();
 
-    const frontendUrl = process.env.REFERRAL_FRONTEND_URL || process.env.FRONTEND_URL || 'http://localhost:5173';
-    const loginUrl = `${frontendUrl}/login`;
+    const frontendUrl = process.env.REFERRAL_FRONTEND_URL || process.env.FRONTEND_URL || 'https://uwo24.com/user';
+    const loginUrl = frontendUrl.includes('localhost') ? `${frontendUrl}/login` : frontendUrl;
 
     let existingUser = await User.findOne({ email: cleanEmail });
 

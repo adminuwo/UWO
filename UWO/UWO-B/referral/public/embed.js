@@ -284,9 +284,9 @@
         // Set dashboard login link dynamically from the response or derive from baseUrl
         var loginUrl = (data.credentials && data.credentials.loginUrl)
           ? data.credentials.loginUrl
-          : baseUrl.replace(/:\/\/[^/]+/, '://') + 'localhost:5173/login';
+          : 'https://uwo24.com/user';
         var loginLink = document.getElementById('ref-login-link');
-        if (loginLink) loginLink.href = (data.credentials && data.credentials.loginUrl) ? data.credentials.loginUrl : 'http://localhost:5173/login';
+        if (loginLink) loginLink.href = loginUrl;
 
         if (data.credentials) {
           var devBox = document.getElementById('ref-dev-box');

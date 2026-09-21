@@ -1661,140 +1661,35 @@ app.post('/api/referrals', async (req, res) => {
             console.error('⚠️ Could not provision referral user account in database:', regErr.message);
         }
 
-        // Nodemailer Transporter
-        const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST || 'smtp.gmail.com',
-            port: parseInt(process.env.SMTP_PORT) || 587,
-            secure: false,
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
-            },
-            tls: {
-                rejectUnauthorized: false
-            },
-            connectionTimeout: 20000,
-            greetingTimeout: 20000,
-            socketTimeout: 20000
+        // Send Confirmation Email to Applicant via Resend / EmailService
+        const { renderWelcomeEmail, renderWelcomeEmailText } = require('./referral/templates/welcomeEmail');
+        const { sendEmail } = require('./services/emailService');
+
+        const userEmailSubject = `🎉 Welcome to UWO™ Earn & Refer Program - Your Credentials (${referralCode})`;
+        const userEmailHtml = renderWelcomeEmail({
+            name,
+            email,
+            userDashboardUserId,
+            userDashboardPassword,
+            userDashboardLoginUrl,
+            referralCode,
+            phone: phone || '',
+            preferredProgram: preferredProgram || '',
+            upiId: upiId || ''
+        });
+        const userEmailText = renderWelcomeEmailText({
+            name,
+            email,
+            userDashboardUserId,
+            userDashboardPassword,
+            userDashboardLoginUrl,
+            referralCode,
+            preferredProgram: preferredProgram || ''
         });
 
-        // 1. Send Confirmation Email to Applicant
-        const userMailOptions = {
-            from: `"UWO™ Ecosystem" <${process.env.EMAIL_USER}>`,
-            to: email,
-            subject: `🎉 Welcome to UWO™ Earn & Refer Program - Application Received (${referralCode})`,
-            html: `
-            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 620px; margin: auto; background: #0b1120; border-radius: 20px; overflow: hidden; border: 1.5px solid rgba(214, 165, 89, 0.4); box-shadow: 0 20px 50px rgba(0,0,0,0.8); color: #f8fafc;">
-                <!-- Header -->
-                <div style="background: linear-gradient(135deg, #162377 0%, #0b1120 100%); padding: 36px 30px; text-align: center; border-bottom: 2px solid #D6A559;">
-                    <h1 style="margin: 0; color: #D6A559; font-size: 26px; font-weight: 800; letter-spacing: 1px;">UWO™ EARN &amp; REFER</h1>
-                    <p style="margin: 8px 0 0; color: #cbd5e1; font-size: 14px; letter-spacing: 2px; text-transform: uppercase;">Partner &amp; Referral Network</p>
-                </div>
-
-                <!-- Body -->
-                <div style="padding: 32px 30px; background: #0e172a;">
-                    <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Hi ${name},</h2>
-                    <p style="color: #cbd5e1; line-height: 1.6; font-size: 15px;">
-                        Thank you for applying to the <strong>UWO™ Earn &amp; Refer Program</strong>. We are thrilled to welcome you to our network of growth partners and creators!
-                    </p>
-
-                    ${userDashboardUserId && userDashboardPassword ? `
-                    <!-- Referral Dashboard Login Box -->
-                    <div style="background: rgba(214, 165, 89, 0.12); border: 1.5px solid #D6A559; border-radius: 14px; padding: 22px; margin: 24px 0;">
-                        <h3 style="margin: 0 0 10px; color: #FABE56; font-size: 16px; text-transform: uppercase; letter-spacing: 1px;">🔐 Your Referral Dashboard Login Credentials</h3>
-                        <p style="margin: 0 0 14px; color: #cbd5e1; font-size: 13.5px;">Your personal referral dashboard is ready. Log in to generate custom referral links for all UWO products (AISA, AI Legal, AI Ads, AI CashFlow, AI Mall, AISA Connect, EFV, etc.) and track clicks &amp; downloads in real time.</p>
-                        <table style="width: 100%; font-size: 14px; border-collapse: collapse; color: #f1f5f9;">
-                            <tr>
-                                <td style="padding: 6px 0; color: #94a3b8; width: 45%;"><strong>User ID:</strong></td>
-                                <td style="padding: 6px 0; color: #FABE56; font-weight: bold; font-family: monospace;">${userDashboardUserId}</td>
-                            </tr>
-                            <tr>
-                                <td style="padding: 6px 0; color: #94a3b8;"><strong>Email:</strong></td>
-                                <td style="padding: 6px 0; font-family: monospace;">${email}</td>
-                            </tr>
-                            <tr>
-                                <td style="padding: 6px 0; color: #94a3b8;"><strong>Password:</strong></td>
-                                <td style="padding: 6px 0; color: #ffffff; font-weight: bold; font-family: monospace;">${userDashboardPassword}</td>
-                            </tr>
-                        </table>
-                        <div style="text-align: center; margin-top: 18px;">
-                            <a href="${userDashboardLoginUrl}" style="display: inline-block; background: linear-gradient(135deg, #D6A559 0%, #FABE56 100%); color: #0b1120; font-weight: 700; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 14px;" target="_blank">Login to Referral Dashboard →</a>
-                        </div>
-                    </div>
-                    ` : ''}
-
-                    <!-- Application Info Box -->
-                    <div style="background: rgba(214, 165, 89, 0.08); border: 1px solid rgba(214, 165, 89, 0.3); border-radius: 14px; padding: 20px; margin: 24px 0;">
-                        <h3 style="margin: 0 0 14px; color: #D6A559; font-size: 16px; text-transform: uppercase; letter-spacing: 1px;">Application Summary</h3>
-                        <table style="width: 100%; font-size: 14px; border-collapse: collapse; color: #f1f5f9;">
-                            <tr>
-                                <td style="padding: 6px 0; color: #94a3b8; width: 45%;"><strong>Application ID:</strong></td>
-                                <td style="padding: 6px 0; color: #FABE56; font-weight: bold;">${referralCode}</td>
-                            </tr>
-                            <tr>
-                                <td style="padding: 6px 0; color: #94a3b8;"><strong>Full Name:</strong></td>
-                                <td style="padding: 6px 0;">${name}</td>
-                            </tr>
-                            <tr>
-                                <td style="padding: 6px 0; color: #94a3b8;"><strong>Registered Email:</strong></td>
-                                <td style="padding: 6px 0;">${email}</td>
-                            </tr>
-                            ${phone ? `
-                            <tr>
-                                <td style="padding: 6px 0; color: #94a3b8;"><strong>Phone:</strong></td>
-                                <td style="padding: 6px 0;">${phone}</td>
-                            </tr>
-                            ` : ''}
-                            <tr>
-                                <td style="padding: 6px 0; color: #94a3b8;"><strong>Platform Preference:</strong></td>
-                                <td style="padding: 6px 0;">${preferredProgram || 'All Platforms'}</td>
-                            </tr>
-                            ${upiId ? `
-                            <tr>
-                                <td style="padding: 6px 0; color: #94a3b8;"><strong>Payout UPI / Info:</strong></td>
-                                <td style="padding: 6px 0;">${upiId}</td>
-                            </tr>
-                            ` : ''}
-                        </table>
-                    </div>
-
-                    <!-- How it Works Steps -->
-                    <h3 style="color: #D6A559; font-size: 17px; margin: 28px 0 14px;">How It Works:</h3>
-                    <div style="display: grid; gap: 12px; margin-bottom: 24px;">
-                        <div style="background: rgba(255,255,255,0.03); border-radius: 10px; padding: 12px 16px; border-left: 3px solid #D6A559;">
-                            <strong style="color: #ffffff;">1. Login to Referral Dashboard:</strong>
-                            <p style="margin: 4px 0 0; color: #94a3b8; font-size: 13.5px;">Sign in with your User ID or Email to access your personalized portal.</p>
-                        </div>
-                        <div style="background: rgba(255,255,255,0.03); border-radius: 10px; padding: 12px 16px; border-left: 3px solid #D6A559;">
-                            <strong style="color: #ffffff;">2. Generate Links for Any UWO Product:</strong>
-                            <p style="margin: 4px 0 0; color: #94a3b8; font-size: 13.5px;">Create smart referral links for AISA, AI Legal, AI Ads, AI CashFlow, AI Mall, AISA Connect, EFV, or UWO corporate solutions.</p>
-                        </div>
-                        <div style="background: rgba(255,255,255,0.03); border-radius: 10px; padding: 12px 16px; border-left: 3px solid #D6A559;">
-                            <strong style="color: #ffffff;">3. Track Clicks, Downloads &amp; Payouts:</strong>
-                            <p style="margin: 4px 0 0; color: #94a3b8; font-size: 13.5px;">Monitor live visitor clicks and verified mobile app installs with real-time attribution.</p>
-                        </div>
-                    </div>
-
-                    <p style="color: #94a3b8; font-size: 13.5px; line-height: 1.5; margin-top: 25px;">
-                        If you have questions or want to collaborate directly, reply to this email or write to <a href="mailto:admin@uwo24.com" style="color: #D6A559;">admin@uwo24.com</a>.
-                    </p>
-                </div>
-
-                <!-- Footer -->
-                <div style="background: #050811; padding: 22px; text-align: center; border-top: 1px solid rgba(255,255,255,0.08); font-size: 12px; color: #64748b;">
-                    <p style="margin: 0 0 6px;">UWO™ - Unified Web Options &amp; Services Pvt. Ltd. &copy; 2026</p>
-                    <p style="margin: 0;">Building Intelligent Digital Platforms for a Connected World</p>
-                </div>
-            </div>
-            `
-        };
-
-        // 2. Send Admin Notification Email
-        const adminMailOptions = {
-            from: `"UWO System" <${process.env.EMAIL_USER}>`,
-            to: 'admin@uwo24.com',
-            subject: `🎁 New Earn & Refer Application: ${name} (${referralCode})`,
-            html: `
+        // 2. Prepare Admin Notification Email
+        const adminEmailSubject = `🎁 New Earn & Refer Application: ${name} (${referralCode})`;
+        const adminEmailHtml = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-top: 5px solid #D6A559;">
                 <h2 style="color: #162377;">🎁 New Earn &amp; Refer Application Received</h2>
                 <p><strong>Application ID:</strong> ${referralCode}</p>
@@ -1809,18 +1704,17 @@ app.post('/api/referrals', async (req, res) => {
                 <hr>
                 <p style="font-size: 12px; color: #666;">This is an automated notification from your UWO website backend.</p>
             </div>
-            `
-        };
+        `;
 
-        // Send confirmation email to applicant using Resend
-        const { sendEmail } = require('./services/emailService');
+        // Send confirmation email to applicant
         let emailSent = false;
         let emailError = null;
         try {
             const sendRes = await sendEmail({
                 to: email,
-                subject: userMailOptions.subject,
-                html: userMailOptions.html
+                subject: userEmailSubject,
+                html: userEmailHtml,
+                text: userEmailText
             });
             emailSent = sendRes.success;
             if (!emailSent) emailError = sendRes.error;
@@ -1834,8 +1728,8 @@ app.post('/api/referrals', async (req, res) => {
         try {
             await sendEmail({
                 to: ['admin@uwo24.com', 'gurumukhahuja3@gmail.com'],
-                subject: adminMailOptions.subject,
-                html: adminMailOptions.html
+                subject: adminEmailSubject,
+                html: adminEmailHtml
             });
             console.log(`✅ Earn & Refer admin notification sent`);
         } catch (adminEmailErr) {

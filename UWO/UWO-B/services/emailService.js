@@ -15,7 +15,10 @@ async function sendEmail({ to, subject, html, text, from }) {
 
   const resendApiKey = process.env.RESEND_API_KEY;
   const defaultFrom = process.env.RESEND_FROM || process.env.SMTP_FROM || `"UWO™ Referral Ecosystem" <admin@ai-mall.in>`;
-  const sender = from || defaultFrom;
+  let sender = (from || defaultFrom || '').trim();
+  if (!sender || sender.includes('undefined') || sender.includes('null') || !sender.includes('@')) {
+    sender = `"UWO™ Referral Ecosystem" <admin@ai-mall.in>`;
+  }
 
   // 1. Try Resend API first
   if (resendApiKey) {
