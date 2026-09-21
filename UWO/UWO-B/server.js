@@ -3529,7 +3529,7 @@ async function seedTeamMembers() {
                 {
                     name: 'Milind Jha',
                     designation: 'Marketing Executive',
-                    image: 'https://lh3.googleusercontent.com/a/ACg8ocKAvPQ8q-AUTqlT8obulxAPk0ZoCpQN3HXjxfCuv-s_QHbjkA=s400-c',
+                    image: 'images/milind-jha..webp',
                     display_order: 18,
                     status: 'active',
                     is_leadership: false,

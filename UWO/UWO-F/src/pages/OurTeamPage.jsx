@@ -129,13 +129,7 @@ export default function OurTeamPage() {
               return { ...m, image: 'images/aman-kharare..webp', designation: 'Business Development Associate' };
             }
             if (n.includes('milind jha')) {
-              return {
-                ...m,
-                image: (m.image && m.image.startsWith('http'))
-                  ? m.image
-                  : 'https://lh3.googleusercontent.com/a/ACg8ocKAvPQ8q-AUTqlT8obulxAPk0ZoCpQN3HXjxfCuv-s_QHbjkA=s400-c',
-                designation: 'Marketing Executive'
-              };
+              return { ...m, image: 'images/milind-jha..webp', designation: 'Marketing Executive' };
             }
             return m;
           });
@@ -407,7 +401,7 @@ export default function OurTeamPage() {
         designation: 'Marketing Executive',
         category: 'Marketing',
         is_leadership: false,
-        image: 'https://lh3.googleusercontent.com/a/ACg8ocKAvPQ8q-AUTqlT8obulxAPk0ZoCpQN3HXjxfCuv-s_QHbjkA=s400-c',
+        image: 'images/milind-jha..webp',
         short_description: 'Drives marketing initiatives, campaign execution, and brand outreach across the UWO ecosystem.',
         full_biography: '<p>Milind Jha serves as a Marketing Executive at UWO, driving multi-channel marketing campaigns, user engagement strategies, and digital brand expansion across ecosystem platforms.</p>'
       }
@@ -422,7 +416,7 @@ export default function OurTeamPage() {
     if (img.includes('sandeep-yadav')) return '/images/sandeep-yadav..webp';
     if (img.includes('sukhmani-kaur')) return '/images/sukhmani-kaur..webp';
     if (img.includes('aman-kharare')) return '/images/aman-kharare..webp';
-    if (img.includes('milind-jha')) return '/images/milind-jha.png';
+    if (img.includes('milind-jha')) return '/images/milind-jha..webp';
     if (img.includes('storage.googleapis.com/uwo-document/')) {
       const objectPath = img.split('storage.googleapis.com/uwo-document/')[1];
       return `${API_URL}/media/${objectPath}`;
