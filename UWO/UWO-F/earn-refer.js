@@ -9,8 +9,8 @@
 
   // Dashboard login URL — dynamic per environment
   const DASHBOARD_LOGIN_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-    ? "http://localhost:5173/login"
-    : "https://referrals.uwo24.com/login";
+    ? "http://localhost:5173/user/"
+    : "/user/";
 
   function injectEarnReferModal() {
     if (document.getElementById('earnReferOverlay')) return;
@@ -56,6 +56,13 @@
               <span>Get My Referral Account</span>
               <i class="fa-solid fa-arrow-right"></i>
             </button>
+
+            <div class="earn-already-account-wrap">
+              <a href="${DASHBOARD_LOGIN_URL}" target="_blank" rel="noopener noreferrer" class="earn-already-account-btn" title="Already have account" id="alreadyHaveAccountBtn" onclick="window.closeEarnReferModal()">
+                <i class="fa-solid fa-right-to-bracket"></i>
+                <span>Already have account</span>
+              </a>
+            </div>
           </form>
         </div>
 

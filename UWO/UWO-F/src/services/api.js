@@ -15,8 +15,8 @@ export const REFERRAL_BACKEND = typeof window !== 'undefined' && (window.locatio
   : "https://referrals-api.uwo24.com";
 
 export const DASHBOARD_LOGIN_URL = typeof window !== 'undefined' && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
-  ? "http://localhost:5173/login"
-  : "https://referrals.uwo24.com/login";
+  ? "http://localhost:5173/user/"
+  : "/user/";
 
 // Centralized fetch helper with auth header injection
 export async function apiRequest(endpoint, options = {}) {

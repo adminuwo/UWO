@@ -181,6 +181,23 @@ export default function EarnReferModal({ isOpen, onClose }) {
                   </>
                 )}
               </button>
+
+              <div className="earn-already-account-wrap">
+                <a
+                  href={portalLoginUrl || DASHBOARD_LOGIN_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="earn-already-account-btn"
+                  title="Already have account"
+                  id="alreadyHaveAccountBtn"
+                  onClick={() => {
+                    if (onClose) onClose();
+                  }}
+                >
+                  <i className="fa-solid fa-right-to-bracket"></i>
+                  <span>Already have account</span>
+                </a>
+              </div>
             </form>
           </div>
         ) : (
