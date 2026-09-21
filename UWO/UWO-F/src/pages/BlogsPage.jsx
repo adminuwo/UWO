@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { fetchBlogs, resolveBlogImageUrl, getBlogFallbackImage, CLOUD_RUN_BACKEND } from '../services/api';
+import { fetchBlogs, resolveBlogImageUrl, getBlogFallbackImage } from '../services/api';
 
 const DEFAULT_BLOGS = [
   {
@@ -618,12 +618,7 @@ export default function BlogsPage() {
                   className="featured-img"
                   onError={(e) => {
                     e.currentTarget.onerror = null;
-                    const directUrl = `${CLOUD_RUN_BACKEND}/api/media/blogs/images/blog-1786018463038-52f42a85.webp`;
-                    if (e.currentTarget.src !== directUrl) {
-                      e.currentTarget.src = directUrl;
-                    } else {
-                      e.currentTarget.src = getBlogFallbackImage(featBlog.category, featBlog.title);
-                    }
+                    e.currentTarget.src = getBlogFallbackImage(featBlog.category, featBlog.title);
                   }}
                 />
               </div>
@@ -708,13 +703,7 @@ export default function BlogsPage() {
                     className="card-img"
                     onError={(e) => {
                       e.currentTarget.onerror = null;
-                      // Fallback directly to Cloud Run if image path had issue
-                      const gcsMatch = (b.coverImage || '').match(/blog-\d+-[a-f0-9]+\.webp/);
-                      if (gcsMatch) {
-                        e.currentTarget.src = `${CLOUD_RUN_BACKEND}/api/media/blogs/images/${gcsMatch[0]}`;
-                      } else {
-                        e.currentTarget.src = getBlogFallbackImage(b.category, b.title);
-                      }
+                      e.currentTarget.src = getBlogFallbackImage(b.category, b.title);
                     }}
                   />
                 </div>

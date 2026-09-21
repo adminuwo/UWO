@@ -63,15 +63,28 @@ export async function fetchBlogBySlug(slug) {
 export function getBlogFallbackImage(category = '', title = '') {
   const cat = (category || '').toLowerCase();
   const t = (title || '').toLowerCase();
-  if (cat.includes('automation') || cat.includes('artificial') || t.includes('automation')) {
+
+  // AI & Automation — purple/neural wave
+  if (cat.includes('automation') || cat.includes('ai & auto') || t.includes('automation') || t.includes('assistant') || t.includes('aisa')) {
     return 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80';
-  } else if (cat.includes('tech') || cat.includes('technology') || cat.includes('ai') || t.includes('ai') || t.includes('intelligence')) {
+  }
+  // AISA™ category
+  if (cat.includes('aisa')) {
+    return 'https://images.unsplash.com/photo-1677442135703-1787eea5ce01?auto=format&fit=crop&w=1200&q=80';
+  }
+  // Technology & AI — digital/matrix
+  if (cat.includes('tech') || cat.includes('technology') || cat.includes('ai') || t.includes('ai') || t.includes('intelligence') || t.includes('ecosystem')) {
     return 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1200&q=80';
-  } else if (cat.includes('commerce') || cat.includes('business') || cat.includes('marketing') || t.includes('brand') || t.includes('commerce')) {
+  }
+  // Digital Commerce / Business
+  if (cat.includes('commerce') || cat.includes('business') || cat.includes('marketing') || t.includes('brand') || t.includes('commerce')) {
     return 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80';
-  } else if (cat.includes('research') || t.includes('study') || t.includes('research')) {
+  }
+  // Research
+  if (cat.includes('research') || t.includes('study') || t.includes('research')) {
     return 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80';
   }
+  // Default — futuristic blue glow
   return 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=1200&q=80';
 }
 
@@ -79,17 +92,28 @@ export const CLOUD_RUN_BACKEND = typeof window !== 'undefined'
   ? (window.location.hostname === "localhost" && window.location.port === "3000" ? "http://localhost:8080" : window.location.origin)
   : "https://uwo-backend-977864306871.asia-south1.run.app";
 
+// True when running on a local dev server (the /api/media proxy only exists in Cloud Run with GCP credentials)
+const IS_LOCAL_DEV = typeof window !== 'undefined' &&
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
 export function resolveBlogImageUrl(blog) {
   if (!blog) return getBlogFallbackImage();
   const img = blog.coverImage || blog.featuredImage || blog.image;
   if (!img) return getBlogFallbackImage(blog.category, blog.title);
 
-  // GCS Private assets must be fetched via Cloud Run media proxy which has valid GCP IAM credentials
+  // GCS Private assets must be fetched via Cloud Run media proxy which has valid GCP IAM credentials.
+  // On localhost the /api/media endpoint doesn't exist, so fall back to Unsplash immediately.
   if (img.includes('storage.googleapis.com/uwo-document/')) {
+    if (IS_LOCAL_DEV) {
+      return getBlogFallbackImage(blog.category, blog.title);
+    }
     const objectPath = img.split('storage.googleapis.com/uwo-document/')[1];
     return `${CLOUD_RUN_BACKEND}/api/media/${objectPath.replace(/^\/+/, '')}`;
   }
   if (img.includes('/api/media/')) {
+    if (IS_LOCAL_DEV) {
+      return getBlogFallbackImage(blog.category, blog.title);
+    }
     const mediaPath = img.split('/api/media/')[1];
     return `${CLOUD_RUN_BACKEND}/api/media/${mediaPath.replace(/^\/+/, '')}`;
   }
@@ -98,6 +122,9 @@ export function resolveBlogImageUrl(blog) {
   }
   if (img.startsWith('/uploads/')) {
     return `${BACKEND_BASE}${img}`;
+  }
+  if (IS_LOCAL_DEV) {
+    return getBlogFallbackImage(blog.category, blog.title);
   }
   return `${CLOUD_RUN_BACKEND}/api/media/${img.replace(/^\/+/, '')}`;
 }
