@@ -219,12 +219,20 @@ export const AppDownloadsTab = () => {
         background: 'rgba(16, 185, 129, 0.06)', border: '1px solid rgba(16, 185, 129, 0.2)',
         borderRadius: '8px', padding: '8px 16px', marginBottom: '16px', flexWrap: 'wrap', gap: '8px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981', flexShrink: 0 }}></span>
-          <span style={{ fontSize: '12px', color: '#34d399', fontWeight: '600' }}>Live Data Feed Active</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981', flexShrink: 0 }}></span>
+          <span style={{ fontSize: '12px', color: '#34d399', fontWeight: '700' }}>Live Telemetry Active</span>
+          <span style={{ fontSize: '11px', color: '#34d399', background: 'rgba(16, 185, 129, 0.15)', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(16, 185, 129, 0.3)', fontWeight: '600' }}>
+            ⚡ {combined.today_installs ?? combined.daily_device_installs ?? 0} installs today
+          </span>
+          {analytics?.source?.latest_event_at && (
+            <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+              • Latest event: {new Date(analytics.source.latest_event_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
           {lastSynced && (
             <span style={{ fontSize: '11px', color: '#64748b' }}>
-              • Last synced: {lastSynced.toLocaleTimeString()}
+              • Synced: {lastSynced.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </span>
           )}
         </div>
@@ -327,10 +335,15 @@ export const AppDownloadsTab = () => {
         <div className="metric-card">
           <div className="metric-header">
             <span>Total Combined Downloads</span>
-            <div className="metric-icon">📥</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '11px', background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', padding: '2px 8px', borderRadius: '4px', fontWeight: '700' }}>
+                +{combined.today_installs ?? combined.daily_device_installs ?? 0} Today
+              </span>
+              <div className="metric-icon">📥</div>
+            </div>
           </div>
           <div className="metric-value">{(totalDownloads + iosDownloads).toLocaleString()}</div>
-          <div className="metric-sub">Android ({androidInstalls}) + iOS ({iosDownloads})</div>
+          <div className="metric-sub">Android ({androidInstalls.toLocaleString()}) + iOS ({iosDownloads.toLocaleString()}) • Live real-time feed</div>
         </div>
 
         <div className="metric-card">
@@ -339,7 +352,7 @@ export const AppDownloadsTab = () => {
             <div className="metric-icon">🤖</div>
           </div>
           <div className="metric-value">{androidInstalls.toLocaleString()}</div>
-          <div className="metric-sub">{combined.active_device_installs_latest || 0} active devices • from Play Console</div>
+          <div className="metric-sub">{combined.active_device_installs_latest || 0} active devices • Live telemetry + Play Console</div>
         </div>
 
         <div className="metric-card" style={{ borderColor: 'rgba(56, 189, 248, 0.4)', background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.1) 0%, rgba(15, 23, 42, 0.6) 100%)' }}>
@@ -348,7 +361,7 @@ export const AppDownloadsTab = () => {
             <div className="metric-icon">🍏</div>
           </div>
           <div className="metric-value" style={{ color: '#38bdf8' }}>{iosDownloads.toLocaleString()}</div>
-          <div className="metric-sub">{combined.ios_first_time_downloads || 0} 1st time • {combined.ios_redownloads || 0} redownloads • {combined.ios_page_views || 0} views</div>
+          <div className="metric-sub">{combined.ios_first_time_downloads || iosDownloads} live installs • {combined.ios_page_views || 0} views</div>
         </div>
       </div>
 
