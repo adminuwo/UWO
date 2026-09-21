@@ -3762,6 +3762,36 @@ app.get('/api/team-members/public', async (req, res) => {
                 members[idx].image = reqMem.image;
                 if (!members[idx].designation) members[idx].designation = reqMem.designation;
             }
+        const getSectionRank = (m) => {
+            if (m.is_leadership) return 1;
+            const cat = (m.category || '').toLowerCase();
+            const des = (m.designation || '').toLowerCase();
+            if (cat.includes('marketing') || cat.includes('design') || des.includes('marketing') || des.includes('designer')) {
+                return 4;
+            }
+            if (cat.includes('tech') || cat.includes('engineer') || des.includes('developer') || des.includes('engineer') || des.includes('software')) {
+                return 3;
+            }
+            return 2; // Management
+        };
+
+        members.sort((a, b) => {
+            const rankA = getSectionRank(a);
+            const rankB = getSectionRank(b);
+            if (rankA !== rankB) return rankA - rankB;
+            const nameA = (a.name || '').toLowerCase();
+            const nameB = (b.name || '').toLowerCase();
+            if (rankA === 2) {
+                if (nameA.includes('prateek')) return -1;
+                if (nameB.includes('prateek')) return 1;
+            }
+            if (rankA === 4) {
+                if (nameA.includes('sreshthi')) return -1;
+                if (nameB.includes('sreshthi')) return 1;
+                if (nameA.includes('milind')) return -1;
+                if (nameB.includes('milind')) return 1;
+            }
+            return (a.display_order || 99) - (b.display_order || 99);
         });
 
         res.json(members);

@@ -172,22 +172,49 @@ export default function OurTeamPage() {
             return m;
           });
 
-          // Ordering: Prateek Sharma first among non-leadership, Sreshthi Sunpal last
-          const nonLeadership = filtered.filter(m => !m.is_leadership);
-          const leadership = filtered.filter(m => m.is_leadership);
-          const prateekIdx = nonLeadership.findIndex(m => (m.name || '').toLowerCase().includes('prateek sharma'));
-          const sreshthi = nonLeadership.findIndex(m => (m.name || '').toLowerCase().includes('sreshthi'));
-          let ordered = [...nonLeadership];
-          if (prateekIdx > 0) {
-            const [p] = ordered.splice(prateekIdx, 1);
-            ordered.unshift(p);
-          }
-          const sreshthiNewIdx = ordered.findIndex(m => (m.name || '').toLowerCase().includes('sreshthi'));
-          if (sreshthiNewIdx !== -1 && sreshthiNewIdx !== ordered.length - 1) {
-            const [s] = ordered.splice(sreshthiNewIdx, 1);
-            ordered.push(s);
-          }
-          filtered = [...leadership, ...ordered];
+          // Categorization helper: Leadership -> Management -> Technology -> Marketing
+          const getMemberSection = (m) => {
+            if (m.is_leadership) return 'leadership';
+            const cat = (m.category || '').toLowerCase();
+            const des = (m.designation || '').toLowerCase();
+            if (cat.includes('marketing') || cat.includes('design') || des.includes('marketing') || des.includes('designer')) {
+              return 'marketing';
+            }
+            if (cat.includes('tech') || cat.includes('engineer') || des.includes('developer') || des.includes('engineer') || des.includes('software')) {
+              return 'technology';
+            }
+            return 'management';
+          };
+
+          const leadership = filtered.filter(m => getMemberSection(m) === 'leadership');
+          const management = filtered.filter(m => getMemberSection(m) === 'management');
+          const technology = filtered.filter(m => getMemberSection(m) === 'technology');
+          const marketing = filtered.filter(m => getMemberSection(m) === 'marketing');
+
+          // Management ordering: Prateek Sharma (HR) first, then managers, then associates
+          management.sort((a, b) => {
+            const na = (a.name || '').toLowerCase();
+            const nb = (b.name || '').toLowerCase();
+            if (na.includes('prateek')) return -1;
+            if (nb.includes('prateek')) return 1;
+            return (a.display_order || 99) - (b.display_order || 99);
+          });
+
+          // Technology ordering
+          technology.sort((a, b) => (a.display_order || 99) - (b.display_order || 99));
+
+          // Marketing ordering: Sreshthi Sunpal, Milind Jha, Sukhmani Kaur
+          marketing.sort((a, b) => {
+            const na = (a.name || '').toLowerCase();
+            const nb = (b.name || '').toLowerCase();
+            if (na.includes('sreshthi')) return -1;
+            if (nb.includes('sreshthi')) return 1;
+            if (na.includes('milind')) return -1;
+            if (nb.includes('milind')) return 1;
+            return (a.display_order || 99) - (b.display_order || 99);
+          });
+
+          filtered = [...leadership, ...management, ...technology, ...marketing];
 
           setMembers(filtered);
         } else if (isMounted) {
@@ -492,8 +519,70 @@ export default function OurTeamPage() {
     return `/${img.replace(/^\/+/, '')}`;
   };
 
-  const leadership = members.filter(m => m.is_leadership);
-  const regularTeam = members.filter(m => !m.is_leadership);
+  const getSectionKey = (m) => {
+    if (m.is_leadership) return 'leadership';
+    const cat = (m.category || '').toLowerCase();
+    const des = (m.designation || '').toLowerCase();
+    if (cat.includes('marketing') || cat.includes('design') || des.includes('marketing') || des.includes('designer')) {
+      return 'marketing';
+    }
+    if (cat.includes('tech') || cat.includes('engineer') || des.includes('developer') || des.includes('engineer') || des.includes('software')) {
+      return 'technology';
+    }
+    return 'management';
+  };
+
+  const leadership = members.filter(m => getSectionKey(m) === 'leadership');
+  const management = members.filter(m => getSectionKey(m) === 'management');
+  const technology = members.filter(m => getSectionKey(m) === 'technology');
+  const marketing = members.filter(m => getSectionKey(m) === 'marketing');
+
+  const renderMemberCard = (m, idx) => (
+    <div 
+      key={m._id || m.name || idx} 
+      className="team-card scroll-reveal" 
+      onClick={() => setSelectedMember(m)}
+      style={{
+        background: '#F0EAD8',
+        border: '1px solid #DDD0B8',
+        borderRadius: '20px',
+        padding: '30px 20px',
+        textAlign: 'center',
+        cursor: 'pointer',
+        boxShadow: '0 4px 15px rgba(0,0,0,0.03)'
+      }}
+    >
+      <div 
+        style={{
+          width: '130px',
+          height: '130px',
+          margin: '0 auto 20px',
+          borderRadius: '50%',
+          overflow: 'hidden',
+          border: '3px solid #D6A559',
+          boxShadow: '0 8px 20px rgba(0,0,0,0.08)',
+          background: 'rgba(214, 165, 89, 0.1)',
+          transition: 'transform 0.4s ease'
+        }}
+      >
+        <img 
+          src={resolveImageUrl(m.image)} 
+          alt={m.name} 
+          style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
+          onError={(e) => { 
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = '/images/uwo-logo.png'; 
+          }}
+        />
+      </div>
+      <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.25rem', fontWeight: 700, color: '#000', margin: '0 0 6px' }}>
+        {m.name}
+      </h3>
+      <h4 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '0.95rem', fontWeight: 600, color: '#D6A559', margin: 0 }}>
+        {m.designation}
+      </h4>
+    </div>
+  );
 
   return (
     <div className="our-team-page">
@@ -690,8 +779,8 @@ export default function OurTeamPage() {
               </section>
             )}
 
-            {/* Core Team Collective Grid */}
-            {regularTeam.length > 0 && (
+            {/* Management Section */}
+            {management.length > 0 && (
               <section className="section dept-section" style={{ padding: '80px 20px', background: '#EDE5D4', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
                 <div className="container" style={{ maxWidth: '1200px', margin: '0 auto' }}>
                   <div style={{ textAlign: 'center', marginBottom: '50px' }}>
@@ -707,7 +796,7 @@ export default function OurTeamPage() {
                         display: 'inline-block'
                       }}
                     >
-                      The Engineering &amp; Research Collective
+                      Management Team
                       <span 
                         style={{
                           display: 'block',
@@ -729,52 +818,97 @@ export default function OurTeamPage() {
                       gap: '30px'
                     }}
                   >
-                    {regularTeam.map((m, idx) => (
-                      <div 
-                        key={m._id || idx} 
-                        className="team-card scroll-reveal" 
-                        onClick={() => setSelectedMember(m)}
+                    {management.map(renderMemberCard)}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* Technology & Engineering Section */}
+            {technology.length > 0 && (
+              <section className="section dept-section" style={{ padding: '80px 20px', background: '#F5F1E8', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+                <div className="container" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+                  <div style={{ textAlign: 'center', marginBottom: '50px' }}>
+                    <h2 
+                      className="scroll-reveal"
+                      style={{
+                        fontFamily: "'Outfit', sans-serif",
+                        fontSize: '2.6rem',
+                        fontWeight: 800,
+                        color: '#000000',
+                        margin: 0,
+                        position: 'relative',
+                        display: 'inline-block'
+                      }}
+                    >
+                      Technology &amp; Engineering
+                      <span 
                         style={{
-                          background: '#F0EAD8',
-                          border: '1px solid #DDD0B8',
-                          borderRadius: '20px',
-                          padding: '30px 20px',
-                          textAlign: 'center',
-                          cursor: 'pointer',
-                          boxShadow: '0 4px 15px rgba(0,0,0,0.03)'
+                          display: 'block',
+                          width: '60px',
+                          height: '3px',
+                          background: '#D6A559',
+                          margin: '12px auto 0',
+                          borderRadius: '2px'
                         }}
-                      >
-                        <div 
-                          style={{
-                            width: '130px',
-                            height: '130px',
-                            margin: '0 auto 20px',
-                            borderRadius: '50%',
-                            overflow: 'hidden',
-                            border: '3px solid #D6A559',
-                            boxShadow: '0 8px 20px rgba(0,0,0,0.08)',
-                            background: 'rgba(214, 165, 89, 0.1)',
-                            transition: 'transform 0.4s ease'
-                          }}
-                        >
-                          <img 
-                            src={resolveImageUrl(m.image)} 
-                            alt={m.name} 
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
-                            onError={(e) => { 
-                              e.currentTarget.onerror = null;
-                              e.currentTarget.src = '/images/uwo-logo.png'; 
-                            }}
-                          />
-                        </div>
-                        <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.25rem', fontWeight: 700, color: '#000', margin: '0 0 6px' }}>
-                          {m.name}
-                        </h3>
-                        <h4 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '0.95rem', fontWeight: 600, color: '#D6A559', margin: 0 }}>
-                          {m.designation}
-                        </h4>
-                      </div>
-                    ))}
+                      />
+                    </h2>
+                  </div>
+
+                  <div 
+                    className="dept-grid"
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))',
+                      gap: '30px'
+                    }}
+                  >
+                    {technology.map(renderMemberCard)}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* Marketing Section */}
+            {marketing.length > 0 && (
+              <section className="section dept-section" style={{ padding: '80px 20px', background: '#EDE5D4', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+                <div className="container" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+                  <div style={{ textAlign: 'center', marginBottom: '50px' }}>
+                    <h2 
+                      className="scroll-reveal"
+                      style={{
+                        fontFamily: "'Outfit', sans-serif",
+                        fontSize: '2.6rem',
+                        fontWeight: 800,
+                        color: '#000000',
+                        margin: 0,
+                        position: 'relative',
+                        display: 'inline-block'
+                      }}
+                    >
+                      Marketing Team
+                      <span 
+                        style={{
+                          display: 'block',
+                          width: '60px',
+                          height: '3px',
+                          background: '#D6A559',
+                          margin: '12px auto 0',
+                          borderRadius: '2px'
+                        }}
+                      />
+                    </h2>
+                  </div>
+
+                  <div 
+                    className="dept-grid"
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))',
+                      gap: '30px'
+                    }}
+                  >
+                    {marketing.map(renderMemberCard)}
                   </div>
                 </div>
               </section>
