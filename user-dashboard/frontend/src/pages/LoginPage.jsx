@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyRound, Mail, ArrowRight, ShieldCheck, Sparkles, AlertCircle } from 'lucide-react';
+import { KeyRound, Mail, ArrowRight, ShieldCheck, Sparkles, AlertCircle, Gift } from 'lucide-react';
 import { api, setToken } from '../services/api';
 
 export default function LoginPage({ onLoginSuccess, onNavigate }) {
@@ -7,6 +7,11 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const websiteUrl = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
+    ? 'http://localhost:3000'
+    : (import.meta.env.VITE_WEBSITE_URL || 'https://uwo24.com');
+  const earnReferUrl = `${websiteUrl}/?action=earn-refer`;
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -102,6 +107,23 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
               )}
             </button>
           </form>
+
+          <div className="relative flex py-2 items-center my-4">
+            <div className="flex-grow border-t border-slate-800"></div>
+            <span className="flex-shrink mx-3 text-slate-500 text-xs font-medium uppercase tracking-wider">
+              Need an Account?
+            </span>
+            <div className="flex-grow border-t border-slate-800"></div>
+          </div>
+
+          <a
+            href={earnReferUrl}
+            className="w-full py-3.5 px-4 bg-gradient-to-r from-amber-500/10 via-indigo-600/15 to-amber-500/10 hover:from-amber-500/20 hover:via-indigo-600/25 hover:to-amber-500/20 border border-amber-500/30 hover:border-amber-400 text-amber-300 hover:text-amber-200 text-sm font-semibold rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-amber-500/5 group text-center"
+          >
+            <Gift className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform flex-shrink-0" />
+            <span>Get a Referral Account / Create User Account</span>
+            <ArrowRight className="w-4 h-4 text-amber-400/80 group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
+          </a>
         </div>
 
         <div className="flex items-center justify-center gap-2 mt-6 text-slate-500 text-xs">

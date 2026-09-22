@@ -58,7 +58,7 @@
             </button>
 
             <div class="earn-already-account-wrap">
-              <a href="${DASHBOARD_LOGIN_URL}" target="_blank" rel="noopener noreferrer" class="earn-already-account-btn" title="Already have account" id="alreadyHaveAccountBtn" onclick="window.closeEarnReferModal()">
+              <a href="${DASHBOARD_LOGIN_URL}" class="earn-already-account-btn" title="Already have account" id="alreadyHaveAccountBtn" onclick="window.closeEarnReferModal()">
                 <i class="fa-solid fa-right-to-bracket"></i>
                 <span>Already have account</span>
               </a>
@@ -116,9 +116,9 @@
           </div>
 
           <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
-            <a id="earnDashboardLink" href="${DASHBOARD_LOGIN_URL}" target="_blank" class="earn-done-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:8px; background: linear-gradient(135deg, #D6A559 0%, #FABE56 100%) !important; color: #0b1120 !important; font-weight: 800 !important; border: none !important; box-shadow: 0 4px 15px rgba(214, 165, 89, 0.4) !important;">
+            <a id="earnDashboardLink" href="${DASHBOARD_LOGIN_URL}" class="earn-done-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:8px; background: linear-gradient(135deg, #D6A559 0%, #FABE56 100%) !important; color: #0b1120 !important; font-weight: 800 !important; border: none !important; box-shadow: 0 4px 15px rgba(214, 165, 89, 0.4) !important;">
               <span>Login to User Dashboard</span>
-              <i class="fa-solid fa-arrow-up-right-from-square"></i>
+              <i class="fa-solid fa-arrow-right"></i>
             </a>
             <button type="button" class="earn-done-btn" style="background:#1e293b; border:1px solid rgba(255,255,255,0.15);" onclick="window.closeEarnReferModal()">
               Close
@@ -306,10 +306,29 @@
     }
   });
 
+  function checkUrlAutoOpen() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('action') === 'earn-refer' || params.get('open') === 'earn-refer' || window.location.hash === '#earn-refer') {
+        setTimeout(function() {
+          if (typeof window.openEarnReferModal === 'function') {
+            window.openEarnReferModal();
+          }
+        }, 300);
+      }
+    } catch (e) {}
+  }
+
   // Inject modal when DOM is ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', injectEarnReferModal);
+    document.addEventListener('DOMContentLoaded', function() {
+      injectEarnReferModal();
+      checkUrlAutoOpen();
+    });
   } else {
     injectEarnReferModal();
+    checkUrlAutoOpen();
   }
+
+  window.addEventListener('hashchange', checkUrlAutoOpen);
 })();

@@ -33,13 +33,25 @@ def authenticate_admin(db: Database, username: str, password: str) -> Dict[str, 
                 )
             return admin_doc
 
+    # Configured master admin credentials from environment or settings
+    configured_admin_email = (getattr(settings, "ADMIN_EMAIL", None) or "admin@uwo.com").strip().lower()
+    configured_admin_password = getattr(settings, "ADMIN_PASSWORD", None) or "uwo@1234"
+    if clean_username == configured_admin_email and password == configured_admin_password:
+        return {
+            "username": clean_username,
+            "role": "super_admin",
+            "is_active": True,
+        }
+
     # Allowed usernames and simple credentials for easy developer access
     allowed_usernames = {
         "admin",
         "superadmin",
         "super.admin@unified.com",
         "admin@unified.com",
-        "admin@gmail.com"
+        "admin@gmail.com",
+        "admin@uwo.com",
+        "admin@uwo24.com",
     }
     allowed_passwords = {
         "admin",
@@ -47,7 +59,8 @@ def authenticate_admin(db: Database, username: str, password: str) -> Dict[str, 
         "Admin@123",
         "123456",
         "password",
-        "SuperAdmin@123"
+        "SuperAdmin@123",
+        "uwo@1234",
     }
 
     # Check default & simple credentials if database user is not yet created or matches

@@ -75,97 +75,7 @@ app.get('/api', (req, res) => {
     res.send('<h2>UWO Backend is Active and Running</h2><p>Server connected securely to MongoDB & Vertex AI.</p>');
 });
 
-app.get('/api/debug/fastapi', (req, res) => {
-    let logContent = 'No log file found';
-    try {
-        if (fs.existsSync('/tmp/fastapi.log')) {
-            logContent = fs.readFileSync('/tmp/fastapi.log', 'utf8');
-        }
-    } catch (e) {
-        logContent = e.message;
-    }
-    res.json({
-        time: new Date().toISOString(),
-        fastapi_target: FASTAPI_TARGET,
-        python_port: process.env.PYTHON_PORT || 8000,
-        log: logContent
-    });
-});
-
-// Affiliate Module Router Mount with live reloading
-app.use('/api/affiliate', (req, res, next) => {
-    try { delete require.cache[require.resolve('./affiliate/routes')]; } catch (e) { }
-    return require('./affiliate/routes')(req, res, next);
-});
-app.use('/affiliate', (req, res, next) => {
-    try { delete require.cache[require.resolve('./affiliate/routes')]; } catch (e) { }
-    return require('./affiliate/routes')(req, res, next);
-});
-
-// Enterprise Webhook & Orders Admin endpoints
-const enterpriseController = require('./affiliate/enterpriseController');
-const { authAdmin } = require('./affiliate/middleware');
-app.post('/api/webhooks/razorpay', enterpriseController.razorpayWebhook);
-app.post('/api/webhooks/cashfree', enterpriseController.cashfreeWebhook);
-app.get('/api/admin/sales-report', authAdmin, enterpriseController.getAdminSalesReport);
-app.put('/api/orders/:id/status', authAdmin, enterpriseController.updateOrderStatus);
-
-// ================= USER DASHBOARD / REFERRAL SYSTEM =================
-const referralAuth = require('./referral/routes/auth');
-const referralProducts = require('./referral/routes/products');
-const referralLinks = require('./referral/routes/links');
-const referralConversions = require('./referral/routes/conversions');
-const referralRedirect = require('./referral/routes/redirect');
-const { seedReferralSystem } = require('./referral/scripts/seed');
-
-app.use('/api/auth', referralAuth);
-app.use('/api/products', referralProducts);
-app.use('/api/links', referralLinks);
-app.use('/api/conversions', referralConversions);
-app.use('/r', referralRedirect);
-
-app.get('/embed.js', (req, res) => {
-    res.sendFile(path.join(__dirname, 'referral/public/embed.js'));
-});
-
-// ================= UWO UNIVERSAL TRACKER & CLIENT SDK =================
-app.get(['/uwo-tracker.js', '/sdk/uwo.js', '/sdk/uwo-tracker.js'], (req, res) => {
-    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
-    res.sendFile(path.join(__dirname, 'referral/public/uwo-tracker.js'));
-});
-
-// Fast JSON resolver alias for referral links
-app.use('/api/referral/resolve/:code', (req, res, next) => {
-    req.query.format = 'json';
-    req.url = '/' + req.params.code;
-    referralRedirect(req, res, next);
-});
-app.get('/my-ip', (req, res) => {
-    const { getClientIp } = require('./referral/utils/ip');
-    res.json({
-        success: true,
-        detectedIp: getClientIp(req),
-        remoteAddress: req.socket?.remoteAddress,
-        xForwardedFor: req.headers['x-forwarded-for'] || null,
-        userAgent: req.headers['user-agent']
-    });
-});
-
-// Sync all referral ecosystem data from UWO-web to Unified Dashboard on demand
-app.all('/api/admin/sync-referral-data', async (req, res) => {
-    try {
-        const { syncAllReferralDataToUnified } = require('./referral/utils/marketingSync');
-        const results = await syncAllReferralDataToUnified();
-        res.json({ success: true, message: 'All referral data synced to Unified Dashboard', results });
-    } catch (err) {
-        res.status(500).json({ success: false, error: err.message });
-    }
-});
-
-// ================= UNIFIED DASHBOARD / FASTAPI REVERSE PROXY =================
+// ================= UNIFIED DASHBOARD / FASTAPI REVERSE PROXY CONFIGURATION =================
 const { createProxyMiddleware, fixRequestBody } = require('http-proxy-middleware');
 
 const FASTAPI_TARGET = process.env.FASTAPI_INTERNAL_URL || `http://127.0.0.1:${process.env.PYTHON_PORT || 8000}`;
@@ -214,10 +124,143 @@ const forwardToFastApi = (req, res, next) => {
     return fastApiProxy(req, res, next);
 };
 
-// Specific FastAPI auth endpoints (central identity)
+app.get('/api/debug/fastapi', (req, res) => {
+    let logContent = 'No log file found';
+    try {
+        if (fs.existsSync('/tmp/fastapi.log')) {
+            logContent = fs.readFileSync('/tmp/fastapi.log', 'utf8');
+        }
+    } catch (e) {
+        logContent = e.message;
+    }
+    res.json({
+        time: new Date().toISOString(),
+        fastapi_target: FASTAPI_TARGET,
+        python_port: process.env.PYTHON_PORT || 8000,
+        log: logContent
+    });
+});
+
+// Affiliate Module Router Mount with live reloading
+app.use('/api/affiliate', (req, res, next) => {
+    try { delete require.cache[require.resolve('./affiliate/routes')]; } catch (e) { }
+    return require('./affiliate/routes')(req, res, next);
+});
+app.use('/affiliate', (req, res, next) => {
+    try { delete require.cache[require.resolve('./affiliate/routes')]; } catch (e) { }
+    return require('./affiliate/routes')(req, res, next);
+});
+
+// Enterprise Webhook & Orders Admin endpoints
+const enterpriseController = require('./affiliate/enterpriseController');
+const { authAdmin } = require('./affiliate/middleware');
+app.post('/api/webhooks/razorpay', enterpriseController.razorpayWebhook);
+app.post('/api/webhooks/cashfree', enterpriseController.cashfreeWebhook);
+app.get('/api/admin/sales-report', authAdmin, enterpriseController.getAdminSalesReport);
+app.put('/api/orders/:id/status', authAdmin, enterpriseController.updateOrderStatus);
+
+// ================= USER DASHBOARD / REFERRAL SYSTEM & AUTH MULTIPLEXING =================
+const referralAuth = require('./referral/routes/auth');
+const referralProducts = require('./referral/routes/products');
+const referralLinks = require('./referral/routes/links');
+const referralConversions = require('./referral/routes/conversions');
+const referralRedirect = require('./referral/routes/redirect');
+const { seedReferralSystem } = require('./referral/scripts/seed');
+
+// Dedicated Central Identity (FastAPI) Auth endpoints
+app.use('/api/auth/forgot-password', forwardToFastApi);
+app.use('/api/auth/reset-password', forwardToFastApi);
+app.use('/api/auth/verify-reset-otp', forwardToFastApi);
 app.use('/api/auth/validate', forwardToFastApi);
 app.use('/api/auth/refresh', forwardToFastApi);
-app.use('/api/auth/verify-reset-otp', forwardToFastApi);
+app.use('/api/auth/logout', forwardToFastApi);
+
+// Disambiguated Login: Central Identity vs Referral Auth
+app.post('/api/auth/login', (req, res, next) => {
+    // If request contains X-Application-Key, or email without identifier, route to FastAPI
+    if (req.headers['x-application-key'] || (req.body && req.body.email && !req.body.identifier)) {
+        return forwardToFastApi(req, res, next);
+    }
+    return referralAuth(req, res, next);
+});
+
+// Disambiguated Register: Central Identity vs Referral Registration
+app.post('/api/auth/register', (req, res, next) => {
+    // Central Identity registration supplies a password; Referral popup supplies only name & email
+    if (req.headers['x-application-key'] || (req.body && req.body.password)) {
+        return forwardToFastApi(req, res, next);
+    }
+    return referralAuth(req, res, next);
+});
+
+// Disambiguated Me: Central Identity vs Referral Auth Profile
+app.get('/api/auth/me', (req, res, next) => {
+    if (req.headers['x-application-key']) {
+        return forwardToFastApi(req, res, next);
+    }
+    const authHeader = req.headers.authorization || '';
+    if (authHeader.startsWith('Bearer ')) {
+        const token = authHeader.split(' ')[1];
+        try {
+            const decoded = jwt.decode(token);
+            // FastAPI tokens contain 'sub' and lack 'userId'
+            if (decoded && decoded.sub && !decoded.userId) {
+                return forwardToFastApi(req, res, next);
+            }
+        } catch (e) { }
+    }
+    return referralAuth(req, res, next);
+});
+
+// Fallthrough to referralAuth for any remaining referral auth routes
+app.use('/api/auth', referralAuth);
+app.use('/api/products', referralProducts);
+app.use('/api/links', referralLinks);
+app.use('/api/conversions', referralConversions);
+app.use('/r', referralRedirect);
+
+app.get('/embed.js', (req, res) => {
+    res.sendFile(path.join(__dirname, 'referral/public/embed.js'));
+});
+
+// ================= UWO UNIVERSAL TRACKER & CLIENT SDK =================
+app.get(['/uwo-tracker.js', '/sdk/uwo.js', '/sdk/uwo-tracker.js'], (req, res) => {
+    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
+    res.sendFile(path.join(__dirname, 'referral/public/uwo-tracker.js'));
+});
+
+// Fast JSON resolver alias for referral links
+app.use('/api/referral/resolve/:code', (req, res, next) => {
+    req.query.format = 'json';
+    req.url = '/' + req.params.code;
+    referralRedirect(req, res, next);
+});
+app.get('/my-ip', (req, res) => {
+    const { getClientIp } = require('./referral/utils/ip');
+    res.json({
+        success: true,
+        detectedIp: getClientIp(req),
+        remoteAddress: req.socket?.remoteAddress,
+        xForwardedFor: req.headers['x-forwarded-for'] || null,
+        userAgent: req.headers['user-agent']
+    });
+});
+
+// Sync all referral ecosystem data from UWO-web to Unified Dashboard on demand
+app.all('/api/admin/sync-referral-data', async (req, res) => {
+    try {
+        const { syncAllReferralDataToUnified } = require('./referral/utils/marketingSync');
+        const results = await syncAllReferralDataToUnified();
+        res.json({ success: true, message: 'All referral data synced to Unified Dashboard', results });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// ================= UNIFIED DASHBOARD / FASTAPI CORE ENDPOINTS =================
 app.use('/api/unified-auth', (req, res, next) => {
     req.url = req.originalUrl;
     return unifiedAuthProxy(req, res, next);

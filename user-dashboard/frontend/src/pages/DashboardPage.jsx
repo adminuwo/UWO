@@ -256,7 +256,7 @@ export default function DashboardPage({ user, onLogout }) {
   const iosDownloads = links.reduce((acc, curr) => acc + (curr.downloadStats?.ios || 0), 0);
 
   const selectedProduct = products.find((p) => p._id === selectedProductId);
-  const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+  const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">

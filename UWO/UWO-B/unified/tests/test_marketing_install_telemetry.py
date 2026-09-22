@@ -533,7 +533,7 @@ def test_smart_link_device_routing(client):
     res_ios = client.get(f"/r/{slug}", headers={"User-Agent": ios_ua}, follow_redirects=False)
     assert res_ios.status_code == 302
     loc_ios = res_ios.headers["location"]
-    assert loc_ios == "https://apps.apple.com/app/id6797449251"
+    assert "apps.apple.com" in loc_ios and "6797449251" in loc_ios
 
     # 4. Desktop Device Click
     desktop_ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"

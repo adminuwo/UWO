@@ -523,21 +523,20 @@ export const UserReferralsView = ({
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
               <thead>
                 <tr style={{ background: '#1E293B', color: '#94A3B8', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.6px' }}>
-                  <th style={{ padding: '12px 16px', minWidth: '170px' }}>Referrer User</th>
-                  <th style={{ padding: '12px 16px', minWidth: '110px', whiteSpace: 'nowrap' }}>User ID</th>
-                  <th style={{ padding: '12px 16px', minWidth: '120px', whiteSpace: 'nowrap' }}>Product</th>
-                  <th style={{ padding: '12px 16px', minWidth: '320px' }}>Referral Link & Code</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'center', minWidth: '70px', whiteSpace: 'nowrap' }}>Clicks</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'center', minWidth: '70px', whiteSpace: 'nowrap' }}>Unique</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'center', minWidth: '90px', whiteSpace: 'nowrap' }}>Downloads</th>
-                  <th style={{ padding: '12px 16px', minWidth: '95px', whiteSpace: 'nowrap' }}>Created</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'center', minWidth: '110px', whiteSpace: 'nowrap' }}>Quick Test</th>
+                  <th style={{ padding: '12px 14px', minWidth: '150px' }}>Referrer User</th>
+                  <th style={{ padding: '12px 14px', minWidth: '95px', whiteSpace: 'nowrap' }}>User ID</th>
+                  <th style={{ padding: '12px 14px', minWidth: '100px', whiteSpace: 'nowrap' }}>Product</th>
+                  <th style={{ padding: '12px 14px', minWidth: '260px' }}>Referral Link & Code</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center', minWidth: '65px', whiteSpace: 'nowrap' }}>Clicks</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center', minWidth: '65px', whiteSpace: 'nowrap' }}>Unique</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center', minWidth: '80px', whiteSpace: 'nowrap' }}>Downloads</th>
+                  <th style={{ padding: '12px 14px', minWidth: '85px', whiteSpace: 'nowrap' }}>Created</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredLinks.length === 0 ? (
                   <tr>
-                    <td colSpan="9" style={{ padding: '40px', textAlign: 'center', color: '#94A3B8' }}>
+                    <td colSpan="8" style={{ padding: '40px', textAlign: 'center', color: '#94A3B8' }}>
                       No user referral links found matching your query.
                     </td>
                   </tr>
@@ -553,13 +552,13 @@ export const UserReferralsView = ({
                       onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                     >
                       {/* User Info */}
-                      <td style={{ padding: '14px 16px' }}>
+                      <td style={{ padding: '12px 10px' }}>
                         <div style={{ fontWeight: '700', color: '#F8FAFC' }}>{l.user?.name || 'Referral Partner'}</div>
                         <div style={{ fontSize: '11px', color: '#94A3B8' }}>{l.user?.email || 'Registered User'}</div>
                       </td>
 
                       {/* User ID */}
-                      <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '12px 10px', whiteSpace: 'nowrap' }}>
                         <span
                           style={{
                             background: 'rgba(250, 190, 86, 0.12)',
@@ -579,7 +578,7 @@ export const UserReferralsView = ({
                       </td>
 
                       {/* Product */}
-                      <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '12px 10px', whiteSpace: 'nowrap' }}>
                         <span
                           style={{
                             background: '#1E293B',
@@ -598,7 +597,7 @@ export const UserReferralsView = ({
                       </td>
 
                       {/* Referral Code & URL */}
-                      <td style={{ padding: '14px 16px', minWidth: '320px' }}>
+                      <td style={{ padding: '12px 10px', minWidth: '240px' }}>
                         {(() => {
                           const cleanUrl = l.code 
                             ? `https://uwo24.com/r/${l.code}` 
@@ -709,17 +708,17 @@ export const UserReferralsView = ({
                       </td>
 
                       {/* Clicks */}
-                      <td style={{ padding: '14px 16px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '12px 10px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <span style={{ fontWeight: '900', fontSize: '15px', color: '#38BDF8' }}>{l.clicks}</span>
                       </td>
 
                       {/* Unique Clicks */}
-                      <td style={{ padding: '14px 16px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '12px 10px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <span style={{ fontWeight: '800', fontSize: '13px', color: '#34D399' }}>{l.uniqueClicks || 0}</span>
                       </td>
 
                       {/* Downloads */}
-                      <td style={{ padding: '14px 16px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '12px 10px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <span
                           style={{
                             fontWeight: '900',
@@ -735,28 +734,8 @@ export const UserReferralsView = ({
                       </td>
 
                       {/* Created At */}
-                      <td style={{ padding: '14px 16px', color: '#94A3B8', fontSize: '12px', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '12px 10px', color: '#94A3B8', fontSize: '12px', whiteSpace: 'nowrap' }}>
                         {l.createdAt ? new Date(l.createdAt).toLocaleDateString() : 'Active'}
-                      </td>
-
-                      {/* Action */}
-                      <td style={{ padding: '14px 16px', textAlign: 'center' }}>
-                        <button
-                          onClick={() => handleSimulate(l.code, 'desktop')}
-                          disabled={simulatingCode === l.code}
-                          style={{
-                            background: 'rgba(99, 102, 241, 0.15)',
-                            border: '1px solid rgba(99, 102, 241, 0.3)',
-                            color: '#818CF8',
-                            borderRadius: '8px',
-                            padding: '5px 10px',
-                            fontSize: '11px',
-                            fontWeight: '700',
-                            cursor: simulatingCode === l.code ? 'not-allowed' : 'pointer',
-                          }}
-                        >
-                          {simulatingCode === l.code ? '⚡ Clicking...' : '⚡ Test Click'}
-                        </button>
                       </td>
                     </tr>
                   ))

@@ -694,27 +694,21 @@ header.navbar-blogs .hamburger div {
 }
 
 .project-cards {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 30px;
   max-width: 1200px;
   margin: 0 auto;
   perspective: 1000px;
-  justify-content: center;
-}
-
-@media (max-width: 600px) {
-  .project-cards {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-
-  .project-card {
-    width: 100%;
-  }
 }
 
 .project-card {
+  flex: 0 1 calc((100% - 60px) / 3);
+  width: calc((100% - 60px) / 3);
+  min-width: 300px;
+  max-width: 380px;
+  box-sizing: border-box;
   color: #0f172a;
   /* Force Dark text inside light cards */
   background: #fdfbf7;
@@ -728,6 +722,27 @@ header.navbar-blogs .hamburger div {
   text-align: center;
   transition: all 0.3s ease-out;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+@media (max-width: 992px) {
+  .project-card {
+    flex: 0 1 calc((100% - 30px) / 2);
+    width: calc((100% - 30px) / 2);
+    min-width: 280px;
+    max-width: 420px;
+  }
+}
+
+@media (max-width: 600px) {
+  .project-cards {
+    gap: 20px;
+  }
+
+  .project-card {
+    flex: 0 1 100%;
+    width: 100%;
+    max-width: 100%;
+  }
 }
 
 .project-card:hover {

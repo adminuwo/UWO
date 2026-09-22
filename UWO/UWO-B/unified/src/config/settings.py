@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     EMAIL_API_KEY: str = "mock_email_api_key_abc123"
     EXTERNAL_API_KEY: str = "mock_external_service_key_xyz789"
 
+    # Admin Master Credentials
+    ADMIN_EMAIL: str | None = "admin@uwo.com"
+    ADMIN_PASSWORD: str | None = "uwo@1234"
+
     # Revenue & Currency Configuration
     REVENUE_REPORTING_CURRENCY: str = "INR"
 

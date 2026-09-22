@@ -185,8 +185,6 @@ export default function EarnReferModal({ isOpen, onClose }) {
               <div className="earn-already-account-wrap">
                 <a
                   href={portalLoginUrl || DASHBOARD_LOGIN_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="earn-already-account-btn"
                   title="Already have account"
                   id="alreadyHaveAccountBtn"
@@ -287,13 +285,11 @@ export default function EarnReferModal({ isOpen, onClose }) {
               <a 
                 id="earnDashboardLink" 
                 href={successData.loginUrl || portalLoginUrl || DASHBOARD_LOGIN_URL} 
-                target="_blank" 
-                rel="noopener noreferrer"
                 className="earn-done-btn" 
                 style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'linear-gradient(135deg, #D6A559 0%, #FABE56 100%)', color: '#0b1120', fontWeight: 'bold', border: 'none' }}
               >
                 <span>Login to User Dashboard</span>
-                <i className="fa-solid fa-arrow-up-right-from-square"></i>
+                <i className="fa-solid fa-arrow-right"></i>
               </a>
               <button 
                 type="button" 

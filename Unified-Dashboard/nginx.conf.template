@@ -21,7 +21,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
-        proxy_set_header Host uwo24.com;
+        proxy_set_header Host $proxy_host;
         proxy_cache_bypass $http_upgrade;
         proxy_ssl_server_name on;
     }
@@ -30,7 +30,7 @@ server {
     location ^~ /m {
         proxy_pass ${BACKEND_API_URL}/m;
         proxy_http_version 1.1;
-        proxy_set_header Host uwo24.com;
+        proxy_set_header Host $proxy_host;
         proxy_ssl_server_name on;
     }
 
@@ -38,7 +38,7 @@ server {
     location ^~ /r {
         proxy_pass ${BACKEND_API_URL}/r;
         proxy_http_version 1.1;
-        proxy_set_header Host uwo24.com;
+        proxy_set_header Host $proxy_host;
         proxy_ssl_server_name on;
     }
 

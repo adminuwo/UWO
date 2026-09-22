@@ -17,6 +17,14 @@ export default function Layout() {
   React.useEffect(() => {
     window.openEarnReferModal = () => setEarnReferOpen(true);
     window.closeEarnReferModal = () => setEarnReferOpen(false);
+
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('action') === 'earn-refer' || params.get('open') === 'earn-refer' || window.location.hash === '#earn-refer') {
+        setEarnReferOpen(true);
+      }
+    } catch (e) {}
+
     return () => {
       delete window.openEarnReferModal;
       delete window.closeEarnReferModal;
