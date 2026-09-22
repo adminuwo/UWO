@@ -63,7 +63,7 @@ export default function HomePage() {
       {
         name: 'AI-Education',
         is_featured: true,
-        project_url: 'https://convee-education-977864306871.asia-south1.run.app',
+        project_url: 'https://education.uwo24.com',
         logo: '/images/ai-education-logo.jpg',
         short_description: 'Unified Enterprise Digital Campus & AI Collaboration Operating System tailored for K-12 Schools, Colleges, and Universities.'
       }

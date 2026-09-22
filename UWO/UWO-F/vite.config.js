@@ -7,7 +7,7 @@ import fs from 'fs';
 const STATIC_ROOT_FILES = [
   'style.css', 'earn-refer.css', 'chatbot.css', 'aisa.css',
   'sitemap.xml', 'robots.txt', '_redirects',
-  'google27f774e9585475b4.html',
+  'google27f774e9585475b4.html', 'uwo-tracker.js',
 ];
 const STATIC_ROOT_DIRS = ['images', 'uploads', 'aisa-connect'];
 

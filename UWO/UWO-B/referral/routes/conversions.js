@@ -6,6 +6,7 @@ const PendingAttribution = require('../models/PendingAttribution');
 const ReferralLink = require('../models/ReferralLink');
 const ClickLog = require('../models/ClickLog');
 const DownloadLog = require('../models/DownloadLog');
+const { syncDownloadToMarketing } = require('../utils/marketingSync');
 
 function generateFingerprint(ip, userAgent) {
   return crypto
@@ -169,6 +170,18 @@ router.post('/ios-verify', async (req, res) => {
 
     console.log(`✅ [iOS Download Attributed] Code: "${pending.code}" | Referrer: "${pending.userId}" | IP: ${ip}`);
 
+    // Sync download in real time to Unified Dashboard
+    syncDownloadToMarketing({
+      code: pending.code,
+      linkId: pending.referralLink,
+      userId: pending.userId,
+      platform: 'ios',
+      ip,
+      fingerprint: pending.fingerprint,
+      attributionMethod: 'ios_ip_fingerprint',
+      productSlug: link?.product?.slug || 'aisa',
+    }).catch((err) => console.warn('[iOS Verify] Unified download sync error:', err.message));
+
     res.json({
       success: true,
       attributed: true,
@@ -222,6 +235,17 @@ router.post('/android-install', async (req, res) => {
     });
 
     console.log(`✅ [Android Download Attributed] Code: "${link.code}" | Referrer: "${link.userId}"`);
+
+    // Sync download in real time to Unified Dashboard
+    syncDownloadToMarketing({
+      code: link.code,
+      linkId: link._id,
+      userId: link.userId,
+      platform: 'android',
+      ip,
+      attributionMethod: 'google_play_referrer',
+      productSlug: link.product?.slug || 'aisa',
+    }).catch((err) => console.warn('[Android Install] Unified download sync error:', err.message));
 
     res.json({
       success: true,

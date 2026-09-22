@@ -127,6 +127,22 @@ app.use('/r', referralRedirect);
 app.get('/embed.js', (req, res) => {
     res.sendFile(path.join(__dirname, 'referral/public/embed.js'));
 });
+
+// ================= UWO UNIVERSAL TRACKER & CLIENT SDK =================
+app.get(['/uwo-tracker.js', '/sdk/uwo.js', '/sdk/uwo-tracker.js'], (req, res) => {
+    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
+    res.sendFile(path.join(__dirname, 'referral/public/uwo-tracker.js'));
+});
+
+// Fast JSON resolver alias for referral links
+app.use('/api/referral/resolve/:code', (req, res, next) => {
+    req.query.format = 'json';
+    req.url = '/' + req.params.code;
+    referralRedirect(req, res, next);
+});
 app.get('/my-ip', (req, res) => {
     const { getClientIp } = require('./referral/utils/ip');
     res.json({
@@ -136,6 +152,17 @@ app.get('/my-ip', (req, res) => {
         xForwardedFor: req.headers['x-forwarded-for'] || null,
         userAgent: req.headers['user-agent']
     });
+});
+
+// Sync all referral ecosystem data from UWO-web to Unified Dashboard on demand
+app.all('/api/admin/sync-referral-data', async (req, res) => {
+    try {
+        const { syncAllReferralDataToUnified } = require('./referral/utils/marketingSync');
+        const results = await syncAllReferralDataToUnified();
+        res.json({ success: true, message: 'All referral data synced to Unified Dashboard', results });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
 });
 
 // ================= UNIFIED DASHBOARD / FASTAPI REVERSE PROXY =================
@@ -3630,6 +3657,12 @@ async function syncTeamCategories() {
 mongoose.connection.once('open', async () => {
     await seedTeamMembers();
     await syncTeamCategories();
+    try {
+        const { syncAllReferralDataToUnified } = require('./referral/utils/marketingSync');
+        await syncAllReferralDataToUnified();
+    } catch (syncErr) {
+        console.error('⚠️ Initial referral data sync to Unified DB failed:', syncErr.message);
+    }
 });
 
 // 1. GET /api/team-members - Admin: paginated list with search, filter, sort

@@ -17,6 +17,8 @@ class MarketingLinkCreate(BaseModel):
     android_url: Optional[str] = None
     ios_url: Optional[str] = None
     web_url: Optional[str] = None
+    use_dedicated_domain: Optional[bool] = False
+    custom_base_url: Optional[str] = None
 
 
 class BatchMarketingLinkCreate(BaseModel):
@@ -31,6 +33,8 @@ class BatchMarketingLinkCreate(BaseModel):
     android_url: Optional[str] = None
     ios_url: Optional[str] = None
     web_url: Optional[str] = None
+    use_dedicated_domain: Optional[bool] = False
+    custom_base_url: Optional[str] = None
 
 
 class MarketingLinkResponse(BaseModel):
@@ -57,6 +61,8 @@ class MarketingLinkResponse(BaseModel):
     android_url: Optional[str] = None
     ios_url: Optional[str] = None
     web_url: Optional[str] = None
+    use_dedicated_domain: Optional[bool] = False
+    base_url: Optional[str] = None
     created_by: Optional[str] = "Admin"
     created_at: datetime
     updated_at: Optional[datetime] = None

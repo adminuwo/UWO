@@ -1,33 +1,10 @@
-const bcrypt = require('bcryptjs');
-const User = require('../models/RefUser');
 const Product = require('../models/RefProduct');
-const ReferralLink = require('../models/ReferralLink');
-const ClickLog = require('../models/ClickLog');
 
 async function seedReferralSystem() {
   try {
     console.log('🔄 Checking & seeding Referral Portal data...');
 
-    // 1. Create / Ensure Demo User
-    const demoEmail = 'demo@example.com';
-    const demoPasswordPlain = 'Demo@12345';
-    const demoUserId = 'USR-DEMO1';
-
-    let demoUser = await User.findOne({ email: demoEmail });
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(demoPasswordPlain, salt);
-
-    if (!demoUser) {
-      demoUser = await User.create({
-        userId: demoUserId,
-        name: 'Demo User',
-        email: demoEmail,
-        password: hashedPassword,
-      });
-      console.log(` Created Referral Demo User: ${demoUser.name} (${demoUser.userId})`);
-    }
-
-    // 2. Ensure Official Ecosystem Products exist in RefProduct
+    // 1. Ensure Official Ecosystem Products exist in RefProduct
     const uwoProducts = [
       {
         name: 'AISA™',
@@ -105,7 +82,7 @@ async function seedReferralSystem() {
         name: 'AI-Education™',
         slug: 'aieducation',
         description: 'Unified Enterprise Digital Campus & AI Collaboration Operating System',
-        webUrl: 'https://convee-education-977864306871.asia-south1.run.app',
+        webUrl: 'https://education.uwo24.com',
         androidUrl: '',
         iosUrl: '',
         active: true,
@@ -122,60 +99,7 @@ async function seedReferralSystem() {
       createdProducts.push(product);
     }
 
-    // 3. Pre-generate Demo Links for Demo User if none exist
-    const existingLinksCount = await ReferralLink.countDocuments({ user: demoUser._id });
-    if (existingLinksCount === 0) {
-      for (const product of createdProducts) {
-        const code = `demo-${product.slug.slice(0, 8)}`;
-        const link = await ReferralLink.create({
-          code,
-          user: demoUser._id,
-          userId: demoUser.userId,
-          product: product._id,
-          clicks: 3,
-        });
-
-        const fallbackUrl = product.webUrl || product.androidUrl || product.iosUrl || 'https://uwo24.com';
-        await ClickLog.create([
-          {
-            referralLink: link._id,
-            code: link.code,
-            user: demoUser._id,
-            product: product._id,
-            deviceType: 'desktop',
-            targetUrl: product.webUrl || fallbackUrl,
-            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-            ip: '127.0.0.1',
-            isUnique: true,
-          },
-          {
-            referralLink: link._id,
-            code: link.code,
-            user: demoUser._id,
-            product: product._id,
-            deviceType: 'android',
-            targetUrl: product.androidUrl || fallbackUrl,
-            userAgent: 'Mozilla/5.0 (Linux; Android 13; Pixel 7)',
-            ip: '127.0.0.2',
-            isUnique: true,
-          },
-          {
-            referralLink: link._id,
-            code: link.code,
-            user: demoUser._id,
-            product: product._id,
-            deviceType: 'ios',
-            targetUrl: product.iosUrl || fallbackUrl,
-            userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X)',
-            ip: '127.0.0.3',
-            isUnique: true,
-          },
-        ]);
-      }
-      console.log(' Pre-generated demo referral links with click analytics');
-    }
-
-    console.log('✅ Referral System seeding completed successfully');
+    console.log('✅ Referral System ecosystem products verified successfully');
   } catch (err) {
     console.error('❌ Error seeding Referral System:', err.message);
   }

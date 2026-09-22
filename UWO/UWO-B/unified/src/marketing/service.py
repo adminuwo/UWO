@@ -68,8 +68,8 @@ PRODUCT_CATALOG: Dict[str, Dict[str, str]] = {
     },
     "aieducation": {
         "name": "AI-Education",
-        "url": "https://convee-education-977864306871.asia-south1.run.app",
-        "web_url": "https://convee-education-977864306871.asia-south1.run.app",
+        "url": "https://education.uwo24.com",
+        "web_url": "https://education.uwo24.com",
         "description": "Unified Enterprise Digital Campus & AI Collaboration Operating System",
         "color": "#0284C7",
     },
@@ -241,6 +241,8 @@ class MarketingService:
             "android_url": android_url if is_smart else None,
             "ios_url": ios_url if is_smart else None,
             "web_url": web_url if is_smart else None,
+            "use_dedicated_domain": bool(data.use_dedicated_domain),
+            "base_url": None,
             "total_clicks": 0,
             "unique_clicks": 0,
             "unique_ips": [],
@@ -257,15 +259,25 @@ class MarketingService:
             "last_downloaded_at": None,
         }
 
+        # Build short redirect URL
+        if data.use_dedicated_domain and data.custom_base_url:
+            base_host = data.custom_base_url.rstrip('/')
+        elif data.use_dedicated_domain and (web_url or product_info.get("web_url")):
+            p_web = web_url or product_info.get("web_url")
+            import urllib.parse
+            parsed_u = urllib.parse.urlparse(p_web)
+            base_host = f"{parsed_u.scheme}://{parsed_u.netloc}"
+        else:
+            base_host = base_request_url.rstrip('/') if base_request_url else ""
+            if not base_host or "admin.uwo24.com" in base_host:
+                base_host = "https://uwo24.com"
+
+        doc["short_url"] = f"{base_host}/r/{slug}"
+        doc["base_url"] = base_host
+
         res = db.marketing_links.insert_one(doc)
         doc["_id"] = str(res.inserted_id)
         doc["id"] = str(res.inserted_id)
-        
-        # Build short redirect URL
-        base_host = base_request_url.rstrip('/') if base_request_url else ""
-        if not base_host or "admin.uwo24.com" in base_host:
-            base_host = "https://uwo24.com"
-        doc["short_url"] = f"{base_host}/r/{slug}"
         return doc
 
     @staticmethod
@@ -284,6 +296,8 @@ class MarketingService:
                 android_url=data.android_url,
                 ios_url=data.ios_url,
                 web_url=data.web_url,
+                use_dedicated_domain=data.use_dedicated_domain,
+                custom_base_url=data.custom_base_url,
             )
             link_doc = MarketingService.create_link(single_item, base_request_url=base_request_url, creator=creator)
             created.append(link_doc)
@@ -336,7 +350,12 @@ class MarketingService:
             item["unique_installs"] = int(item.get("unique_installs") or 0)
             total_c = item.get("total_clicks", 0)
             item["conversion_rate"] = round((item["total_downloads"] / total_c * 100), 1) if total_c > 0 else 0.0
-            item["short_url"] = f"{base_host}/r/{item['slug']}"
+            if item.get("use_dedicated_domain") and item.get("base_url"):
+                item["short_url"] = f"{item['base_url'].rstrip('/')}/r/{item['slug']}"
+            elif item.get("short_url") and not any(h in str(item["short_url"]) for h in ["admin.uwo24.com"]):
+                pass
+            else:
+                item["short_url"] = f"{base_host}/r/{item['slug']}"
             results.append(item)
 
         return results
@@ -1068,7 +1087,12 @@ class MarketingService:
         base_host = base_request_url.rstrip('/') if base_request_url else ""
         if not base_host or "admin.uwo24.com" in base_host:
             base_host = "https://uwo24.com"
-        link["short_url"] = f"{base_host}/r/{link['slug']}"
+        if link.get("use_dedicated_domain") and link.get("base_url"):
+            link["short_url"] = f"{link['base_url'].rstrip('/')}/r/{link['slug']}"
+        elif link.get("short_url") and not any(h in str(link["short_url"]) for h in ["admin.uwo24.com"]):
+            pass
+        else:
+            link["short_url"] = f"{base_host}/r/{link['slug']}"
 
         # Get device and browser breakdown for this link
         clicks = list(db.marketing_clicks.find({"slug": link["slug"]}).sort("timestamp", -1).limit(50))

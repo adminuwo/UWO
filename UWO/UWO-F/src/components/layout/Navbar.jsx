@@ -29,7 +29,7 @@ export default function Navbar({ onOpenEarnRefer, onToggleDrawer }) {
               <Link to="/aisa">AISA<sup>™</sup></Link>
               <a href="/aisa-connect/" target="_blank" rel="noopener noreferrer">AISA Connect</a>
               <a href="https://aimall24.com/" target="_blank" rel="noopener noreferrer">AI Mall<sup>™</sup></a>
-              <a href="https://convee-education-977864306871.asia-south1.run.app" target="_blank" rel="noopener noreferrer">AI-Education<sup>™</sup></a>
+              <a href="https://education.uwo24.com" target="_blank" rel="noopener noreferrer">AI-Education<sup>™</sup></a>
               <Link to="/efv">EFV<sup>™</sup></Link>
             </div>
           </div>

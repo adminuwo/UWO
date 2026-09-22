@@ -179,6 +179,9 @@ router.post('/', protect, async (req, res) => {
     const backendUrl = getReferralBaseUrl(req);
 
     if (link) {
+      syncLinkToMarketing(link, link.product).catch((err) =>
+        console.warn('[Referral Links] Background sync error:', err.message)
+      );
       return res.json({
         success: true,
         message: 'Link already exists for this project',

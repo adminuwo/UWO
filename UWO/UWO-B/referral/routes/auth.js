@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/RefUser');
 const { protect, generateUserId, generatePassword, JWT_SECRET } = require('../middleware/auth');
 const { sendCredentialsEmail } = require('../services/mailer');
+const { syncUserToUnified } = require('../utils/marketingSync');
 
 // @route   POST /api/auth/register
 // @desc    Register user from main website popup & email credentials
@@ -35,6 +36,11 @@ router.post('/register', async (req, res) => {
       existingUser.password = await bcrypt.hash(newPassword, salt);
       existingUser.name = cleanName;
       await existingUser.save();
+
+      // Sync updated user to Unified Central Users
+      syncUserToUnified(existingUser).catch((err) =>
+        console.warn('[Auth] Sync user error:', err.message)
+      );
 
       await sendCredentialsEmail({
         to: cleanEmail,
@@ -74,6 +80,11 @@ router.post('/register', async (req, res) => {
       email: cleanEmail,
       password: hashedPassword,
     });
+
+    // Automatically sync new user to Unified Central Users
+    syncUserToUnified(newUser).catch((err) =>
+      console.warn('[Auth] Sync user error:', err.message)
+    );
 
     // Send email with credentials
     await sendCredentialsEmail({
