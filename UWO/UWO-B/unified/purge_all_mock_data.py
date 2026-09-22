@@ -60,8 +60,6 @@ def purge_all_mock_data():
         "demo-aimall", "demo-aisaconn", "demo-efv", "demo-uwo",
         "aieducation-ref-demouser-64801",
         "test-sync-probe-123",
-        "ailegal", "ailegal_", "ailegall", "ailegall4", "ailegall5",
-        "ai-legal", "ai-legal7", "ai-legal8", "ai-legal9",
         "aied-ins-college-prom-faa75", "aile-ins-law-8e3a2"
     ]
     

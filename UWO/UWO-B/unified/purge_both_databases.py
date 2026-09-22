@@ -34,8 +34,6 @@ mock_slugs = [
     "aieducation-ref-demouser-64801",
     "test-sync-probe-123",
     "usr85859-3vf8j",
-    "ailegal", "ailegal_", "ailegall", "ailegall4", "ailegall5",
-    "ai-legal", "ai-legal7", "ai-legal8", "ai-legal9",
     "aied-ins-college-prom-faa75", "aile-ins-law-8e3a2"
 ]
 mock_user_ids = ["USR-DEMO1", "USR-85859", "USR_PROBE"]
