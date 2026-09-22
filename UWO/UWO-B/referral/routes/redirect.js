@@ -113,8 +113,16 @@ async function handleReferralRouting(req, res) {
           const uDb = await getUnifiedDb();
           await uDb.collection('marketing_links').updateOne(
             { _id: marketingDoc._id },
-            { $inc: { total_clicks: 1, unique_clicks: 1 }, $set: { last_clicked_at: new Date() } }
+            { $inc: { total_clicks: 1, unique_clicks: 1, clicks_count: 1 }, $set: { last_clicked_at: new Date() } }
           );
+          await uDb.collection('marketing_events').insertOne({
+            event_type: 'click',
+            slug: code,
+            device_type: deviceType,
+            ip,
+            target_url: targetUrl,
+            timestamp: new Date()
+          }).catch(() => {});
         } catch (e) {}
       })();
 

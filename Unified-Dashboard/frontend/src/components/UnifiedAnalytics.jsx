@@ -116,7 +116,7 @@ export const UnifiedAnalytics = () => {
     datasets: [
       {
         label: 'Web Pageviews (GA4 & Auto-Tracker)',
-        data: overviewData?.timeline?.map((t) => t.web_views) || [],
+        data: overviewData?.timeline?.map((t) => t.web_views ?? t.pageviews ?? 0) || [],
         borderColor: '#6366f1',
         backgroundColor: 'rgba(99, 102, 241, 0.15)',
         fill: true,
@@ -451,7 +451,7 @@ export const UnifiedAnalytics = () => {
                 <div className="metric-icon" style={{ fontSize: '18px', background: 'rgba(99, 102, 241, 0.15)', padding: '6px', borderRadius: '8px' }}>👥</div>
               </div>
               <div className="metric-value" style={{ fontSize: '28px', fontWeight: '800', color: '#f8fafc', letterSpacing: '-0.02em' }}>
-                {overviewData?.total_users?.toLocaleString() || 0}
+                {(overviewData?.total_users ?? overviewData?.total_active_users ?? 0).toLocaleString()}
               </div>
               <div className="metric-sub" style={{ fontSize: '12px', color: '#818cf8', marginTop: '6px', fontWeight: '500' }}>
                 ● {overviewData?.active_users_24h || 0} active in last 24h

@@ -1238,7 +1238,7 @@ export const ChatTrackingTab = () => {
 
         {loading ? (
           <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>Loading model analytics...</div>
-        ) : !telemetry?.model_share || telemetry.model_share.length === 0 ? (
+        ) : !Array.isArray(telemetry?.model_share) || telemetry.model_share.length === 0 ? (
           <div style={{ padding: '36px', textAlign: 'center', color: '#64748b' }}>
             No chat events recorded yet for {currentConfig.name}.
           </div>
@@ -1254,7 +1254,7 @@ export const ChatTrackingTab = () => {
                 </tr>
               </thead>
               <tbody>
-                {telemetry.model_share.map((m, idx) => {
+                {(Array.isArray(telemetry.model_share) ? telemetry.model_share : []).map((m, idx) => {
                   const percentage = telemetry.total_tokens > 0 ? ((m.tokens / telemetry.total_tokens) * 100).toFixed(1) : '0.0';
                   return (
                     <tr key={idx} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)', fontSize: '13px' }}>
