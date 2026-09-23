@@ -1,5 +1,5 @@
 steps:
-  # 1. Build the multi-stage Docker container image (Node 20 + Python 3.11 FastAPI + UWO-F)
+  # 1. Build the production Docker container image (Pure Node 20 + UWO-F)
   - name: 'gcr.io/cloud-builders/docker'
     dir: 'UWO'
     args:

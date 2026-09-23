@@ -103,8 +103,10 @@ function formatLinkDoc(doc, installMap) {
     _id: String(doc._id),
     slug: slug,
     code: slug,
+    post_name: doc.post_name || doc.campaign_name || doc.name || slug,
     campaign_name: doc.campaign_name || doc.name || slug,
     product_code: doc.product_code || 'custom',
+    product_name: doc.product_name || (PRODUCT_CATALOG[doc.product_code]?.name) || doc.product_code || 'Product',
     platform: doc.platform || 'other',
     target_url: doc.full_destination_url || doc.target_url || doc.destination_url || '',
     web_url: doc.web_url || doc.target_url || '',
@@ -325,7 +327,73 @@ router.get('/links/:id', async (req, res) => {
     if (!doc) {
       return res.status(404).json({ detail: 'Marketing link not found.' });
     }
-    return res.json(formatLinkDoc(doc));
+
+    const slug = doc.slug || doc.code;
+    const linkIdStr = String(doc._id);
+
+    // Fetch clicks from both marketing_clicks and marketing_events
+    const [clicksColl, eventsColl] = await Promise.all([
+      db.collection('marketing_clicks')
+        .find({ $or: [{ slug }, { link_id: linkIdStr }] })
+        .sort({ timestamp: -1 })
+        .limit(50)
+        .toArray()
+        .catch(() => []),
+      db.collection('marketing_events')
+        .find({ slug, event_type: 'click' })
+        .sort({ timestamp: -1 })
+        .limit(50)
+        .toArray()
+        .catch(() => [])
+    ]);
+
+    const allClicks = [...clicksColl, ...eventsColl]
+      .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0))
+      .slice(0, 50)
+      .map(c => ({
+        id: String(c._id || Math.random().toString(36).substring(2)),
+        device_type: c.device_type || 'Desktop',
+        browser: c.browser || 'Browser',
+        os: c.os || 'Unknown',
+        ip: c.client_ip || c.ip || '',
+        timestamp: c.timestamp || c.createdAt || new Date().toISOString()
+      }));
+
+    // Fetch installs from marketing_installs and marketing_downloads
+    const [installsColl, downloadsColl] = await Promise.all([
+      db.collection('marketing_installs')
+        .find({ $or: [{ slug }, { campaign_slug: slug }] })
+        .sort({ timestamp: -1 })
+        .limit(50)
+        .toArray()
+        .catch(() => []),
+      db.collection('marketing_downloads')
+        .find({ $or: [{ slug }, { link_id: linkIdStr }] })
+        .sort({ timestamp: -1 })
+        .limit(50)
+        .toArray()
+        .catch(() => [])
+    ]);
+
+    const allInstalls = [...installsColl, ...downloadsColl]
+      .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0))
+      .slice(0, 50)
+      .map(inst => ({
+        id: String(inst._id || Math.random().toString(36).substring(2)),
+        platform: (inst.platform || 'android').toLowerCase(),
+        version: inst.version || inst.app_version || '1.0.0',
+        attribution_method: inst.attribution_method || (inst.platform === 'ios' ? 'ios_ip_match' : 'android_play_referrer'),
+        device_id: inst.device_id || inst.deviceId || 'Unknown',
+        timestamp: inst.timestamp || inst.createdAt || new Date().toISOString()
+      }));
+
+    const formatted = formatLinkDoc(doc);
+    return res.json({
+      ...formatted,
+      link: formatted,
+      recent_clicks: allClicks,
+      recent_installs: allInstalls
+    });
   } catch (err) {
     return res.status(500).json({ detail: err.message });
   }

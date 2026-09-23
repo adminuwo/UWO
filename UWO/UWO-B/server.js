@@ -4456,12 +4456,45 @@ app.post('/api/team-members', auth, checkPermission('team.create'), (req, res, n
             ? path.join(__dirname, 'public')
             : path.join(__dirname, '../UWO-F/dist');
 
+        // 1. Unified Dashboard Frontend (/dashboard)
+        const unifiedDashboardPath = fs.existsSync(path.join(__dirname, 'public/dashboard'))
+            ? path.join(__dirname, 'public/dashboard')
+            : (fs.existsSync(path.join(__dirname, '../../Unified-Dashboard/frontend/dist'))
+                ? path.join(__dirname, '../../Unified-Dashboard/frontend/dist')
+                : null);
+
+        if (unifiedDashboardPath) {
+            console.log(`📊 Serving Unified Dashboard from: ${unifiedDashboardPath} under /dashboard`);
+            app.use('/dashboard', express.static(unifiedDashboardPath));
+            app.get(['/dashboard', '/dashboard/*'], (req, res) => {
+                res.sendFile(path.join(unifiedDashboardPath, 'index.html'));
+            });
+        }
+
+        // 2. User Referral Portal Frontend (/user)
+        const userDashboardPath = fs.existsSync(path.join(__dirname, 'public/user'))
+            ? path.join(__dirname, 'public/user')
+            : (fs.existsSync(path.join(__dirname, '../../user-dashboard/frontend/dist'))
+                ? path.join(__dirname, '../../user-dashboard/frontend/dist')
+                : null);
+
+        if (userDashboardPath) {
+            console.log(`👥 Serving User Dashboard from: ${userDashboardPath} under /user`);
+            app.use('/user', express.static(userDashboardPath));
+            app.get(['/user', '/user/*'], (req, res) => {
+                res.sendFile(path.join(userDashboardPath, 'index.html'));
+            });
+        }
+
+        // 3. Main UWO Website & Fallback
         if (fs.existsSync(frontendDistPath)) {
             console.log(`📦 Serving frontend static files from: ${frontendDistPath}`);
-            // Redirect /user to /user/ so GCP Load Balancer matches /user/* and routes to uwo-user
-            app.get('/user', (req, res) => {
-                res.redirect(301, '/user/');
-            });
+            if (!userDashboardPath) {
+                // Redirect /user to /user/ so GCP Load Balancer matches /user/* and routes to uwo-user
+                app.get('/user', (req, res) => {
+                    res.redirect(301, '/user/');
+                });
+            }
 
             // Serve static files (HTML, JS, CSS, images, etc.) with proper MIME types
             app.use(express.static(frontendDistPath, {
@@ -4481,6 +4514,8 @@ app.post('/api/team-members', auth, checkPermission('team.create'), (req, res, n
                 }
                 if (
                     req.path.startsWith('/api') ||
+                    req.path.startsWith('/dashboard') ||
+                    req.path.startsWith('/user') ||
                     req.path.startsWith('/r/') ||
                     req.path.startsWith('/m') ||
                     req.path.startsWith('/docs') ||
