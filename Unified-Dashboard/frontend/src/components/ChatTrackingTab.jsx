@@ -288,6 +288,22 @@ export const ChatTrackingTab = () => {
               <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#818cf8', display: 'inline-block' }} />
               Live Connected Sync
             </span>
+            <span style={{
+              background: 'rgba(16, 185, 129, 0.12)',
+              color: '#34d399',
+              border: '1px solid rgba(16, 185, 129, 0.3)',
+              borderRadius: '20px',
+              padding: '3px 10px',
+              fontSize: '11px',
+              fontWeight: '700',
+              letterSpacing: '0.03em',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block', boxShadow: '0 0 8px #10b981' }} />
+              ⚡ Auto-Sync Active (Every 5m)
+            </span>
           </div>
           <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#94a3b8' }}>
             Real-time tracking of AI chat sessions, prompt token consumption & user interaction history.

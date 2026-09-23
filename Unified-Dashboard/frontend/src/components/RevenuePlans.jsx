@@ -206,6 +206,22 @@ export const RevenuePlans = () => {
               <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#34d399', display: 'inline-block', animation: 'pulse 2s infinite' }} />
               Live Connected
             </span>
+            <span style={{
+              background: 'rgba(16, 185, 129, 0.12)',
+              color: '#34d399',
+              border: '1px solid rgba(16, 185, 129, 0.3)',
+              borderRadius: '20px',
+              padding: '4px 12px',
+              fontSize: '11px',
+              fontWeight: '700',
+              letterSpacing: '0.03em',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block', boxShadow: '0 0 8px #10b981' }} />
+              ⚡ Automated Sync Active (Every 5m)
+            </span>
           </div>
           <p style={{ margin: '6px 0 0 0', fontSize: '13px', color: '#94a3b8' }}>
             Multi-product real-time financial ledger for AISA Assistant, AI Legal, UWO Connect, EFV Framework & AI Ads
