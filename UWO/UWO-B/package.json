@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
+    "sync:telemetry": "node scripts/auto_telemetry_sync.js",
     "test": "node test_unified_local.js"
   },
   "keywords": [],

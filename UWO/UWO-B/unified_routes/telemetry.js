@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { getUnifiedDb } = require('./db');
+const { runTelemetrySync, startAutoSyncWorker, getSyncStatus } = require('./telemetrySyncService');
+
+// Launch Automated Background Sync Worker (Runs automatically every 5 minutes)
+startAutoSyncWorker(5);
 
 // GET /api/telemetry/overview
 router.get('/overview', async (req, res) => {
@@ -262,18 +266,39 @@ router.get('/overview', async (req, res) => {
   }
 });
 
-// POST /api/telemetry/sync
+// GET /api/telemetry/sync-status — Automated sync daemon health and metadata
+router.get('/sync-status', (req, res) => {
+  try {
+    return res.json({ success: true, ...getSyncStatus() });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/telemetry/sync — Live sync from AISA DB into chat_tracking (on-demand trigger)
 router.post('/sync', async (req, res) => {
   try {
-    const db = await getUnifiedDb();
-    const count = await db.collection('chat_tracking').countDocuments().catch(() => 0);
+    const result = await runTelemetrySync({ forceFull: true });
+    if (!result.success && result.skipped) {
+      return res.json({
+        success: true,
+        message: 'Sync is already actively running in the background.',
+        ...getSyncStatus()
+      });
+    }
+    if (!result.success) {
+      return res.status(500).json({ success: false, error: result.error });
+    }
     return res.json({
       success: true,
-      records_synced: count || 7029,
-      message: `Live Real-Time Sync Successful! Verified ${count || 7029} prompt interactions from MongoDB Atlas.`,
-      synced_at: new Date().toISOString()
+      records_synced: result.records_synced,
+      total_in_db: result.total_in_db,
+      duration_ms: result.duration_ms,
+      message: `Live Real-Time Sync Successful! Processed ${result.records_synced.toLocaleString()} interactions in ${result.duration_ms}ms. Total: ${result.total_in_db.toLocaleString()} records in MongoDB.`,
+      synced_at: result.synced_at
     });
   } catch (err) {
+    console.error('[TelemetrySync] Error:', err);
     return res.status(500).json({ detail: err.message });
   }
 });
