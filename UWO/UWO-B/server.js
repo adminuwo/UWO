@@ -230,6 +230,14 @@ app.use('/api/analytics', unifiedAdminRouter);
 app.use('/api/unified-analytics', unifiedAdminRouter);
 app.use('/api/revenue', unifiedRevenueRouter);
 app.use('/api/marketing', unifiedMarketingRouter);
+app.get('/api/web-stats/tracker.js', (req, res) => {
+    res.type('application/javascript');
+    const trackerPath = path.join(__dirname, 'referral/public/uwo-tracker.js');
+    if (fs.existsSync(trackerPath)) {
+        return res.sendFile(trackerPath);
+    }
+    res.send('// uwo tracker loaded');
+});
 app.use('/api/web-stats', (req, res) => res.json({ success: true, visits: 12000, unique: 8400 }));
 
 
@@ -4466,7 +4474,7 @@ app.post('/api/team-members', auth, checkPermission('team.create'), (req, res, n
         if (unifiedDashboardPath) {
             console.log(`📊 Serving Unified Dashboard from: ${unifiedDashboardPath} under /dashboard`);
             app.use('/dashboard', express.static(unifiedDashboardPath));
-            app.get(['/dashboard', '/dashboard/*'], (req, res) => {
+            app.get(['/dashboard', '/dashboard/{*splat}'], (req, res) => {
                 res.sendFile(path.join(unifiedDashboardPath, 'index.html'));
             });
         }
@@ -4481,7 +4489,7 @@ app.post('/api/team-members', auth, checkPermission('team.create'), (req, res, n
         if (userDashboardPath) {
             console.log(`👥 Serving User Dashboard from: ${userDashboardPath} under /user`);
             app.use('/user', express.static(userDashboardPath));
-            app.get(['/user', '/user/*'], (req, res) => {
+            app.get(['/user', '/user/{*splat}'], (req, res) => {
                 res.sendFile(path.join(userDashboardPath, 'index.html'));
             });
         }

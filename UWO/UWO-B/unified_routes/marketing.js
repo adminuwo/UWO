@@ -199,7 +199,8 @@ router.post('/links', async (req, res) => {
     const db = await getUnifiedDb();
     const body = req.body || {};
 
-    let slug = (body.slug || '').trim().toLowerCase().replace(/[^a-z0-9-_]/g, '-');
+    let rawSlug = body.custom_slug || body.slug || body.code || '';
+    let slug = rawSlug.trim().toLowerCase().replace(/[^a-z0-9-_]/g, '-');
     if (!slug) {
       slug = 'link-' + crypto.randomBytes(3).toString('hex');
     }
@@ -213,19 +214,22 @@ router.post('/links', async (req, res) => {
     const productCode = (body.product_code || 'custom').toLowerCase();
     const productDef = PRODUCT_CATALOG[productCode] || {};
 
-    const webUrl = body.web_url || body.target_url || productDef.url || '';
+    const webUrl = body.custom_target_url || body.web_url || body.target_url || productDef.url || '';
     const androidUrl = body.android_url || productDef.play_store_url || '';
     const iosUrl = body.ios_url || productDef.app_store_url || '';
     const isSmartLink = body.is_smart_link !== false;
 
-    let baseDomain = SHORT_LINK_BASE_URL;
-    if (productCode === 'ailegal') baseDomain = AI_LEGAL_SHORT_LINK_BASE_URL;
-    else if (productCode === 'aisa') baseDomain = AISA_SHORT_LINK_BASE_URL;
+    let baseDomain = body.custom_base_url || body.base_url || SHORT_LINK_BASE_URL;
+    if (!body.custom_base_url && !body.base_url) {
+      if (productCode === 'ailegal') baseDomain = AI_LEGAL_SHORT_LINK_BASE_URL;
+      else if (productCode === 'aisa') baseDomain = AISA_SHORT_LINK_BASE_URL;
+    }
 
     const now = new Date();
     const linkDoc = {
       slug,
       campaign_name: body.campaign_name || body.name || slug,
+      post_name: body.post_name || body.campaign_name || slug,
       product_code: productCode,
       platform: body.platform || 'other',
       target_url: webUrl,
@@ -264,7 +268,7 @@ router.post('/links/batch', async (req, res) => {
     const platforms = body.platforms || ['instagram', 'linkedin', 'twitter', 'youtube', 'whatsapp'];
     const productCode = (body.product_code || 'custom').toLowerCase();
     const campaignBase = body.campaign_name || 'campaign';
-    const slugPrefix = (body.slug_prefix || campaignBase).toLowerCase().replace(/[^a-z0-9-_]/g, '-');
+    const slugPrefix = (body.custom_slug || body.slug_prefix || campaignBase).toLowerCase().replace(/[^a-z0-9-_]/g, '-');
 
     const createdLinks = [];
     for (const plat of platforms) {
@@ -272,11 +276,12 @@ router.post('/links/batch', async (req, res) => {
       const existing = await db.collection('marketing_links').findOne({ slug });
       if (!existing) {
         const productDef = PRODUCT_CATALOG[productCode] || {};
-        const webUrl = body.web_url || body.target_url || productDef.url || '';
+        const webUrl = body.custom_target_url || body.web_url || body.target_url || productDef.url || '';
         const now = new Date();
         const doc = {
           slug,
           campaign_name: `${campaignBase} (${PLATFORM_CONFIG[plat]?.name || plat})`,
+          post_name: body.post_name || campaignBase,
           product_code: productCode,
           platform: plat,
           target_url: webUrl,

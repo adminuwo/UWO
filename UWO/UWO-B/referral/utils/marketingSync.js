@@ -7,10 +7,12 @@ try {
 const dns = require('dns');
 const crypto = require('crypto');
 
-// Configure public DNS resolvers to ensure robust SRV resolution
-try {
-  dns.setServers(['8.8.8.8', '1.1.1.1']);
-} catch (e) {}
+// Configure public DNS resolvers to ensure robust SRV resolution locally (skip in Cloud Run)
+if (!process.env.K_SERVICE && process.env.NODE_ENV !== 'test') {
+  try {
+    dns.setServers(['8.8.8.8', '1.1.1.1']);
+  } catch (e) {}
+}
 
 let unifiedClient = null;
 

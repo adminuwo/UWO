@@ -48,7 +48,7 @@ RUN sed -i 's/\r$//' /usr/src/app/start.sh && chmod +x /usr/src/app/start.sh
 ENV NODE_ENV=production
 ENV ENVIRONMENT=production
 ENV PORT=8080
-ENV MONGO_URI="mongodb+srv://admin_db_user:uSYUbw06q4coR6Nv@unified-dashboard.wisisoq.mongodb.net/?appName=Unified-Dashboard"
+ENV MONGO_URI="mongodb+srv://uwo_admin:uwo%4012345@cluster0.selr4is.mongodb.net/UWO-web?retryWrites=true&w=majority"
 ENV UNIFIED_MONGODB_URI="mongodb+srv://admin_db_user:uSYUbw06q4coR6Nv@unified-dashboard.wisisoq.mongodb.net/?appName=Unified-Dashboard"
 ENV UNIFIED_MONGODB_DB_NAME="unified_service_db"
 

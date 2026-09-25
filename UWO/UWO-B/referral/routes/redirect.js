@@ -29,8 +29,9 @@ router.use((req, res, next) => {
 function wantsJson(req) {
   return (
     (req.headers.accept && req.headers.accept.includes('application/json')) ||
-    req.query.format === 'json' ||
-    req.path.startsWith('/resolve')
+    req.query?.format === 'json' ||
+    req.path.startsWith('/resolve') ||
+    (req.originalUrl && req.originalUrl.includes('/resolve'))
   );
 }
 
@@ -39,13 +40,17 @@ async function handleReferralRouting(req, res) {
   const isJson = wantsJson(req);
   try {
     const { code } = req.params;
+    const cleanCode = String(code || '').trim();
 
-    if (!code) {
+    if (!cleanCode) {
       if (isJson) return res.status(400).json({ success: false, error: 'Invalid Referral Link' });
       return res.status(400).send('Invalid Referral Link');
     }
 
-    const link = await ReferralLink.findOne({ code }).populate('product');
+    let link = await ReferralLink.findOne({ code: cleanCode }).populate('product');
+    if (!link) {
+      link = await ReferralLink.findOne({ code: cleanCode.toLowerCase() }).populate('product');
+    }
     let isMarketingLink = false;
     let marketingDoc = null;
 
@@ -53,7 +58,14 @@ async function handleReferralRouting(req, res) {
       try {
         const { getUnifiedDb } = require('../utils/marketingSync');
         const uDb = await getUnifiedDb();
-        marketingDoc = await uDb.collection('marketing_links').findOne({ slug: code });
+        marketingDoc = await uDb.collection('marketing_links').findOne({
+          $or: [
+            { slug: cleanCode },
+            { code: cleanCode },
+            { slug: cleanCode.toLowerCase() },
+            { code: cleanCode.toLowerCase() }
+          ]
+        });
         if (marketingDoc) {
           isMarketingLink = true;
         }
@@ -82,6 +94,8 @@ async function handleReferralRouting(req, res) {
       `);
     }
 
+    const isDryRun = req.headers['x-dry-run'] === 'true' || req.query.dry_run === 'true';
+
     if (isMarketingLink && marketingDoc) {
       const userAgent = req.headers['user-agent'] || '';
       const ip = getClientIp(req);
@@ -107,24 +121,26 @@ async function handleReferralRouting(req, res) {
         } catch (e) {}
       }
 
-      (async () => {
-        try {
-          const { getUnifiedDb } = require('../utils/marketingSync');
-          const uDb = await getUnifiedDb();
-          await uDb.collection('marketing_links').updateOne(
-            { _id: marketingDoc._id },
-            { $inc: { total_clicks: 1, unique_clicks: 1, clicks_count: 1 }, $set: { last_clicked_at: new Date() } }
-          );
-          await uDb.collection('marketing_events').insertOne({
-            event_type: 'click',
-            slug: code,
-            device_type: deviceType,
-            ip,
-            target_url: targetUrl,
-            timestamp: new Date()
-          }).catch(() => {});
-        } catch (e) {}
-      })();
+      if (!isDryRun) {
+        (async () => {
+          try {
+            const { getUnifiedDb } = require('../utils/marketingSync');
+            const uDb = await getUnifiedDb();
+            await uDb.collection('marketing_links').updateOne(
+              { _id: marketingDoc._id },
+              { $inc: { total_clicks: 1, unique_clicks: 1, clicks_count: 1 }, $set: { last_clicked_at: new Date() } }
+            );
+            await uDb.collection('marketing_events').insertOne({
+              event_type: 'click',
+              slug: code,
+              device_type: deviceType,
+              ip,
+              target_url: targetUrl,
+              timestamp: new Date()
+            }).catch(() => {});
+          } catch (e) {}
+        })();
+      }
 
       if (isJson) {
         return res.json({
@@ -176,20 +192,21 @@ async function handleReferralRouting(req, res) {
       const ttlHours = 3;
       const expiresAt = new Date(Date.now() + ttlHours * 60 * 60 * 1000);
 
-      PendingAttribution.create({
-        ip,
-        fingerprint,
-        referralLink: link._id,
-        code: link.code,
-        userId: link.userId,
-        product: link.product._id,
-        platform: 'ios',
-        userAgent,
-        converted: false,
-        expiresAt,
-      }).catch((err) => console.error('Error saving iOS pending attribution:', err.message));
-
-      console.log(`📱 [iOS Click Captured] IP: ${ip} | Code: ${link.code} | TTL: ${ttlHours}h`);
+      if (!isDryRun) {
+        PendingAttribution.create({
+          ip,
+          fingerprint,
+          referralLink: link._id,
+          code: link.code,
+          userId: link.userId,
+          product: link.product._id,
+          platform: 'ios',
+          userAgent,
+          converted: false,
+          expiresAt,
+        }).catch((err) => console.error('Error saving iOS pending attribution:', err.message));
+        console.log(`📱 [iOS Click Captured] IP: ${ip} | Code: ${link.code} | TTL: ${ttlHours}h`);
+      }
     } else {
       deviceType = 'desktop';
       targetUrl = link.product.webUrl || fallbackUrl;
@@ -206,49 +223,51 @@ async function handleReferralRouting(req, res) {
     }
 
     // Unique Click Tracking Logic: Check if this IP has previously clicked this specific link
-    (async () => {
-      try {
-        const alreadyClicked = await ClickLog.exists({ referralLink: link._id, ip });
-        const isUnique = !alreadyClicked;
+    if (!isDryRun) {
+      (async () => {
+        try {
+          const alreadyClicked = await ClickLog.exists({ referralLink: link._id, ip });
+          const isUnique = !alreadyClicked;
 
-        const updateFields = { $inc: { clicks: 1 } };
-        if (isUnique) {
-          updateFields.$inc.uniqueClicks = 1;
+          const updateFields = { $inc: { clicks: 1 } };
+          if (isUnique) {
+            updateFields.$inc.uniqueClicks = 1;
+          }
+
+          await ReferralLink.findByIdAndUpdate(link._id, updateFields);
+          await ClickLog.create({
+            referralLink: link._id,
+            code: link.code,
+            user: link.user,
+            product: link.product._id,
+            deviceType,
+            targetUrl,
+            userAgent,
+            ip,
+            isUnique,
+          });
+
+          console.log(`🔀 [Click Logged] Code: ${link.code} | IP: ${ip} | Unique: ${isUnique} | Device: ${deviceType}`);
+
+          // Sync click in real-time to Unified Dashboard (marketing_links & marketing_clicks)
+          syncClickToMarketing({
+            code: link.code,
+            linkId: link._id,
+            userId: link.userId,
+            deviceType,
+            targetUrl,
+            userAgent,
+            ip,
+            isUnique,
+            referrer: req.headers['referer'] || req.headers['referrer'] || '',
+          }).catch((err) =>
+            console.warn('[Redirect] Click sync to Unified error:', err.message)
+          );
+        } catch (err) {
+          console.error('Error logging click analytics:', err);
         }
-
-        await ReferralLink.findByIdAndUpdate(link._id, updateFields);
-        await ClickLog.create({
-          referralLink: link._id,
-          code: link.code,
-          user: link.user,
-          product: link.product._id,
-          deviceType,
-          targetUrl,
-          userAgent,
-          ip,
-          isUnique,
-        });
-
-        console.log(`🔀 [Click Logged] Code: ${link.code} | IP: ${ip} | Unique: ${isUnique} | Device: ${deviceType}`);
-
-        // Sync click in real-time to Unified Dashboard (marketing_links & marketing_clicks)
-        syncClickToMarketing({
-          code: link.code,
-          linkId: link._id,
-          userId: link.userId,
-          deviceType,
-          targetUrl,
-          userAgent,
-          ip,
-          isUnique,
-          referrer: req.headers['referer'] || req.headers['referrer'] || '',
-        }).catch((err) =>
-          console.warn('[Redirect] Click sync to Unified error:', err.message)
-        );
-      } catch (err) {
-        console.error('Error logging click analytics:', err);
-      }
-    })();
+      })();
+    }
 
     if (isJson) {
       return res.json({
