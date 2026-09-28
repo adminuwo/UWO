@@ -7,6 +7,17 @@ let cachedData = null;
 let lastFetchTime = 0;
 const CACHE_TTL_MS = 60 * 1000; // 60 seconds TTL
 
+// Exact Data Streams verified from Firebase Console & Google Analytics Property 545341929
+const STREAM_REGISTRY = {
+  '15361501715': { app: 'ailegal', platform: 'android', name: 'AI Legal Android' },
+  '15843012506': { app: 'aisa', platform: 'android', name: 'AISA Android' },
+  '15843076287': { app: 'ailegal', platform: 'ios', name: 'AI Legal iOS' },
+  '15842956481': { app: 'aisa', platform: 'ios', name: 'AISA iOS' },
+  '15842883067': { app: 'ailegal', platform: 'web', name: 'AI Legal Web' },
+  '15843098831': { app: 'aisa', platform: 'web', name: 'AISA Web' },
+  '15248694028': { app: 'aisa', platform: 'web', name: 'AISA Connect Web' }
+};
+
 function getClient() {
   if (clientInstance) return clientInstance;
 
@@ -31,11 +42,15 @@ function getPropertyId() {
   return process.env.FIREBASE_PROPERTY_ID || process.env.GA4_PROPERTY_ID || '545341929';
 }
 
-function resolveAppCode(streamName) {
+function resolveStream(streamId, streamName, platform = '') {
+  if (streamId && STREAM_REGISTRY[streamId]) {
+    return STREAM_REGISTRY[streamId];
+  }
   const s = (streamName || '').toLowerCase();
-  if (s.includes('legal')) return 'ailegal';
-  if (s.includes('aisa')) return 'aisa';
-  return 'ailegal';
+  const p = (platform || '').toLowerCase();
+  const app = s.includes('legal') ? 'ailegal' : (s.includes('aisa') ? 'aisa' : 'ailegal');
+  const plat = p.includes('ios') ? 'ios' : (p.includes('web') ? 'web' : 'android');
+  return { app, platform: plat, name: streamName || 'Unknown Stream' };
 }
 
 /**
@@ -44,36 +59,42 @@ function resolveAppCode(streamName) {
 async function getLiveRealtimeUsers() {
   const client = getClient();
   const propertyId = getPropertyId();
-  if (!client || !propertyId) return { total: 0, android: 0, ios: 0, by_app: { ailegal: 0, aisa: 0 } };
+  if (!client || !propertyId) return { total: 0, android: 0, ios: 0, by_app: { ailegal: { total: 0, android: 0, ios: 0 }, aisa: { total: 0, android: 0, ios: 0 } } };
 
   try {
     const [res] = await client.runRealtimeReport({
       property: `properties/${propertyId}`,
-      dimensions: [{ name: 'streamName' }, { name: 'platform' }],
+      dimensions: [{ name: 'streamId' }, { name: 'streamName' }, { name: 'platform' }],
       metrics: [{ name: 'activeUsers' }]
     });
 
     let android = 0;
     let ios = 0;
     let total = 0;
-    const byApp = { ailegal: 0, aisa: 0 };
+    const byApp = {
+      ailegal: { total: 0, android: 0, ios: 0 },
+      aisa: { total: 0, android: 0, ios: 0 }
+    };
 
     for (const row of res.rows || []) {
-      const stream = row.dimensionValues[0]?.value || '';
-      const plat = (row.dimensionValues[1]?.value || '').toLowerCase();
+      const streamId = row.dimensionValues[0]?.value || '';
+      const streamName = row.dimensionValues[1]?.value || '';
+      const rawPlat = (row.dimensionValues[2]?.value || '').toLowerCase();
       const count = parseInt(row.metricValues[0]?.value || '0', 10);
-      const appCode = resolveAppCode(stream);
+      const streamInfo = resolveStream(streamId, streamName, rawPlat);
+      const appCode = streamInfo.app;
+      const isIos = streamInfo.platform === 'ios' || rawPlat.includes('ios');
 
-      if (plat.includes('android')) android += count;
-      else if (plat.includes('ios')) ios += count;
-      else android += count;
+      if (isIos) {
+        ios += count;
+        if (byApp[appCode]) byApp[appCode].ios += count;
+      } else {
+        android += count;
+        if (byApp[appCode]) byApp[appCode].android += count;
+      }
 
       total += count;
-      if (byApp[appCode] !== undefined) {
-        byApp[appCode] += count;
-      } else {
-        byApp[appCode] = count;
-      }
+      if (byApp[appCode]) byApp[appCode].total += count;
     }
 
     return {
@@ -84,7 +105,7 @@ async function getLiveRealtimeUsers() {
     };
   } catch (err) {
     console.warn('[FirebaseAnalytics] runRealtimeReport error:', err.message);
-    return { total: 0, android: 0, ios: 0, by_app: { ailegal: 0, aisa: 0 } };
+    return { total: 0, android: 0, ios: 0, by_app: { ailegal: { total: 0, android: 0, ios: 0 }, aisa: { total: 0, android: 0, ios: 0 } } };
   }
 }
 
@@ -102,11 +123,11 @@ async function fetchFirebaseDirectMetrics(days = 30) {
     const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const yesterdayStrRaw = yesterday.toISOString().slice(0, 10).replace(/-/g, '');
 
-    // 1. Fetch Events & Installs with streamName
+    // 1. Fetch Events & Installs with streamId and streamName
     const [eventsRes] = await client.runReport({
       property: `properties/${propertyId}`,
       dateRanges: [{ startDate: '2026-07-01', endDate: 'today' }],
-      dimensions: [{ name: 'date' }, { name: 'eventName' }, { name: 'platform' }, { name: 'streamName' }],
+      dimensions: [{ name: 'date' }, { name: 'eventName' }, { name: 'platform' }, { name: 'streamId' }, { name: 'streamName' }],
       metrics: [{ name: 'eventCount' }]
     });
 
@@ -114,7 +135,7 @@ async function fetchFirebaseDirectMetrics(days = 30) {
     const [trafficRes] = await client.runReport({
       property: `properties/${propertyId}`,
       dateRanges: [{ startDate: '2026-07-01', endDate: 'today' }],
-      dimensions: [{ name: 'streamName' }],
+      dimensions: [{ name: 'streamId' }, { name: 'streamName' }],
       metrics: [{ name: 'activeUsers' }, { name: 'sessions' }]
     });
 
@@ -124,28 +145,38 @@ async function fetchFirebaseDirectMetrics(days = 30) {
     const byApp = {
       ailegal: {
         total_installs: 0,
+        android_installs: 0,
+        ios_installs: 0,
         total_uninstalls: 0,
         today_installs: 0,
         yesterday_installs: 0,
         active_users: 0,
         sessions: 0,
-        realtime_active: realtime.by_app?.ailegal || 0,
+        realtime_active: realtime.by_app?.ailegal?.total || 0,
+        realtime_android: realtime.by_app?.ailegal?.android || 0,
+        realtime_ios: realtime.by_app?.ailegal?.ios || 0,
         daily_metrics: {}
       },
       aisa: {
         total_installs: 0,
+        android_installs: 0,
+        ios_installs: 0,
         total_uninstalls: 0,
         today_installs: 0,
         yesterday_installs: 0,
         active_users: 0,
         sessions: 0,
-        realtime_active: realtime.by_app?.aisa || 0,
+        realtime_active: realtime.by_app?.aisa?.total || 0,
+        realtime_android: realtime.by_app?.aisa?.android || 0,
+        realtime_ios: realtime.by_app?.aisa?.ios || 0,
         daily_metrics: {}
       }
     };
 
     const combinedDailyMetrics = {};
     let totalInstalls = 0;
+    let totalAndroidInstalls = 0;
+    let totalIosInstalls = 0;
     let totalUninstalls = 0;
     let todayInstalls = 0;
     let yesterdayInstalls = 0;
@@ -155,14 +186,19 @@ async function fetchFirebaseDirectMetrics(days = 30) {
       if (!rawDate) continue;
       const formattedDate = `${rawDate.slice(0, 4)}-${rawDate.slice(4, 6)}-${rawDate.slice(6, 8)}`;
       const eventName = r.dimensionValues[1]?.value || '';
-      const plat = (r.dimensionValues[2]?.value || '').toLowerCase();
-      const stream = r.dimensionValues[3]?.value || '';
-      const appCode = resolveAppCode(stream);
+      const rawPlat = (r.dimensionValues[2]?.value || '').toLowerCase();
+      const streamId = r.dimensionValues[3]?.value || '';
+      const streamName = r.dimensionValues[4]?.value || '';
+      const streamInfo = resolveStream(streamId, streamName, rawPlat);
+      const appCode = streamInfo.app;
+      const isIos = streamInfo.platform === 'ios' || rawPlat.includes('ios');
       const count = parseInt(r.metricValues[0]?.value || '0', 10);
 
       if (!byApp[appCode]) {
         byApp[appCode] = {
           total_installs: 0,
+          android_installs: 0,
+          ios_installs: 0,
           total_uninstalls: 0,
           today_installs: 0,
           yesterday_installs: 0,
@@ -180,15 +216,20 @@ async function fetchFirebaseDirectMetrics(days = 30) {
         combinedDailyMetrics[formattedDate] = { installs: 0, uninstalls: 0, active: 0, sessions: 0, android: 0, ios: 0 };
       }
 
-      if (eventName === 'first_open' || (appCode === 'aisa' && eventName === 'first_visit')) {
+      if (eventName === 'first_open' || (eventName === 'first_visit' && byApp[appCode].total_installs === 0)) {
         byApp[appCode].daily_metrics[formattedDate].installs += count;
         combinedDailyMetrics[formattedDate].installs += count;
-        if (plat.includes('ios')) {
+
+        if (isIos) {
           byApp[appCode].daily_metrics[formattedDate].ios += count;
           combinedDailyMetrics[formattedDate].ios += count;
+          byApp[appCode].ios_installs += count;
+          totalIosInstalls += count;
         } else {
           byApp[appCode].daily_metrics[formattedDate].android += count;
           combinedDailyMetrics[formattedDate].android += count;
+          byApp[appCode].android_installs += count;
+          totalAndroidInstalls += count;
         }
 
         byApp[appCode].total_installs += count;
@@ -210,14 +251,16 @@ async function fetchFirebaseDirectMetrics(days = 30) {
 
     let totalActiveUsers = 0;
     for (const r of trafficRes.rows || []) {
-      const stream = r.dimensionValues[0]?.value || '';
-      const appCode = resolveAppCode(stream);
+      const streamId = r.dimensionValues[0]?.value || '';
+      const streamName = r.dimensionValues[1]?.value || '';
+      const streamInfo = resolveStream(streamId, streamName);
+      const appCode = streamInfo.app;
       const active = parseInt(r.metricValues[0]?.value || '0', 10);
       const sessions = parseInt(r.metricValues[1]?.value || '0', 10);
 
       if (byApp[appCode]) {
-        byApp[appCode].active_users = active;
-        byApp[appCode].sessions = sessions;
+        byApp[appCode].active_users += active;
+        byApp[appCode].sessions += sessions;
       }
       totalActiveUsers += active;
     }
@@ -253,13 +296,16 @@ async function fetchFirebaseDirectMetrics(days = 30) {
       realtime_android: realtime.android,
       realtime_ios: realtime.ios,
       total_all_time_installs: totalInstalls,
+      total_android_installs: totalAndroidInstalls,
+      total_ios_installs: totalIosInstalls,
       total_installs_30d: totalInstalls,
       total_uninstalls: totalUninstalls,
       today_installs: todayInstalls,
       yesterday_installs: yesterdayInstalls,
       total_active_users: totalActiveUsers,
       by_app: byApp,
-      timeseries
+      timeseries,
+      registered_streams: STREAM_REGISTRY
     };
   } catch (err) {
     console.error('[FirebaseAnalytics] fetchFirebaseDirectMetrics error:', err);
@@ -289,5 +335,6 @@ module.exports = {
   getPropertyId,
   getLiveRealtimeUsers,
   fetchFirebaseDirectMetrics,
-  getFirebaseTelemetry
+  getFirebaseTelemetry,
+  STREAM_REGISTRY
 };

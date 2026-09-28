@@ -365,7 +365,7 @@ export const AppDownloadsTab = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
               <span style={{ color: '#94a3b8' }}>Live Devices Online:</span>
               <strong style={{ color: '#10b981' }}>
-                ⚡ {analytics?.source?.realtime_active_devices > 0 ? `${analytics.source.realtime_active_devices} live` : '12-17 live'}
+                ⚡ {analytics?.source?.realtime_active_devices !== undefined ? `${analytics.source.realtime_active_devices} live` : '0 live'}
               </strong>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
@@ -504,7 +504,7 @@ export const AppDownloadsTab = () => {
                 <td style={{ fontWeight: '700', color: '#f8fafc' }}>{formatNum(numAndroid)}</td>
                 <td style={{ color: '#34d399', fontWeight: '600' }}>{formatNum(liveAndroidPings)} pings</td>
                 <td style={{ color: '#38bdf8', fontWeight: '600' }}>{formatNum(combined.active_device_installs_latest || 0)}</td>
-                <td style={{ color: '#f87171' }}>{formatNum(combined.uninstall_events || combined.daily_user_uninstalls || 397)}</td>
+                <td style={{ color: '#f87171' }}>{formatNum(combined.uninstall_events || combined.daily_user_uninstalls || 0)}</td>
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ width: '100px', height: '6px', borderRadius: '3px', backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
