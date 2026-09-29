@@ -177,6 +177,7 @@ app.use('/api/links', referralLinks);
 app.use('/api/conversions', referralConversions);
 app.use('/r', referralRedirect);
 app.use('/m', referralRedirect);
+app.use('/ref', referralRedirect);
 
 app.get('/embed.js', (req, res) => {
     res.sendFile(path.join(__dirname, 'referral/public/embed.js'));
@@ -4526,6 +4527,7 @@ app.post('/api/team-members', auth, checkPermission('team.create'), (req, res, n
                     req.path.startsWith('/user') ||
                     req.path.startsWith('/r/') ||
                     req.path.startsWith('/m') ||
+                    req.path.startsWith('/ref') ||
                     req.path.startsWith('/docs') ||
                     req.path.startsWith('/openapi.json') ||
                     req.path.startsWith('/redoc') ||

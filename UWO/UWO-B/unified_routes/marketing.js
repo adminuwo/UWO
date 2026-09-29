@@ -86,7 +86,7 @@ const PLATFORM_CONFIG = {
   other: { name: 'Custom Referral', icon: '🔗', default_medium: 'referral', color: '#475569' },
 };
 
-function formatLinkDoc(doc, installMap) {
+function formatLinkDoc(doc, installMap, uniqueInstallMap, uniqueClicksMap) {
   if (!doc) return null;
   const isActuallyActive = doc.status === 'active' || doc.is_active === true || doc.status === 'Active';
   const slug = doc.slug || doc.code || String(doc._id);
@@ -97,6 +97,28 @@ function formatLinkDoc(doc, installMap) {
   const androidDownloads = Number((dbAndroid !== undefined && dbAndroid !== null) ? dbAndroid : (doc.android_downloads || 0));
   const iosDownloads = Number((dbIos !== undefined && dbIos !== null) ? dbIos : (doc.ios_downloads || 0));
   const totalDownloads = Number((androidDownloads + iosDownloads) || doc.total_downloads || doc.installs_count || doc.downloads || 0);
+
+  // Accurate deduplicated unique device installs
+  let uniqueInstalls = totalDownloads;
+  if (uniqueInstallMap && typeof uniqueInstallMap.get === 'function' && uniqueInstallMap.has(slug)) {
+    uniqueInstalls = uniqueInstallMap.get(slug);
+  } else if (doc.unique_installs !== undefined && doc.unique_installs !== null) {
+    uniqueInstalls = Number(doc.unique_installs);
+  }
+  uniqueInstalls = Math.min(uniqueInstalls, totalDownloads);
+
+  const rawTotalClicks = Number(doc.total_clicks || doc.clicks_count || doc.clicks || 0);
+  
+  // Accurate deduplicated unique audience reach
+  let uniqueClicks = Number(doc.unique_clicks || doc.uniqueClicks || 0);
+  if (uniqueClicksMap && typeof uniqueClicksMap.get === 'function' && uniqueClicksMap.has(slug)) {
+    const loggedUnique = uniqueClicksMap.get(slug);
+    if (loggedUnique > 0) {
+      uniqueClicks = loggedUnique;
+    }
+  }
+  // Reach can never exceed total clicks
+  uniqueClicks = Math.min(uniqueClicks, rawTotalClicks);
 
   return {
     id: String(doc._id),
@@ -117,14 +139,14 @@ function formatLinkDoc(doc, installMap) {
     status: isActuallyActive ? 'active' : (doc.status || 'paused'),
     is_active: isActuallyActive,
     is_smart_link: doc.is_smart_link !== false,
-    clicks_count: Number(doc.total_clicks || doc.clicks_count || doc.clicks || 0),
-    total_clicks: Number(doc.total_clicks || doc.clicks_count || doc.clicks || 0),
-    unique_clicks: Number(doc.unique_clicks || doc.uniqueClicks || 0),
+    clicks_count: rawTotalClicks,
+    total_clicks: rawTotalClicks,
+    unique_clicks: uniqueClicks,
     installs_count: totalDownloads,
     total_downloads: totalDownloads,
     android_downloads: androidDownloads,
     ios_downloads: iosDownloads,
-    unique_installs: totalDownloads,
+    unique_installs: uniqueInstalls,
     conversions_count: Number(doc.conversions_count || doc.conversions || 0),
     utm_source: doc.utm_source || '',
     utm_medium: doc.utm_medium || '',
@@ -168,14 +190,57 @@ router.get('/links', async (req, res) => {
     }
 
     const db = await getUnifiedDb();
-    const [docs, installAgg] = await Promise.all([
+    const [docs, installAgg, uniqueInstallAgg, uniqueClicksAgg] = await Promise.all([
       db.collection('marketing_links')
         .find(filter)
         .sort({ created_at: -1, createdAt: -1 })
         .limit(limit)
         .toArray(),
       db.collection('marketing_installs').aggregate([
-        { $group: { _id: { slug: '$slug', platform: '$platform' }, count: { $sum: 1 } } }
+        {
+          $group: {
+            _id: { slug: { $ifNull: ['$campaign_slug', '$slug'] }, platform: '$platform' },
+            count: { $sum: 1 }
+          }
+        }
+      ]).toArray().catch(() => []),
+      // Group distinct devices to calculate true unique downloads per campaign
+      db.collection('marketing_installs').aggregate([
+        {
+          $group: {
+            _id: { $ifNull: ['$campaign_slug', '$slug'] },
+            unique_devices: {
+              $addToSet: { $ifNull: ['$device_id', { $ifNull: ['$fingerprint', '$ip'] }] }
+            },
+            verified_unique_count: {
+              $sum: { $cond: [{ $or: [{ $eq: ['$is_unique', true] }, { $eq: ['$is_reinstall', false] }] }, 1, 0] }
+            }
+          }
+        },
+        {
+          $project: {
+            _id: 1,
+            distinct_device_count: { $size: '$unique_devices' },
+            verified_unique_count: 1
+          }
+        }
+      ]).toArray().catch(() => []),
+      // Group distinct IPs to calculate true unique audience reach per campaign
+      db.collection('marketing_clicks').aggregate([
+        {
+          $group: {
+            _id: '$slug',
+            distinct_ips: {
+              $addToSet: { $ifNull: ['$client_ip', { $ifNull: ['$ip', '$ip_hash'] }] }
+            }
+          }
+        },
+        {
+          $project: {
+            _id: 1,
+            unique_reach: { $size: '$distinct_ips' }
+          }
+        }
       ]).toArray().catch(() => [])
     ]);
 
@@ -186,7 +251,22 @@ router.get('/links', async (req, res) => {
       }
     });
 
-    return res.json(docs.map(doc => formatLinkDoc(doc, installMap)));
+    const uniqueInstallMap = new Map();
+    uniqueInstallAgg.forEach(item => {
+      if (item._id) {
+        const unq = Math.max(item.distinct_device_count || 0, item.verified_unique_count || 0);
+        uniqueInstallMap.set(item._id, unq);
+      }
+    });
+
+    const uniqueClicksMap = new Map();
+    uniqueClicksAgg.forEach(item => {
+      if (item._id) {
+        uniqueClicksMap.set(item._id, item.unique_reach || 0);
+      }
+    });
+
+    return res.json(docs.map(doc => formatLinkDoc(doc, installMap, uniqueInstallMap, uniqueClicksMap)));
   } catch (err) {
     console.error('[MarketingLinks] Error:', err);
     return res.status(500).json({ detail: err.message });
@@ -863,25 +943,78 @@ router.post('/telemetry/install', async (req, res) => {
   try {
     const db = await getUnifiedDb();
     const body = req.body || {};
+    const slug = body.campaign_slug || body.slug || body.referral_code || null;
+    const deviceId = body.device_id || null;
+    const fingerprint = body.fingerprint || null;
+    const clientIp = body.ip || body.client_ip || req.ip || null;
+    const platform = (body.platform || 'android').toLowerCase();
+
+    // Check if device or fingerprint has already installed
+    let isUnique = true;
+    let isReinstall = false;
+
+    if (deviceId || fingerprint) {
+      const matchCriteria = [];
+      if (deviceId) matchCriteria.push({ device_id: deviceId });
+      if (fingerprint) matchCriteria.push({ fingerprint: fingerprint });
+
+      const existing = await db.collection('marketing_installs').findOne({
+        $or: matchCriteria,
+        $or: [
+          ...(slug ? [{ slug: slug }, { campaign_slug: slug }] : []),
+          { app_code: body.app_code || 'ailegal' }
+        ]
+      });
+      if (existing) {
+        isUnique = false;
+        isReinstall = true;
+      }
+    }
+
     const installDoc = {
       event_id: crypto.randomUUID ? crypto.randomUUID() : 'inst_' + Date.now(),
       app_code: body.app_code || 'ailegal',
-      platform: body.platform || 'android',
+      platform: platform,
+      device_id: deviceId,
+      fingerprint: fingerprint,
+      ip: clientIp,
+      is_unique: isUnique,
+      is_reinstall: isReinstall,
       install_referrer: body.install_referrer || null,
-      campaign_slug: body.campaign_slug || body.slug || null,
+      campaign_slug: slug,
+      slug: slug,
       timestamp: new Date(),
       metadata: body.metadata || null
     };
 
     await db.collection('marketing_installs').insertOne(installDoc);
-    if (installDoc.campaign_slug) {
+    if (slug) {
+      const incOps = {
+        installs_count: 1,
+        total_downloads: 1,
+      };
+      if (platform === 'ios') {
+        incOps.ios_downloads = 1;
+      } else {
+        incOps.android_downloads = 1;
+      }
+      if (isUnique) {
+        incOps.unique_installs = 1;
+      }
+
       await db.collection('marketing_links').updateOne(
-        { slug: installDoc.campaign_slug },
-        { $inc: { installs_count: 1 } }
+        { slug: slug },
+        { $inc: incOps, $set: { last_downloaded_at: new Date() } }
       );
     }
 
-    return res.json({ success: true, install_id: installDoc.event_id });
+    return res.json({
+      success: true,
+      install_id: installDoc.event_id,
+      is_unique: isUnique,
+      is_reinstall: isReinstall,
+      message: isUnique ? 'Verified Unique Install Recorded' : 'Reinstall / Repeat Device Install Logged (Unique count unchanged)'
+    });
   } catch (err) {
     return res.status(500).json({ detail: err.message });
   }

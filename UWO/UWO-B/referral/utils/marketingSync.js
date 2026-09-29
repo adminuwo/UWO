@@ -212,11 +212,29 @@ async function syncDownloadToMarketing(dlData) {
     const code = dlData.code;
     const normPlatform = (dlData.platform || 'android').toLowerCase();
 
+    // Check device uniqueness
+    let isUnique = dlData.isUnique !== undefined ? Boolean(dlData.isUnique) : true;
+    if (dlData.deviceId || dlData.fingerprint) {
+      const matchCriteria = [];
+      if (dlData.deviceId) matchCriteria.push({ device_id: dlData.deviceId });
+      if (dlData.fingerprint) matchCriteria.push({ fingerprint: dlData.fingerprint });
+
+      const existing = await db.collection('marketing_installs').findOne({
+        $or: matchCriteria,
+        $or: [{ slug: code }, { campaign_slug: code }]
+      });
+      if (existing) {
+        isUnique = false;
+      }
+    }
+
     // 1. Increment download counters in marketing_links
     const incOps = {
       total_downloads: 1,
-      unique_installs: 1,
     };
+    if (isUnique) {
+      incOps.unique_installs = 1;
+    }
     if (normPlatform === 'ios') {
       incOps.ios_downloads = 1;
     } else {
@@ -234,7 +252,7 @@ async function syncDownloadToMarketing(dlData) {
       }
     );
 
-    // 2. Insert into marketing_downloads
+    // 2. Insert into marketing_downloads & marketing_installs
     await db.collection('marketing_downloads').insertOne({
       slug: code,
       link_id: String(dlData.linkId || ''),
@@ -244,6 +262,23 @@ async function syncDownloadToMarketing(dlData) {
       fingerprint: dlData.fingerprint || null,
       attribution_method: dlData.attributionMethod || 'store_referrer',
       user_id: dlData.userId || null,
+      is_unique: isUnique,
+      is_reinstall: !isUnique,
+    });
+
+    await db.collection('marketing_installs').insertOne({
+      slug: code,
+      campaign_slug: code,
+      link_id: String(dlData.linkId || ''),
+      platform: normPlatform,
+      timestamp: now,
+      ip: dlData.ip || null,
+      device_id: dlData.deviceId || null,
+      fingerprint: dlData.fingerprint || null,
+      attribution_method: dlData.attributionMethod || 'store_referrer',
+      user_id: dlData.userId || null,
+      is_unique: isUnique,
+      is_reinstall: !isUnique,
     });
 
     // 3. Insert into central app_downloads

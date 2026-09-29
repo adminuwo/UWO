@@ -160,7 +160,7 @@ router.get('/activity', protect, async (req, res) => {
 // @desc    Generate a referral link under user credentials
 router.post('/', protect, async (req, res) => {
   try {
-    const { productId } = req.body;
+    const { productId, customSlug, slug, code: reqCode } = req.body;
 
     if (!productId) {
       return res.status(400).json({ error: 'Product ID is required' });
@@ -171,12 +171,65 @@ router.post('/', protect, async (req, res) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
+    const backendUrl = getReferralBaseUrl(req);
+    const cleanCustom = String(customSlug || slug || reqCode || '').trim().toLowerCase().replace(/[^a-z0-9-_]/g, '-');
+
+    if (cleanCustom) {
+      // Check existing custom code in ReferralLink
+      const existingInReferral = await ReferralLink.findOne({ code: cleanCustom });
+      if (existingInReferral) {
+        if (existingInReferral.user.toString() === req.user.id.toString()) {
+          return res.json({
+            success: true,
+            message: 'You already own this custom referral link',
+            link: {
+              ...existingInReferral.toObject(),
+              fullUrl: `${backendUrl}/r/${existingInReferral.code}`,
+            },
+          });
+        }
+        return res.status(400).json({ error: `The custom referral code "${cleanCustom}" is already taken.` });
+      }
+
+      // Check existing custom code in marketing_links
+      const { getUnifiedDb } = require('../utils/marketingSync');
+      const uDb = await getUnifiedDb();
+      const existingInMarketing = await uDb.collection('marketing_links').findOne({
+        $or: [{ slug: cleanCustom }, { code: cleanCustom }]
+      });
+      if (existingInMarketing) {
+        return res.status(400).json({ error: `The custom referral code "${cleanCustom}" is already taken.` });
+      }
+
+      const link = await ReferralLink.create({
+        code: cleanCustom,
+        user: req.user.id,
+        userId: req.user.userId,
+        product: productId,
+        clicks: 0,
+        uniqueClicks: 0,
+        downloads: 0,
+      });
+
+      await link.populate('product');
+      syncLinkToMarketing(link, link.product).catch((err) =>
+        console.warn('[Referral Links] Background sync error:', err.message)
+      );
+
+      return res.status(201).json({
+        success: true,
+        message: 'Custom referral link generated successfully!',
+        link: {
+          ...link.toObject(),
+          fullUrl: `${backendUrl}/r/${link.code}`,
+        },
+      });
+    }
+
     let link = await ReferralLink.findOne({
       user: req.user.id,
       product: productId,
     }).populate('product');
-
-    const backendUrl = getReferralBaseUrl(req);
 
     if (link) {
       syncLinkToMarketing(link, link.product).catch((err) =>

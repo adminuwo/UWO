@@ -47,6 +47,7 @@ export default function DashboardPage({ user, onLogout }) {
 
   // iOS Simulation Testing State
   const [simulatingIos, setSimulatingIos] = useState(false);
+  const [customSlugInput, setCustomSlugInput] = useState('');
   const [simulationResult, setSimulationResult] = useState(null);
 
   // Full Device Simulator State
@@ -116,8 +117,13 @@ export default function DashboardPage({ user, onLogout }) {
     setLinkMessage({ type: '', text: '' });
 
     try {
-      const data = await api.generateLink({ productId: selectedProductId });
+      const payload = {
+        productId: selectedProductId,
+        customSlug: customSlugInput.trim() || undefined
+      };
+      const data = await api.generateLink(payload);
       setLinkMessage({ type: 'success', text: data.message });
+      setCustomSlugInput('');
       await Promise.all([loadLinks(), loadActivity()]);
     } catch (err) {
       setLinkMessage({ type: 'error', text: err.message });
@@ -430,10 +436,20 @@ export default function DashboardPage({ user, onLogout }) {
                 </select>
               </div>
 
+              <div className="flex-1">
+                <input
+                  type="text"
+                  placeholder="Custom slug (optional, e.g. summer-deals)"
+                  value={customSlugInput}
+                  onChange={(e) => setCustomSlugInput(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
               <button
                 onClick={handleGenerateLink}
                 disabled={generating || products.length === 0}
-                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold rounded-xl shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold rounded-xl shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer whitespace-nowrap"
               >
                 {generating ? (
                   <RefreshCw className="w-4 h-4 animate-spin" />

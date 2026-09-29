@@ -12,7 +12,15 @@ export default defineConfig(({ mode }) => {
       port: 5174,
       proxy: {
         '/api': {
-          target: env.VITE_API_URL || env.VITE_PROXY_TARGET || 'https://uwo24.com',
+          target: env.VITE_API_URL || env.VITE_PROXY_TARGET || 'http://localhost:8080',
+          changeOrigin: true,
+        },
+        '/r': {
+          target: env.VITE_API_URL || env.VITE_PROXY_TARGET || 'http://localhost:8080',
+          changeOrigin: true,
+        },
+        '/ref': {
+          target: env.VITE_API_URL || env.VITE_PROXY_TARGET || 'http://localhost:8080',
           changeOrigin: true,
         },
       },

@@ -366,9 +366,10 @@ export const MarketingCampaignsTab = () => {
     const code = linkObj.slug || linkObj.code;
     if (!code) return '';
 
-    const origin = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
-      ? window.location.origin
-      : 'https://uwo24.com';
+    const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    if (isLocal) {
+      return `http://localhost:8080/r/${code}`;
+    }
 
     if (linkObj.short_url && /^https?:\/\//i.test(linkObj.short_url)) {
       if (!linkObj.short_url.includes('localhost') && !linkObj.short_url.includes('127.0.0.1')) {
@@ -381,7 +382,7 @@ export const MarketingCampaignsTab = () => {
       return `${linkObj.base_url.replace(/\/+$/, '')}/r/${code}`;
     }
 
-    return `${origin}/r/${code}`;
+    return `https://uwo24.com/r/${code}`;
   };
 
   const handleCopy = (text, label) => {
@@ -1270,31 +1271,36 @@ export const MarketingCampaignsTab = () => {
         }}
       >
         <div style={{ width: '100%', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '12px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '11px', tableLayout: 'auto' }}>
             <thead>
-              <tr style={{ backgroundColor: '#1E293B', color: '#94A3B8', borderBottom: '1px solid #334155', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-                <th style={{ padding: '10px 10px', fontWeight: '800' }}>Post / Campaign</th>
-                <th style={{ padding: '10px 8px', fontWeight: '800' }}>Product</th>
-                <th style={{ padding: '10px 8px', fontWeight: '800' }}>Platform</th>
-                <th style={{ padding: '10px 8px', fontWeight: '800' }}>Short Redirect URL</th>
-                <th style={{ padding: '10px 6px', fontWeight: '800', textAlign: 'center' }}>Clicks</th>
-                <th style={{ padding: '10px 6px', fontWeight: '800', textAlign: 'center' }}>Reach</th>
-                <th style={{ padding: '10px 6px', fontWeight: '800', textAlign: 'center' }}>Downloads</th>
-                <th style={{ padding: '10px 6px', fontWeight: '800', textAlign: 'center' }}>Conv.</th>
-                <th style={{ padding: '10px 6px', fontWeight: '800', textAlign: 'center' }}>Status</th>
-                <th style={{ padding: '10px 10px', fontWeight: '800', textAlign: 'right' }}>Actions</th>
+              <tr style={{ backgroundColor: '#1E293B', color: '#94A3B8', borderBottom: '1px solid #334155', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                <th style={{ padding: '8px 8px', fontWeight: '800' }}>Post / Campaign</th>
+                <th style={{ padding: '8px 6px', fontWeight: '800' }}>Product</th>
+                <th style={{ padding: '8px 6px', fontWeight: '800' }}>Platform</th>
+                <th style={{ padding: '8px 6px', fontWeight: '800' }}>Short URL</th>
+                <th style={{ padding: '8px 4px', fontWeight: '800', textAlign: 'center' }}>Clicks</th>
+                <th style={{ padding: '8px 4px', fontWeight: '800', textAlign: 'center' }}>Reach</th>
+                <th
+                  style={{ padding: '8px 4px', fontWeight: '800', textAlign: 'center' }}
+                  title="App Downloads (Total cumulative installs; may include reinstalls)"
+                >
+                  Downloads*
+                </th>
+                <th style={{ padding: '8px 4px', fontWeight: '800', textAlign: 'center' }}>Conv.</th>
+                <th style={{ padding: '8px 4px', fontWeight: '800', textAlign: 'center' }}>Status</th>
+                <th style={{ padding: '8px 8px', fontWeight: '800', textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="10" style={{ padding: '40px', textAlign: 'center', color: '#94A3B8' }}>
+                  <td colSpan="10" style={{ padding: '30px', textAlign: 'center', color: '#94A3B8' }}>
                     Loading marketing links...
                   </td>
                 </tr>
               ) : filteredLinks.length === 0 ? (
                 <tr>
-                  <td colSpan="10" style={{ padding: '40px', textAlign: 'center', color: '#94A3B8' }}>
+                  <td colSpan="10" style={{ padding: '30px', textAlign: 'center', color: '#94A3B8' }}>
                     No marketing links found. Click <strong>+ Generate Tracked Link</strong> above to create your first post campaign!
                   </td>
                 </tr>
@@ -1314,18 +1320,18 @@ export const MarketingCampaignsTab = () => {
                       onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                     >
                       {/* Post Name & Campaign */}
-                      <td style={{ padding: '10px 10px', minWidth: '130px', maxWidth: '190px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
-                          <span style={{ fontWeight: '800', color: '#FFFFFF', fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '8px 8px', minWidth: '100px', maxWidth: '140px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: '800', color: '#FFFFFF', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {link.post_name}
                           </span>
                           {link.is_smart_link && (
                             <span
                               title="Smart Dual-Platform Link: Auto-routes Android to Play Store and iOS to App Store"
                               style={{
-                                padding: '1px 5px',
-                                borderRadius: '4px',
-                                fontSize: '9px',
+                                padding: '1px 4px',
+                                borderRadius: '3px',
+                                fontSize: '8.5px',
                                 fontWeight: '800',
                                 backgroundColor: 'rgba(245, 158, 11, 0.2)',
                                 color: '#FBBF24',
@@ -1340,25 +1346,25 @@ export const MarketingCampaignsTab = () => {
                             </span>
                           )}
                         </div>
-                        <div style={{ color: '#94A3B8', fontSize: '11px', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <div style={{ color: '#94A3B8', fontSize: '10px', marginTop: '1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           Campaign: <span style={{ color: '#CBD5E1' }}>{link.campaign_name}</span>
                         </div>
                       </td>
 
                       {/* Product Badge */}
-                      <td style={{ padding: '10px 8px', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '8px 6px', whiteSpace: 'nowrap' }}>
                         <span
                           style={{
-                            padding: '3px 8px',
-                            borderRadius: '6px',
+                            padding: '2px 6px',
+                            borderRadius: '5px',
                             backgroundColor: `${prodInfo.color}20`,
                             color: prodInfo.color,
                             fontWeight: '700',
-                            fontSize: '11px',
+                            fontSize: '10.5px',
                             border: `1px solid ${prodInfo.color}40`,
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '4px',
+                            gap: '3px',
                             whiteSpace: 'nowrap',
                           }}
                         >
@@ -1367,19 +1373,19 @@ export const MarketingCampaignsTab = () => {
                       </td>
 
                       {/* Platform */}
-                      <td style={{ padding: '10px 8px', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '8px 6px', whiteSpace: 'nowrap' }}>
                         <span
                           style={{
-                            padding: '3px 8px',
-                            borderRadius: '6px',
+                            padding: '2px 6px',
+                            borderRadius: '5px',
                             backgroundColor: `${pInfo.color}20`,
                             color: pInfo.color,
                             fontWeight: '700',
-                            fontSize: '11px',
+                            fontSize: '10.5px',
                             border: `1px solid ${pInfo.color}40`,
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '4px',
+                            gap: '3px',
                             whiteSpace: 'nowrap',
                           }}
                         >
@@ -1388,19 +1394,19 @@ export const MarketingCampaignsTab = () => {
                       </td>
 
                       {/* Short Link */}
-                      <td style={{ padding: '10px 8px', whiteSpace: 'nowrap' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <td style={{ padding: '8px 6px', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                           <code
                             title={getShortUrl(link)}
                             style={{
                               backgroundColor: '#1E293B',
-                              padding: '3px 6px',
-                              borderRadius: '5px',
+                              padding: '2px 5px',
+                              borderRadius: '4px',
                               color: '#38BDF8',
-                              fontSize: '11px',
+                              fontSize: '10.5px',
                               fontFamily: 'monospace',
                               whiteSpace: 'nowrap',
-                              maxWidth: '150px',
+                              maxWidth: '110px',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               display: 'inline-block',
@@ -1417,8 +1423,8 @@ export const MarketingCampaignsTab = () => {
                               border: 'none',
                               color: '#94A3B8',
                               cursor: 'pointer',
-                              fontSize: '13px',
-                              padding: '2px',
+                              fontSize: '11px',
+                              padding: '1px',
                               lineHeight: 1,
                             }}
                           >
@@ -1428,11 +1434,11 @@ export const MarketingCampaignsTab = () => {
                       </td>
 
                       {/* Total Clicks */}
-                      <td style={{ padding: '10px 6px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '8px 4px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <span
                           style={{
-                            fontWeight: '900',
-                            fontSize: '13px',
+                            fontWeight: '800',
+                            fontSize: '12px',
                             color: link.total_clicks > 0 ? '#38BDF8' : '#64748B',
                           }}
                         >
@@ -1441,11 +1447,11 @@ export const MarketingCampaignsTab = () => {
                       </td>
 
                       {/* Unique Reach */}
-                      <td style={{ padding: '10px 6px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '8px 4px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <span
                           style={{
                             fontWeight: '800',
-                            fontSize: '13px',
+                            fontSize: '12px',
                             color: link.unique_clicks > 0 ? '#10B981' : '#64748B',
                           }}
                         >
@@ -1454,23 +1460,23 @@ export const MarketingCampaignsTab = () => {
                       </td>
 
                       {/* Downloads */}
-                      <td style={{ padding: '10px 6px', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                        <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                      <td style={{ padding: '8px 4px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '1px' }}>
                           <span
                             style={{
-                              fontWeight: '900',
-                              fontSize: '13px',
+                              fontWeight: '800',
+                              fontSize: '12px',
                               color: (link.total_downloads || 0) > 0 ? '#A855F7' : '#64748B',
                             }}
                           >
                             {link.total_downloads || 0}
                           </span>
-                          <div style={{ display: 'flex', gap: '3px', fontSize: '9px', fontWeight: '800' }}>
+                          <div style={{ display: 'flex', gap: '2px', fontSize: '8.5px', fontWeight: '800' }}>
                             <span
                               title={`Android Downloads: ${link.android_downloads || 0}`}
                               style={{
-                                padding: '1px 4px',
-                                borderRadius: '4px',
+                                padding: '0 3px',
+                                borderRadius: '3px',
                                 backgroundColor: (link.android_downloads || 0) > 0 ? 'rgba(16, 185, 129, 0.2)' : 'rgba(30, 41, 59, 0.8)',
                                 color: (link.android_downloads || 0) > 0 ? '#34D399' : '#64748B',
                               }}
@@ -1480,8 +1486,8 @@ export const MarketingCampaignsTab = () => {
                             <span
                               title={`iOS Downloads: ${link.ios_downloads || 0}`}
                               style={{
-                                padding: '1px 4px',
-                                borderRadius: '4px',
+                                padding: '0 3px',
+                                borderRadius: '3px',
                                 backgroundColor: (link.ios_downloads || 0) > 0 ? 'rgba(56, 189, 248, 0.2)' : 'rgba(30, 41, 59, 0.8)',
                                 color: (link.ios_downloads || 0) > 0 ? '#38BDF8' : '#64748B',
                               }}
@@ -1489,17 +1495,30 @@ export const MarketingCampaignsTab = () => {
                               🍏{link.ios_downloads || 0}
                             </span>
                           </div>
+                          {(link.total_downloads || 0) > 0 && (
+                            <span
+                              title={`Unique Device Installs: ${link.unique_installs || link.total_downloads} (Total may include reinstalls)`}
+                              style={{
+                                fontSize: '7.5px',
+                                color: '#94A3B8',
+                                letterSpacing: '0.2px',
+                                fontWeight: '700',
+                              }}
+                            >
+                              {link.unique_installs || link.total_downloads} unq
+                            </span>
+                          )}
                         </div>
                       </td>
 
                       {/* Conversion Rate */}
-                      <td style={{ padding: '10px 6px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '8px 4px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <span
                           style={{
                             fontWeight: '800',
-                            fontSize: '11px',
-                            padding: '2px 6px',
-                            borderRadius: '5px',
+                            fontSize: '10.5px',
+                            padding: '2px 5px',
+                            borderRadius: '4px',
                             backgroundColor: (link.total_downloads || 0) > 0 ? 'rgba(168, 85, 247, 0.18)' : 'rgba(100, 116, 139, 0.1)',
                             color: (link.total_downloads || 0) > 0 ? '#C084FC' : '#64748B',
                           }}
@@ -1511,16 +1530,16 @@ export const MarketingCampaignsTab = () => {
                       </td>
 
                       {/* Status */}
-                      <td style={{ padding: '10px 6px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '8px 4px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <button
                           onClick={() => handleToggleStatus(link.id, link.is_active)}
                           style={{
-                            padding: '3px 8px',
-                            borderRadius: '6px',
+                            padding: '2px 6px',
+                            borderRadius: '5px',
                             backgroundColor: link.is_active ? '#10B98120' : '#EF444420',
                             color: link.is_active ? '#10B981' : '#EF4444',
                             border: `1px solid ${link.is_active ? '#10B98140' : '#EF444440'}`,
-                            fontSize: '10px',
+                            fontSize: '9.5px',
                             fontWeight: '800',
                             cursor: 'pointer',
                             whiteSpace: 'nowrap',
@@ -1531,72 +1550,72 @@ export const MarketingCampaignsTab = () => {
                       </td>
 
                       {/* Actions */}
-                      <td style={{ padding: '10px 10px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                        <div style={{ display: 'inline-flex', gap: '5px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                      <td style={{ padding: '8px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'inline-flex', gap: '3px', justifyContent: 'flex-end', alignItems: 'center' }}>
                           <button
                             onClick={() => handleCopy(link.full_destination_url, 'Full UTM URL')}
                             title="Copy Full UTM Destination URL"
                             style={{
-                              padding: '4px 8px',
-                              borderRadius: '6px',
+                              padding: '3px 6px',
+                              borderRadius: '5px',
                               backgroundColor: '#1E293B',
                               border: '1px solid #334155',
                               color: '#F8FAFC',
-                              fontSize: '10px',
+                              fontSize: '9.5px',
                               cursor: 'pointer',
                               fontWeight: '700',
                               whiteSpace: 'nowrap',
                             }}
                           >
-                            UTM 📋
+                            UTM
                           </button>
 
                           <button
                             onClick={() => setQrModalLink(link)}
                             title="View / Download QR Code"
                             style={{
-                              padding: '4px 8px',
-                              borderRadius: '6px',
+                              padding: '3px 6px',
+                              borderRadius: '5px',
                               backgroundColor: '#1E293B',
                               border: '1px solid #334155',
                               color: '#F8FAFC',
-                              fontSize: '10px',
+                              fontSize: '9.5px',
                               cursor: 'pointer',
                               fontWeight: '700',
                               whiteSpace: 'nowrap',
                             }}
                           >
-                            QR 🏁
+                            QR
                           </button>
 
                           <button
                             onClick={() => openDetails(link)}
                             title="View Click & Install Telemetry"
                             style={{
-                              padding: '4px 8px',
-                              borderRadius: '6px',
+                              padding: '3px 6px',
+                              borderRadius: '5px',
                               backgroundColor: '#6366F120',
                               border: '1px solid #6366F140',
                               color: '#818CF8',
-                              fontSize: '10px',
+                              fontSize: '9.5px',
                               cursor: 'pointer',
                               fontWeight: '700',
                               whiteSpace: 'nowrap',
                             }}
                           >
-                            Stats 📈
+                            Stats
                           </button>
 
                           <button
                             onClick={() => handleDelete(link.id)}
                             title="Delete Link"
                             style={{
-                              padding: '4px 6px',
-                              borderRadius: '6px',
+                              padding: '3px 5px',
+                              borderRadius: '5px',
                               backgroundColor: '#EF444415',
                               border: '1px solid #EF444430',
                               color: '#EF4444',
-                              fontSize: '11px',
+                              fontSize: '10px',
                               cursor: 'pointer',
                               lineHeight: 1,
                             }}
@@ -1612,6 +1631,10 @@ export const MarketingCampaignsTab = () => {
             </tbody>
           </table>
         </div>
+      </div>
+      <div style={{ fontSize: '10.5px', color: '#64748B', marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px', flexWrap: 'wrap', gap: '6px' }}>
+        <span>* <strong>Downloads:</strong> Total store conversions (may include reinstalls). <strong style={{ color: '#94A3B8' }}>unq</strong> denotes verified unique device attributions.</span>
+        <span>👥 <strong>Reach:</strong> Deduplicated audience based on distinct IP addresses and client devices.</span>
       </div>
 
         </>

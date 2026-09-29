@@ -117,50 +117,55 @@ async function syncGooglePlayBucket(db, bucketName = DEFAULT_BUCKET_ID) {
 
         for (const file of installFiles || []) {
           // Process overview files as primary source of daily metrics
-          if (!file.name.endsWith('_overview.csv') && !file.name.endsWith('.csv')) continue;
+          if (!file.name.endsWith('_overview.csv')) continue;
 
           try {
             const [buffer] = await file.download();
-            const { headers, rows } = parseUtf16LeCsv(buffer);
+            const { rows } = parseUtf16LeCsv(buffer);
 
-            const isOverview = file.name.endsWith('_overview.csv');
-            const dimType = isOverview ? 'overview' : 'detail';
-
-            for (const r of rows) {
+            const ops = rows.map(r => {
               const metricDate = r['Date'] || r['date'];
-              if (!metricDate) continue;
+              if (!metricDate) return null;
 
               const dailyUserInstalls = parseInt(r['Daily User Installs'] || '0', 10);
               const dailyUserUninstalls = parseInt(r['Daily User Uninstalls'] || '0', 10);
               const dailyDeviceInstalls = parseInt(r['Daily Device Installs'] || '0', 10);
               const dailyDeviceUninstalls = parseInt(r['Daily Device Uninstalls'] || '0', 10);
-              const installsOnActive = parseInt(r['Installs on Active Devices'] || '0', 10);
+              const installsOnActive = parseInt(r['Active Device Installs'] || r['Installs on Active Devices'] || '0', 10);
               const totalUserInstalls = parseInt(r['Total User Installs'] || '0', 10);
+              const installEvents = parseInt(r['Install events'] || '0', 10);
+              const uninstallEvents = parseInt(r['Uninstall events'] || '0', 10);
 
               const doc = {
                 app_code,
                 package_name,
                 metric_date: metricDate,
-                dimension_type: dimType,
+                dimension_type: 'overview',
                 daily_user_installs: dailyUserInstalls,
                 daily_user_uninstalls: dailyUserUninstalls,
                 daily_device_installs: dailyDeviceInstalls,
                 daily_device_uninstalls: dailyDeviceUninstalls,
                 installs_on_active_devices: installsOnActive,
                 total_user_installs: totalUserInstalls,
+                install_events: installEvents,
+                uninstall_events: uninstallEvents,
                 source_file: file.name,
                 source_bucket: bucketName,
                 synced_at: new Date()
               };
 
-              if (db) {
-                await db.collection('play_install_metrics').updateOne(
-                  { app_code, metric_date: metricDate, dimension_type: dimType },
-                  { $set: doc },
-                  { upsert: true }
-                );
-                syncSummary.rows_inserted++;
-              }
+              return {
+                updateOne: {
+                  filter: { app_code, metric_date: metricDate, dimension_type: 'overview' },
+                  update: { $set: doc },
+                  upsert: true
+                }
+              };
+            }).filter(Boolean);
+
+            if (db && ops.length > 0) {
+              await db.collection('play_install_metrics').bulkWrite(ops);
+              syncSummary.rows_inserted += ops.length;
             }
             syncSummary.files_processed++;
           } catch (fileErr) {
@@ -176,22 +181,26 @@ async function syncGooglePlayBucket(db, bucketName = DEFAULT_BUCKET_ID) {
       try {
         const [crashFiles] = await bucket.getFiles({ prefix: crashPrefix });
         for (const file of crashFiles || []) {
+          if (!file.name.endsWith('_overview.csv')) continue;
           try {
             const [buffer] = await file.download();
             const { rows } = parseUtf16LeCsv(buffer);
-            for (const r of rows) {
+            const ops = rows.map(r => {
               const metricDate = r['Date'] || r['date'];
-              if (!metricDate) continue;
+              if (!metricDate) return null;
               const crashes = parseInt(r['Daily Crashes'] || r['Crashes'] || '0', 10);
               const anrs = parseInt(r['Daily ANRs'] || r['ANRs'] || '0', 10);
+              return {
+                updateOne: {
+                  filter: { app_code, metric_date: metricDate },
+                  update: { $set: { app_code, package_name, metric_date: metricDate, crashes, anrs, synced_at: new Date() } },
+                  upsert: true
+                }
+              };
+            }).filter(Boolean);
 
-              if (db) {
-                await db.collection('play_crash_metrics').updateOne(
-                  { app_code, metric_date: metricDate },
-                  { $set: { app_code, package_name, metric_date: metricDate, crashes, anrs, synced_at: new Date() } },
-                  { upsert: true }
-                );
-              }
+            if (db && ops.length > 0) {
+              await db.collection('play_crash_metrics').bulkWrite(ops);
             }
           } catch (e) {}
         }
@@ -202,21 +211,26 @@ async function syncGooglePlayBucket(db, bucketName = DEFAULT_BUCKET_ID) {
       try {
         const [ratingFiles] = await bucket.getFiles({ prefix: ratingPrefix });
         for (const file of ratingFiles || []) {
+          if (!file.name.endsWith('_overview.csv')) continue;
           try {
             const [buffer] = await file.download();
             const { rows } = parseUtf16LeCsv(buffer);
-            for (const r of rows) {
+            const ops = rows.map(r => {
               const metricDate = r['Date'] || r['date'];
-              if (!metricDate) continue;
+              if (!metricDate) return null;
               const avgRating = parseFloat(r['Daily Average Rating'] || r['Total Average Rating'] || '0');
+              const totalAvgRating = parseFloat(r['Total Average Rating'] || '0');
+              return {
+                updateOne: {
+                  filter: { app_code, metric_date: metricDate },
+                  update: { $set: { app_code, package_name, metric_date: metricDate, avg_rating: avgRating, total_avg_rating: totalAvgRating, synced_at: new Date() } },
+                  upsert: true
+                }
+              };
+            }).filter(Boolean);
 
-              if (db) {
-                await db.collection('play_rating_metrics').updateOne(
-                  { app_code, metric_date: metricDate },
-                  { $set: { app_code, package_name, metric_date: metricDate, avg_rating: avgRating, synced_at: new Date() } },
-                  { upsert: true }
-                );
-              }
+            if (db && ops.length > 0) {
+              await db.collection('play_rating_metrics').bulkWrite(ops);
             }
           } catch (e) {}
         }
@@ -227,22 +241,41 @@ async function syncGooglePlayBucket(db, bucketName = DEFAULT_BUCKET_ID) {
       try {
         const [perfFiles] = await bucket.getFiles({ prefix: perfPrefix });
         for (const file of perfFiles || []) {
+          if (!file.name.endsWith('_traffic_source.csv') && !file.name.endsWith('_country.csv')) continue;
           try {
             const [buffer] = await file.download();
             const { rows } = parseUtf16LeCsv(buffer);
+            // Aggregate totals by date across sources/countries
+            const byDate = {};
             for (const r of rows) {
               const metricDate = r['Date'] || r['date'];
               if (!metricDate) continue;
               const visitors = parseInt(r['Store Listing Visitors'] || r['Visitors'] || '0', 10);
               const installers = parseInt(r['Installers'] || '0', 10);
+              if (!byDate[metricDate]) byDate[metricDate] = { visitors: 0, installers: 0 };
+              byDate[metricDate].visitors += visitors;
+              byDate[metricDate].installers += installers;
+            }
 
-              if (db) {
-                await db.collection('play_store_performance').updateOne(
-                  { app_code, metric_date: metricDate },
-                  { $set: { app_code, package_name, metric_date: metricDate, visitors, installers, synced_at: new Date() } },
-                  { upsert: true }
-                );
+            const ops = Object.keys(byDate).map(metricDate => ({
+              updateOne: {
+                filter: { app_code, metric_date: metricDate },
+                update: {
+                  $set: {
+                    app_code,
+                    package_name,
+                    metric_date: metricDate,
+                    visitors: byDate[metricDate].visitors,
+                    installers: byDate[metricDate].installers,
+                    synced_at: new Date()
+                  }
+                },
+                upsert: true
               }
+            }));
+
+            if (db && ops.length > 0) {
+              await db.collection('play_store_performance').bulkWrite(ops);
             }
           } catch (e) {}
         }

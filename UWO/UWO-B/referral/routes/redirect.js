@@ -126,19 +126,53 @@ async function handleReferralRouting(req, res) {
           try {
             const { getUnifiedDb } = require('../utils/marketingSync');
             const uDb = await getUnifiedDb();
+            const ipHash = crypto.createHash('sha256').update(ip || '127.0.0.1').digest('hex').slice(0, 16);
+            
+            // Check if this IP or IP hash has already visited this specific marketing link
+            const alreadyClicked = await uDb.collection('marketing_clicks').findOne({
+              slug: code,
+              $or: [{ client_ip: ip }, { ip_hash: ipHash }]
+            });
+            const isUnique = !alreadyClicked;
+
+            const incOps = { total_clicks: 1, clicks_count: 1 };
+            if (isUnique) {
+              incOps.unique_clicks = 1;
+            }
+
             await uDb.collection('marketing_links').updateOne(
               { _id: marketingDoc._id },
-              { $inc: { total_clicks: 1, unique_clicks: 1, clicks_count: 1 }, $set: { last_clicked_at: new Date() } }
+              { $inc: incOps, $set: { last_clicked_at: new Date() } }
             );
+
+            await uDb.collection('marketing_clicks').insertOne({
+              slug: code,
+              link_id: String(marketingDoc._id),
+              platform: marketingDoc.platform || 'other',
+              campaign_name: marketingDoc.campaign_name || 'Marketing Campaign',
+              post_name: marketingDoc.post_name || code,
+              timestamp: new Date(),
+              client_ip: ip || null,
+              ip_hash: ipHash,
+              device_type: deviceType,
+              target_url: targetUrl,
+              is_unique: isUnique,
+              user_agent: (userAgent || '').slice(0, 250),
+              referrer: (req.headers['referer'] || req.headers['referrer'] || '').slice(0, 200),
+            }).catch(() => {});
+
             await uDb.collection('marketing_events').insertOne({
               event_type: 'click',
               slug: code,
               device_type: deviceType,
               ip,
               target_url: targetUrl,
+              is_unique: isUnique,
               timestamp: new Date()
             }).catch(() => {});
-          } catch (e) {}
+          } catch (e) {
+            console.warn('[Redirect Marketing Click Error]:', e.message);
+          }
         })();
       }
 

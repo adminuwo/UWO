@@ -112,6 +112,9 @@ export const AppDownloadsTab = () => {
   const numTotal = numAndroid + numIos;
   const totalCombinedDownloads = isLoaded ? numTotal : '...';
   const formatNum = (val) => (typeof val === 'number' ? val.toLocaleString() : (val ?? '...'));
+  const numActiveAndroid = Number(combined.active_device_installs_latest) || 0;
+  const numActiveIos = Number(liveIosPings) || 0;
+  const currentActiveUsers = isLoaded ? (numActiveAndroid + numActiveIos) : '...';
 
 
   // Chart configs helper that combines Android & iOS in the same chart with legend toggles
@@ -348,6 +351,19 @@ export const AppDownloadsTab = () => {
           <div className="metric-sub" style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
             <span>🤖 Android: <strong>{formatNum(storeAndroidDownloads)}</strong> store downloads ({formatNum(liveAndroidPings)} live pings)</span>
             <span style={{ color: '#38bdf8' }}>🍏 iOS: <strong>{formatNum(storeIosDownloads)}</strong> store downloads ({formatNum(liveIosPings)} live pings)</span>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginTop: '4px',
+              paddingTop: '6px',
+              borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+              fontSize: '11px',
+              color: '#94a3b8'
+            }}>
+              <span>* May include reinstalls</span>
+              <span>Current Users: <strong style={{ color: '#10b981' }}>{formatNum(currentActiveUsers)}</strong></span>
+            </div>
           </div>
         </div>
 
@@ -365,12 +381,25 @@ export const AppDownloadsTab = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
               <span style={{ color: '#94a3b8' }}>Live Devices Online:</span>
               <strong style={{ color: '#10b981' }}>
-                ⚡ {analytics?.source?.realtime_active_devices !== undefined ? `${analytics.source.realtime_active_devices} live` : '0 live'}
+                ⚡ {combined?.realtime_active_devices !== undefined ? `${combined.realtime_active_devices} live` : (analytics?.source?.realtime_active_devices !== undefined ? `${analytics.source.realtime_active_devices} live` : '0 live')}
               </strong>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
               <span style={{ color: '#94a3b8' }}>Active Users / Reach:</span>
-              <strong style={{ color: '#f8fafc' }}>{formatNum(combined.active_device_installs_latest)}</strong>
+              <strong style={{ color: '#10b981' }}>{formatNum(combined.active_device_installs_latest)}</strong>
+            </div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginTop: '4px',
+              paddingTop: '6px',
+              borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+              fontSize: '11px',
+              color: '#94a3b8'
+            }}>
+              <span>* May include reinstalls</span>
+              <span>Current Users: <strong style={{ color: '#10b981' }}>{formatNum(combined.active_device_installs_latest)}</strong></span>
             </div>
           </div>
         </div>
@@ -414,12 +443,17 @@ export const AppDownloadsTab = () => {
           <div className="metric-card" style={{ padding: '18px', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <span style={{ fontSize: '13px', color: '#94a3b8', fontWeight: '600' }}>User Loss / Uninstalls</span>
+                <span style={{ fontSize: '13px', color: '#94a3b8', fontWeight: '600' }}>User Retention & Net Loss</span>
                 <div style={{ fontSize: '24px', fontWeight: '800', color: '#f8fafc', marginTop: '4px' }}>
-                  {combined.avg_daily_user_loss || 0} <span style={{ fontSize: '12px', fontWeight: '500', color: '#94a3b8' }}>Android avg</span>
+                  {combined.retention_rate != null ? `${combined.retention_rate}%` : (isLoaded ? '0.0%' : '...')} <span style={{ fontSize: '12px', fontWeight: '500', color: '#10b981' }}>Retained</span>
                 </div>
                 <div style={{ fontSize: '12px', color: '#38bdf8', marginTop: '2px', fontWeight: '600' }}>
-                  Total {combined.daily_user_uninstalls || 0} Android uninstalls • {combined.ios_redownloads || 0} iOS churn
+                  {formatNum(combined.net_lost_devices ?? (isLoaded ? 0 : '...'))} Net Lost Devices • {combined.avg_daily_user_loss || 0}/day avg
+                </div>
+                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                  {combined.net_lost_devices < (combined.total_uninstalls_raw || 0)
+                    ? `Filtered repeat same-device uninstalls (${formatNum(combined.total_uninstalls_raw ?? combined.uninstall_events ?? 0)} raw events)`
+                    : `Live recorded uninstall events (${formatNum(combined.total_uninstalls_raw ?? combined.uninstall_events ?? (isLoaded ? 0 : '...'))} events)`}
                 </div>
               </div>
               <div className="metric-icon" style={{ fontSize: '18px' }}>📉</div>
@@ -439,6 +473,18 @@ export const AppDownloadsTab = () => {
                 </div>
                 <div style={{ fontSize: '12px', color: '#34d399', marginTop: '2px', fontWeight: '600' }}>
                   🤖 {formatNum(numAndroid)} Firebase & Play Store • 🍏 {formatNum(numIos)} App Store
+                </div>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '11px',
+                  color: '#94a3b8',
+                  marginTop: '4px'
+                }}>
+                  <span>* May include reinstalls</span>
+                  <span>•</span>
+                  <span>Current Users: <strong style={{ color: '#10b981' }}>{formatNum(currentActiveUsers)}</strong></span>
                 </div>
               </div>
               <div className="metric-icon" style={{ fontSize: '18px' }}>📥</div>
@@ -504,7 +550,12 @@ export const AppDownloadsTab = () => {
                 <td style={{ fontWeight: '700', color: '#f8fafc' }}>{formatNum(numAndroid)}</td>
                 <td style={{ color: '#34d399', fontWeight: '600' }}>{formatNum(liveAndroidPings)} pings</td>
                 <td style={{ color: '#38bdf8', fontWeight: '600' }}>{formatNum(combined.active_device_installs_latest || 0)}</td>
-                <td style={{ color: '#f87171' }}>{formatNum(combined.uninstall_events || combined.daily_user_uninstalls || 0)}</td>
+                <td style={{ color: '#f87171' }}>
+                  <strong>{formatNum(combined.net_lost_devices ?? (isLoaded ? 0 : '...'))}</strong> net lost
+                  <div style={{ fontSize: '10px', color: '#64748b' }}>
+                    {formatNum(combined.daily_user_uninstalls ?? (isLoaded ? 0 : '...'))} raw events
+                  </div>
+                </td>
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ width: '100px', height: '6px', borderRadius: '3px', backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>

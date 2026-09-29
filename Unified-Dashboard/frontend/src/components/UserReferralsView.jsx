@@ -599,9 +599,11 @@ export const UserReferralsView = ({
                       {/* Referral Code & URL */}
                       <td style={{ padding: '12px 10px', minWidth: '240px' }}>
                         {(() => {
+                          const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+                          const base = isLocal ? 'http://localhost:8080/r/' : 'https://uwo24.com/r/';
                           const cleanUrl = l.code 
-                            ? `https://uwo24.com/r/${l.code}` 
-                            : ((l.fullUrl || '').replace(/^https?:\/\/[^\/]+\/r\//i, 'https://uwo24.com/r/'));
+                            ? `${base}${l.code}` 
+                            : ((l.fullUrl || '').replace(/^https?:\/\/[^\/]+\/r\//i, base));
                           return (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
