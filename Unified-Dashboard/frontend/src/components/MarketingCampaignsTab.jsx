@@ -1462,14 +1462,16 @@ export const MarketingCampaignsTab = () => {
                       {/* Downloads */}
                       <td style={{ padding: '8px 4px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '1px' }}>
+                          {/* Unique Downloads (Big above) */}
                           <span
+                            title={`Unique Device Installs: ${link.unique_installs !== undefined ? link.unique_installs : (link.total_downloads || 0)}`}
                             style={{
                               fontWeight: '800',
                               fontSize: '12px',
-                              color: (link.total_downloads || 0) > 0 ? '#A855F7' : '#64748B',
+                              color: ((link.unique_installs !== undefined ? link.unique_installs : link.total_downloads) || 0) > 0 ? '#A855F7' : '#64748B',
                             }}
                           >
-                            {link.total_downloads || 0}
+                            {link.unique_installs !== undefined ? link.unique_installs : (link.total_downloads || 0)}
                           </span>
                           <div style={{ display: 'flex', gap: '2px', fontSize: '8.5px', fontWeight: '800' }}>
                             <span
@@ -1495,9 +1497,10 @@ export const MarketingCampaignsTab = () => {
                               🍏{link.ios_downloads || 0}
                             </span>
                           </div>
+                          {/* Total Downloads (Small below) */}
                           {(link.total_downloads || 0) > 0 && (
                             <span
-                              title={`Unique Device Installs: ${link.unique_installs || link.total_downloads} (Total may include reinstalls)`}
+                              title={`Total Cumulative Installs: ${link.total_downloads || 0} (Includes reinstalls)`}
                               style={{
                                 fontSize: '7.5px',
                                 color: '#94A3B8',
@@ -1505,7 +1508,7 @@ export const MarketingCampaignsTab = () => {
                                 fontWeight: '700',
                               }}
                             >
-                              {link.unique_installs || link.total_downloads} unq
+                              {link.total_downloads || 0} total
                             </span>
                           )}
                         </div>
@@ -1633,7 +1636,7 @@ export const MarketingCampaignsTab = () => {
         </div>
       </div>
       <div style={{ fontSize: '10.5px', color: '#64748B', marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px', flexWrap: 'wrap', gap: '6px' }}>
-        <span>* <strong>Downloads:</strong> Total store conversions (may include reinstalls). <strong style={{ color: '#94A3B8' }}>unq</strong> denotes verified unique device attributions.</span>
+        <span>* <strong>Downloads:</strong> Primary number denotes verified unique device installs. <strong style={{ color: '#94A3B8' }}>total</strong> denotes cumulative store downloads (including reinstalls).</span>
         <span>👥 <strong>Reach:</strong> Deduplicated audience based on distinct IP addresses and client devices.</span>
       </div>
 

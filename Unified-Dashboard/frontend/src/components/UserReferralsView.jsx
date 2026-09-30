@@ -721,18 +721,26 @@ export const UserReferralsView = ({
 
                       {/* Downloads */}
                       <td style={{ padding: '12px 10px', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                        <span
-                          style={{
-                            fontWeight: '900',
-                            fontSize: '14px',
-                            color: l.downloads > 0 ? '#10B981' : '#64748B',
-                            background: l.downloads > 0 ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
-                            padding: '3px 8px',
-                            borderRadius: '6px',
-                          }}
-                        >
-                          {l.downloads}
-                        </span>
+                        <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                          <span
+                            title={`Unique Downloads: ${l.unique_downloads !== undefined ? l.unique_downloads : (l.uniqueDownloads !== undefined ? l.uniqueDownloads : l.downloads)}`}
+                            style={{
+                              fontWeight: '900',
+                              fontSize: '14px',
+                              color: (l.unique_downloads || l.uniqueDownloads || l.downloads) > 0 ? '#10B981' : '#64748B',
+                              background: (l.unique_downloads || l.uniqueDownloads || l.downloads) > 0 ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                            }}
+                          >
+                            {l.unique_downloads !== undefined ? l.unique_downloads : (l.uniqueDownloads !== undefined ? l.uniqueDownloads : l.downloads)}
+                          </span>
+                          {(l.downloads || 0) > 0 && (l.unique_downloads !== undefined || l.uniqueDownloads !== undefined) && (
+                            <span style={{ fontSize: '9px', color: '#94A3B8', fontWeight: '700' }}>
+                              {l.downloads} total
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Created At */}
