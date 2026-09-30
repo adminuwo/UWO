@@ -3,7 +3,7 @@ const router = express.Router();
 const crypto = require('crypto');
 const { getUnifiedDb } = require('./db');
 
-const SHORT_LINK_BASE_URL = process.env.SHORT_LINK_BASE_URL || 'https://admin.uwo24.com';
+const SHORT_LINK_BASE_URL = process.env.SHORT_LINK_BASE_URL || 'https://uwo24.com';
 const AI_LEGAL_SHORT_LINK_BASE_URL = process.env.AI_LEGAL_SHORT_LINK_BASE_URL || 'https://ailegal.aisa24.com';
 const AISA_SHORT_LINK_BASE_URL = process.env.AISA_SHORT_LINK_BASE_URL || 'https://aisa24.com';
 
