@@ -17,8 +17,14 @@ if (!process.env.K_SERVICE && process.env.NODE_ENV !== 'test') {
 let unifiedClient = null;
 
 async function getUnifiedDb() {
-  const uri = process.env.UNIFIED_MONGODB_URI || 'mongodb+srv://admin_db_user:uSYUbw06q4coR6Nv@unified-dashboard.wisisoq.mongodb.net/?appName=Unified-Dashboard';
-  const dbName = process.env.UNIFIED_MONGODB_DB_NAME || 'unified_service_db';
+  try {
+    const { getUnifiedDb: getSharedDb } = require('../../unified_routes/db');
+    const sharedDb = await getSharedDb();
+    if (sharedDb) return sharedDb;
+  } catch (e) {}
+
+  const uri = process.env.UNIFIED_MONGODB_URI || process.env.MONGODB_URL || 'mongodb+srv://admin_db_user:uSYUbw06q4coR6Nv@unified-dashboard.wisisoq.mongodb.net/?appName=Unified-Dashboard';
+  const dbName = process.env.UNIFIED_MONGODB_DB_NAME || process.env.MONGODB_DB_NAME || 'unified_service_db';
 
   if (!unifiedClient) {
     unifiedClient = new MongoClient(uri, {

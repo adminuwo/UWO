@@ -56,7 +56,12 @@ async function handleReferralRouting(req, res) {
 
     if (!link || !link.product) {
       try {
-        const { getUnifiedDb } = require('../utils/marketingSync');
+        let getUnifiedDb;
+        try {
+          getUnifiedDb = require('../../unified_routes/db').getUnifiedDb;
+        } catch (e) {
+          getUnifiedDb = require('../utils/marketingSync').getUnifiedDb;
+        }
         const uDb = await getUnifiedDb();
         marketingDoc = await uDb.collection('marketing_links').findOne({
           $or: [
@@ -124,7 +129,12 @@ async function handleReferralRouting(req, res) {
       if (!isDryRun) {
         (async () => {
           try {
-            const { getUnifiedDb } = require('../utils/marketingSync');
+            let getUnifiedDb;
+            try {
+              getUnifiedDb = require('../../unified_routes/db').getUnifiedDb;
+            } catch (e) {
+              getUnifiedDb = require('../utils/marketingSync').getUnifiedDb;
+            }
             const uDb = await getUnifiedDb();
             const ipHash = crypto.createHash('sha256').update(ip || '127.0.0.1').digest('hex').slice(0, 16);
             
