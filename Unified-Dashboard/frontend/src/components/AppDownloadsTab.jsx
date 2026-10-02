@@ -124,31 +124,6 @@ export const AppDownloadsTab = () => {
   const totalTodayAndroid = isLoaded ? (aiLegalTodayAndroid + aisaTodayAndroid) : '...';
   const totalTodayIos = isLoaded ? (aiLegalTodayIos + aisaTodayIos) : '...';
 
-  // Live test download ping simulator for QA / instant verification
-  const [simulatingApp, setSimulatingApp] = useState(null);
-  const [showSimulateMenu, setShowSimulateMenu] = useState(false);
-
-  const handleSimulateDownload = async (appCode, platform = 'android') => {
-    setSimulatingApp(`${appCode}_${platform}`);
-    try {
-      await authFetch('/api/telemetry/download', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          app_code: appCode,
-          platform: platform,
-          version: '1.0.0',
-          ip_country: 'IN'
-        })
-      });
-      await fetchAnalytics(true);
-    } catch (err) {
-      console.warn('Simulation download error:', err);
-    } finally {
-      setSimulatingApp(null);
-      setShowSimulateMenu(false);
-    }
-  };
 
   const storeAndroidDownloads = isLoaded ? (combined.android_store_downloads ?? 0) : '...';
   const liveAndroidPings = isLoaded ? (combined.android_live_installs ?? 0) : '...';
@@ -297,80 +272,7 @@ export const AppDownloadsTab = () => {
           <span style={{ fontSize: '11px', color: '#64748b' }}>
             Auto-refresh in <strong style={{ color: '#94a3b8' }}>{Math.floor(autoRefreshCountdown / 60)}:{String(autoRefreshCountdown % 60).padStart(2, '0')}</strong>
           </span>
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => setShowSimulateMenu(!showSimulateMenu)}
-              disabled={loading || !!simulatingApp}
-              title="Simulate / Record a live test download event"
-              style={{
-                background: 'rgba(59, 130, 246, 0.15)',
-                color: '#60a5fa',
-                border: '1px solid rgba(59, 130, 246, 0.35)',
-                borderRadius: '6px',
-                padding: '4px 10px',
-                fontSize: '11px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px'
-              }}
-            >
-              <span>⚡</span> {simulatingApp ? 'Logging...' : '+ Record Test Ping'}
-            </button>
 
-            {showSimulateMenu && (
-              <div style={{
-                position: 'absolute',
-                top: '100%',
-                right: 0,
-                marginTop: '6px',
-                background: '#0f172a',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                borderRadius: '8px',
-                padding: '6px',
-                zIndex: 50,
-                minWidth: '190px',
-                boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
-              }}>
-                <div style={{ fontSize: '10px', color: '#64748b', padding: '4px 8px', textTransform: 'uppercase', fontWeight: '700' }}>
-                  Simulate Today's Download:
-                </div>
-                <button
-                  onClick={() => handleSimulateDownload('ailegal', 'android')}
-                  style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 'none', color: '#34d399', padding: '6px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
-                  onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.06)'}
-                  onMouseLeave={(e) => e.target.style.background = 'transparent'}
-                >
-                  ⚖️ +1 AI Legal (Android)
-                </button>
-                <button
-                  onClick={() => handleSimulateDownload('ailegal', 'ios')}
-                  style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 'none', color: '#38bdf8', padding: '6px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
-                  onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.06)'}
-                  onMouseLeave={(e) => e.target.style.background = 'transparent'}
-                >
-                  ⚖️ +1 AI Legal (iOS)
-                </button>
-                <button
-                  onClick={() => handleSimulateDownload('aisa', 'android')}
-                  style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 'none', color: '#c084fc', padding: '6px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
-                  onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.06)'}
-                  onMouseLeave={(e) => e.target.style.background = 'transparent'}
-                >
-                  🤖 +1 AISA (Android)
-                </button>
-                <button
-                  onClick={() => handleSimulateDownload('aisa', 'ios')}
-                  style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 'none', color: '#38bdf8', padding: '6px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
-                  onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.06)'}
-                  onMouseLeave={(e) => e.target.style.background = 'transparent'}
-                >
-                  🤖 +1 AISA (iOS)
-                </button>
-              </div>
-            )}
-          </div>
 
           <button
             onClick={handleManualSyncAndRefresh}
