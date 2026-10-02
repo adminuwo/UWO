@@ -28,26 +28,38 @@ let storageClient = null;
 function getStorageClient() {
   if (storageClient) return storageClient;
 
-  // 1. From Base64 environment variable
-  if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
-    try {
-      const decoded = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64.trim(), 'base64').toString('utf8');
-      const creds = JSON.parse(decoded);
-      storageClient = new Storage({ credentials: creds });
-      return storageClient;
-    } catch (err) {
-      console.warn('[GooglePlaySync] Could not initialize Storage with FIREBASE_SERVICE_ACCOUNT_BASE64:', err.message);
-    }
-  }
+  // 1. From Environment Variables (Base64, raw JSON, or string)
+  const envCandidates = [
+    process.env.FIREBASE_SERVICE_ACCOUNT_BASE64,
+    process.env.FIREBASE_SERVICE_ACCOUNT_JSON,
+    process.env.FIREBASE_SERVICE_ACCOUNT_RAW,
+    process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON
+  ];
 
-  // 2. From raw JSON string environment variable
-  if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+  for (const cand of envCandidates) {
+    if (!cand) continue;
+    const trimmed = cand.trim();
+    if (!trimmed) continue;
+
+    if (trimmed.startsWith('{')) {
+      try {
+        const creds = JSON.parse(trimmed);
+        storageClient = new Storage({ credentials: creds });
+        return storageClient;
+      } catch (err) {
+        console.warn('[GooglePlaySync] Could not initialize Storage with raw JSON:', err.message);
+      }
+    }
+
     try {
-      const creds = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
-      storageClient = new Storage({ credentials: creds });
-      return storageClient;
+      const decoded = Buffer.from(trimmed, 'base64').toString('utf8');
+      if (decoded.trim().startsWith('{')) {
+        const creds = JSON.parse(decoded);
+        storageClient = new Storage({ credentials: creds });
+        return storageClient;
+      }
     } catch (err) {
-      console.warn('[GooglePlaySync] Could not initialize Storage with FIREBASE_SERVICE_ACCOUNT_JSON:', err.message);
+      console.warn('[GooglePlaySync] Could not initialize Storage with base64:', err.message);
     }
   }
 

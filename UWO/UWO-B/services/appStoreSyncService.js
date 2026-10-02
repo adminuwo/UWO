@@ -29,10 +29,16 @@ function getAppStoreCredentials() {
 
   let privateKey = process.env.APP_STORE_CONNECT_PRIVATE_KEY || null;
   if (!privateKey && process.env.APP_STORE_CONNECT_PRIVATE_KEY_BASE64) {
-    try {
-      privateKey = Buffer.from(process.env.APP_STORE_CONNECT_PRIVATE_KEY_BASE64.trim(), 'base64').toString('utf8');
-    } catch (e) {
-      console.warn('[AppStoreSync] Could not decode APP_STORE_CONNECT_PRIVATE_KEY_BASE64:', e.message);
+    const rawVal = process.env.APP_STORE_CONNECT_PRIVATE_KEY_BASE64.trim();
+    if (rawVal.includes('BEGIN PRIVATE KEY') || rawVal.includes('BEGIN EC PRIVATE KEY')) {
+      privateKey = rawVal;
+    } else {
+      try {
+        const decoded = Buffer.from(rawVal, 'base64').toString('utf8');
+        privateKey = decoded;
+      } catch (e) {
+        console.warn('[AppStoreSync] Could not decode APP_STORE_CONNECT_PRIVATE_KEY_BASE64:', e.message);
+      }
     }
   }
 

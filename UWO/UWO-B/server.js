@@ -96,10 +96,22 @@ app.get('/api/debug/fastapi', (req, res) => {
 });
 
 app.get('/api/debug/version', (req, res) => {
+    let firebaseCredsParsed = false;
+    let firebaseEmail = null;
+    try {
+        const firebaseService = require('./services/firebaseAnalyticsService');
+        const client = firebaseService.getClient();
+        firebaseCredsParsed = Boolean(client);
+    } catch (e) {
+        firebaseCredsParsed = false;
+    }
+
     res.json({
-        version: 'telemetry-env-v1',
+        version: 'telemetry-env-v2-auto-parse',
         hasFirebaseBase64: Boolean(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64),
         firebaseBase64Length: process.env.FIREBASE_SERVICE_ACCOUNT_BASE64 ? process.env.FIREBASE_SERVICE_ACCOUNT_BASE64.length : 0,
+        firebaseStartsAsJson: Boolean(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64 && process.env.FIREBASE_SERVICE_ACCOUNT_BASE64.trim().startsWith('{')),
+        firebaseCredsParsed,
         hasFirebaseJson: Boolean(process.env.FIREBASE_SERVICE_ACCOUNT_JSON),
         hasAppStoreBase64: Boolean(process.env.APP_STORE_CONNECT_PRIVATE_KEY_BASE64),
         nodeEnv: process.env.NODE_ENV,

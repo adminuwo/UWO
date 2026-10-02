@@ -19,22 +19,34 @@ const STREAM_REGISTRY = {
 };
 
 function getCredentials() {
-  // 1. From Base64 environment variable (ideal for Cloud Run / production without volume mounts)
-  if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
-    try {
-      const decoded = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64.trim(), 'base64').toString('utf8');
-      return JSON.parse(decoded);
-    } catch (e) {
-      console.warn('[FirebaseAnalytics] Failed to parse FIREBASE_SERVICE_ACCOUNT_BASE64:', e.message);
-    }
-  }
+  const candidates = [
+    process.env.FIREBASE_SERVICE_ACCOUNT_BASE64,
+    process.env.FIREBASE_SERVICE_ACCOUNT_JSON,
+    process.env.FIREBASE_SERVICE_ACCOUNT_RAW
+  ];
 
-  // 2. From raw JSON string environment variable
-  if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+  for (const cand of candidates) {
+    if (!cand) continue;
+    const trimmed = cand.trim();
+    if (!trimmed) continue;
+
+    // Check if raw JSON directly pasted
+    if (trimmed.startsWith('{')) {
+      try {
+        return JSON.parse(trimmed);
+      } catch (e) {
+        console.warn('[FirebaseAnalytics] Failed to parse raw JSON credentials:', e.message);
+      }
+    }
+
+    // Try decoding as base64
     try {
-      return JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+      const decoded = Buffer.from(trimmed, 'base64').toString('utf8');
+      if (decoded.trim().startsWith('{')) {
+        return JSON.parse(decoded);
+      }
     } catch (e) {
-      console.warn('[FirebaseAnalytics] Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON:', e.message);
+      console.warn('[FirebaseAnalytics] Failed to decode base64 credentials:', e.message);
     }
   }
 
