@@ -95,6 +95,19 @@ app.get('/api/debug/fastapi', (req, res) => {
     });
 });
 
+app.get('/api/debug/version', (req, res) => {
+    res.json({
+        version: 'telemetry-env-v1',
+        hasFirebaseBase64: Boolean(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64),
+        firebaseBase64Length: process.env.FIREBASE_SERVICE_ACCOUNT_BASE64 ? process.env.FIREBASE_SERVICE_ACCOUNT_BASE64.length : 0,
+        hasFirebaseJson: Boolean(process.env.FIREBASE_SERVICE_ACCOUNT_JSON),
+        hasAppStoreBase64: Boolean(process.env.APP_STORE_CONNECT_PRIVATE_KEY_BASE64),
+        nodeEnv: process.env.NODE_ENV,
+        kService: process.env.K_SERVICE || 'local',
+        kRevision: process.env.K_REVISION || 'local'
+    });
+});
+
 // Affiliate Module Router Mount with live reloading
 app.use('/api/affiliate', (req, res, next) => {
     try { delete require.cache[require.resolve('./affiliate/routes')]; } catch (e) { }
