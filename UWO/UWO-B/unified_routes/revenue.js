@@ -3,9 +3,12 @@ const router = express.Router();
 const crypto = require('crypto');
 const { getUnifiedDb } = require('./db');
 const { runRevenueSync, startRevenueAutoSync, getRevenueSyncStatus } = require('./revenueSyncService');
+const { subscriptionRepository } = require('./SubscriptionRepository');
+const { subscriptionSyncService } = require('./SubscriptionSyncService');
 
-// Launch Automated Background Sync Worker (Runs automatically every 5 minutes)
+// Launch Automated Background Sync Workers (Runs automatically every 5 minutes)
 startRevenueAutoSync(5);
+subscriptionSyncService.startAutoSync(5);
 
 function round2(val) {
   return Math.round((Number(val) || 0) * 100) / 100;
@@ -706,6 +709,150 @@ router.post('/record-manual', async (req, res) => {
   } catch (err) {
     console.error('[RecordManualRevenue] Error:', err);
     return res.status(500).json({ detail: err.message });
+  }
+});
+
+// ==============================================================================
+// SUBSCRIPTION SUBSYSTEM ENDPOINTS (Unified Subscriptions Intelligence)
+// Accessible at:
+//   - GET  /api/admin/revenue/subscriptions/active
+//   - GET  /api/admin/revenue/subscriptions/metrics
+//   - POST /api/admin/revenue/subscriptions/sync
+//   - GET  /api/admin/revenue/subscriptions/sync-status
+//   - GET  /api/admin/revenue/subscriptions/products
+//   - GET  /api/admin/revenue/subscriptions/:id
+//   - POST /api/admin/revenue/subscriptions/webhook/apple
+//   - POST /api/admin/revenue/subscriptions/webhook/razorpay
+//   - POST /api/admin/revenue/subscriptions/verify-razorpay
+// ==============================================================================
+
+// GET /api/admin/revenue/subscriptions/active
+router.get('/subscriptions/active', async (req, res) => {
+  try {
+    const result = await subscriptionRepository.findSubscriptions(req.query);
+    const productSummaries = await subscriptionRepository.getProductSummaries();
+    return res.json({
+      success: true,
+      product_summaries: productSummaries,
+      ...result
+    });
+  } catch (err) {
+    console.error('[SubscriptionsActive] Error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/admin/revenue/subscriptions/metrics
+router.get('/subscriptions/metrics', async (req, res) => {
+  try {
+    const metrics = await subscriptionRepository.getMetrics(req.query);
+    return res.json({
+      success: true,
+      metrics
+    });
+  } catch (err) {
+    console.error('[SubscriptionsMetrics] Error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/admin/revenue/subscriptions/sync
+router.post('/subscriptions/sync', async (req, res) => {
+  try {
+    const result = await subscriptionSyncService.runSync();
+    if (!result.success && result.skipped) {
+      return res.json({
+        success: true,
+        message: 'Subscription sync is already actively executing in background.',
+        ...subscriptionSyncService.getStatus()
+      });
+    }
+    if (!result.success) {
+      return res.status(500).json({ success: false, error: result.error });
+    }
+    return res.json({
+      success: true,
+      message: `Subscription sync complete! Processed ${result.processed} records. Total Active Subscriptions: ${result.total_active_subscriptions}/${result.total_subscriptions}.`,
+      ...result
+    });
+  } catch (err) {
+    console.error('[SubscriptionsSync] Error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/admin/revenue/subscriptions/sync-status
+router.get('/subscriptions/sync-status', (req, res) => {
+  try {
+    return res.json({ success: true, ...subscriptionSyncService.getStatus() });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/admin/revenue/subscriptions/products
+router.get('/subscriptions/products', async (req, res) => {
+  try {
+    const summaries = await subscriptionRepository.getProductSummaries();
+    return res.json({ success: true, products: summaries });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/admin/revenue/subscriptions/:id
+router.get('/subscriptions/:id', async (req, res) => {
+  try {
+    const db = await getUnifiedDb();
+    const id = req.params.id;
+    let sub = await db.collection('subscriptions').findOne({
+      $or: [
+        { _id: id },
+        { subscription_id: id },
+        { transaction_id: id }
+      ]
+    });
+    if (!sub) {
+      return res.status(404).json({ success: false, error: 'Subscription not found.' });
+    }
+    const enriched = subscriptionRepository.computeDynamicStatus(sub);
+    return res.json({ success: true, subscription: enriched });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/admin/revenue/subscriptions/webhook/apple
+router.post('/subscriptions/webhook/apple', async (req, res) => {
+  try {
+    const result = await subscriptionSyncService.handleAppleWebhook(req.body);
+    return res.json(result);
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/admin/revenue/subscriptions/webhook/razorpay
+router.post('/subscriptions/webhook/razorpay', async (req, res) => {
+  try {
+    const sig = req.headers['x-razorpay-signature'];
+    const result = await subscriptionSyncService.handleRazorpayWebhook(req.body, sig);
+    return res.json(result);
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/admin/revenue/subscriptions/verify-razorpay
+router.post('/subscriptions/verify-razorpay', async (req, res) => {
+  try {
+    const result = await subscriptionSyncService.handleRazorpayWebhook({
+      event: 'payment.captured',
+      payload: { payment: { entity: req.body } }
+    });
+    return res.json(result);
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
   }
 });
 

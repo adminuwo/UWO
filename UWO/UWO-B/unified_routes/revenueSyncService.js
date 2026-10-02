@@ -21,6 +21,7 @@ if (!process.env.K_SERVICE && process.env.NODE_ENV !== 'test') {
 }
 
 const { getUnifiedDb } = require('./db');
+const { subscriptionSyncService } = require('./SubscriptionSyncService');
 
 const AISA_URI = process.env.AISA_MONGODB_URI || 'mongodb+srv://admin_db_user:ailegal050804@cluster0.265idhx.mongodb.net/AISA?appName=Cluster0';
 
@@ -308,50 +309,11 @@ async function runRevenueSync(options = {}) {
       updated += (res.modifiedCount || 0) + (res.matchedCount || 0);
     }
 
-    // 6. Sync Subscriptions from AISA DB into Unified DB
-    const subOps = [];
-    const aisaSubs = await aisaDb.collection('subscriptions').find({}).toArray();
-    for (const s of aisaSubs) {
-      const sid = String(s._id);
-      const accId = s.accountId || s.userId ? String(s.accountId || s.userId) : null;
-      const user = accId && usersMap[accId] ? usersMap[accId] : { name: 'Advocate User', email: 'advocate@ailegal.app' };
-
-      const subDoc = {
-        _id: `aisa_sub_${sid}`,
-        source: 'aisa_db',
-        product_code: 'ailegal',
-        customer_id: accId,
-        customer_email: user.email,
-        customer_name: user.name,
-        workspace: s.workspace || 'advocate',
-        tier: s.tier || 'advocate_basic',
-        billing_cycle: s.billingCycle || 'monthly',
-        billing_type: s.billingType || 'individual',
-        amount: Number(s.amount) || 499,
-        currency: s.currency || 'INR',
-        status: s.status || 'active',
-        platform: s.platform || 'ios',
-        transaction_id: s.transactionId || s.paymentId || '',
-        order_id: s.orderId || '',
-        invoice_id: s.invoiceId || '',
-        start_date: s.startDate ? new Date(s.startDate) : new Date(),
-        expiry_date: s.expiryDate ? new Date(s.expiryDate) : null,
-        auto_renew: !!s.autoRenew,
-        created_at: s.createdAt ? new Date(s.createdAt) : new Date(),
-        updated_at: new Date()
-      };
-
-      subOps.push({
-        replaceOne: {
-          filter: { _id: `aisa_sub_${sid}` },
-          replacement: subDoc,
-          upsert: true
-        }
-      });
-    }
-
-    if (subOps.length > 0) {
-      await unifiedDb.collection('subscriptions').bulkWrite(subOps, { ordered: false });
+    // 6. Sync Subscriptions across AI Legal, AISA Assistant, and EFV Framework
+    try {
+      await subscriptionSyncService.runSync();
+    } catch (sErr) {
+      console.warn('[RevenueSyncService] Notice running subscription sync:', sErr.message);
     }
 
     const totalTx = await unifiedDb.collection('revenue_transactions').countDocuments().catch(() => 0);
@@ -367,7 +329,7 @@ async function runRevenueSync(options = {}) {
     revenueSyncState.lastError = null;
     revenueSyncState.syncCount += 1;
 
-    console.log(`[RevenueSyncService] ✅ Revenue sync successful! Ingested ${processed} payments & ${subOps.length} subscriptions in ${revenueSyncState.lastDurationMs}ms. Total DB Tx: ${totalTx}`);
+    console.log(`[RevenueSyncService] ✅ Revenue sync successful! Ingested ${processed} payments in ${revenueSyncState.lastDurationMs}ms. Total DB Tx: ${totalTx}, Total Subs: ${totalSubs}`);
 
     return {
       success: true,

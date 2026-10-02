@@ -1,6 +1,14 @@
 const dotenv = require('dotenv');
 dotenv.config();
 
+// Global resilience handlers for async background sync workers
+process.on('uncaughtException', (err) => {
+    console.error('🚨 [Process] Uncaught Exception:', err?.message || err);
+});
+process.on('unhandledRejection', (reason) => {
+    console.warn('⚠️ [Process] Unhandled Rejection:', reason?.message || reason);
+});
+
 const express = require('express');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
