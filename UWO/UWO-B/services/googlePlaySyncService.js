@@ -28,6 +28,30 @@ let storageClient = null;
 function getStorageClient() {
   if (storageClient) return storageClient;
 
+  // 1. From Base64 environment variable
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
+    try {
+      const decoded = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64.trim(), 'base64').toString('utf8');
+      const creds = JSON.parse(decoded);
+      storageClient = new Storage({ credentials: creds });
+      return storageClient;
+    } catch (err) {
+      console.warn('[GooglePlaySync] Could not initialize Storage with FIREBASE_SERVICE_ACCOUNT_BASE64:', err.message);
+    }
+  }
+
+  // 2. From raw JSON string environment variable
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+    try {
+      const creds = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+      storageClient = new Storage({ credentials: creds });
+      return storageClient;
+    } catch (err) {
+      console.warn('[GooglePlaySync] Could not initialize Storage with FIREBASE_SERVICE_ACCOUNT_JSON:', err.message);
+    }
+  }
+
+  // 3. From physical file
   const keyPathRel = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || process.env.GOOGLE_APPLICATION_CREDENTIALS || 'keys/firebase-service-account.json';
   const resolvedPath = path.isAbsolute(keyPathRel) ? keyPathRel : path.resolve(__dirname, '..', keyPathRel);
 

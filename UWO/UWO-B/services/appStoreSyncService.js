@@ -27,8 +27,16 @@ function getAppStoreCredentials() {
   const keyPathRel = process.env.APP_STORE_CONNECT_PRIVATE_KEY_PATH || `keys/AuthKey_${keyId}.p8`;
   const resolvedKeyPath = path.isAbsolute(keyPathRel) ? keyPathRel : path.resolve(__dirname, '..', keyPathRel);
 
-  let privateKey = null;
-  if (fs.existsSync(resolvedKeyPath)) {
+  let privateKey = process.env.APP_STORE_CONNECT_PRIVATE_KEY || null;
+  if (!privateKey && process.env.APP_STORE_CONNECT_PRIVATE_KEY_BASE64) {
+    try {
+      privateKey = Buffer.from(process.env.APP_STORE_CONNECT_PRIVATE_KEY_BASE64.trim(), 'base64').toString('utf8');
+    } catch (e) {
+      console.warn('[AppStoreSync] Could not decode APP_STORE_CONNECT_PRIVATE_KEY_BASE64:', e.message);
+    }
+  }
+
+  if (!privateKey && fs.existsSync(resolvedKeyPath)) {
     try {
       privateKey = fs.readFileSync(resolvedKeyPath, 'utf8');
     } catch (e) {

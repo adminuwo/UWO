@@ -18,22 +18,60 @@ const STREAM_REGISTRY = {
   '15248694028': { app: 'aisa', platform: 'web', name: 'AISA Connect Web' }
 };
 
-function getClient() {
-  if (clientInstance) return clientInstance;
+function getCredentials() {
+  // 1. From Base64 environment variable (ideal for Cloud Run / production without volume mounts)
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
+    try {
+      const decoded = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64.trim(), 'base64').toString('utf8');
+      return JSON.parse(decoded);
+    } catch (e) {
+      console.warn('[FirebaseAnalytics] Failed to parse FIREBASE_SERVICE_ACCOUNT_BASE64:', e.message);
+    }
+  }
 
+  // 2. From raw JSON string environment variable
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+    try {
+      return JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+    } catch (e) {
+      console.warn('[FirebaseAnalytics] Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON:', e.message);
+    }
+  }
+
+  // 3. From physical file on disk (for local development or mounted volumes)
   const keyPathRel = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || process.env.GA4_CREDENTIALS_PATH || 'keys/firebase-service-account.json';
   const resolvedPath = path.isAbsolute(keyPathRel) ? keyPathRel : path.resolve(__dirname, '..', keyPathRel);
 
-  if (!fs.existsSync(resolvedPath)) {
-    console.warn(`[FirebaseAnalytics] Service account key not found at ${resolvedPath}`);
-    return null;
+  if (fs.existsSync(resolvedPath)) {
+    try {
+      return JSON.parse(fs.readFileSync(resolvedPath, 'utf8'));
+    } catch (e) {
+      console.warn(`[FirebaseAnalytics] Failed to read key file at ${resolvedPath}:`, e.message);
+    }
   }
 
+  return null;
+}
+
+function getClient() {
+  if (clientInstance) return clientInstance;
+
+  const credentials = getCredentials();
+  if (credentials) {
+    try {
+      clientInstance = new BetaAnalyticsDataClient({ credentials });
+      return clientInstance;
+    } catch (err) {
+      console.error('[FirebaseAnalytics] Failed to initialize BetaAnalyticsDataClient with credentials:', err.message);
+    }
+  }
+
+  // Fallback to default Application Default Credentials (ADC) if Cloud Run SA has GA4 access
   try {
-    clientInstance = new BetaAnalyticsDataClient({ keyFilename: resolvedPath });
+    clientInstance = new BetaAnalyticsDataClient();
     return clientInstance;
   } catch (err) {
-    console.error('[FirebaseAnalytics] Failed to initialize BetaAnalyticsDataClient:', err.message);
+    console.warn('[FirebaseAnalytics] Failed to initialize BetaAnalyticsDataClient with ADC:', err.message);
     return null;
   }
 }
