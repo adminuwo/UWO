@@ -14,5 +14,11 @@ export MONGO_URI="${MONGO_URI:-mongodb+srv://uwo_admin:uwo%4012345@cluster0.selr
 export UNIFIED_MONGODB_URI="${UNIFIED_MONGODB_URI:-mongodb+srv://admin_db_user:uSYUbw06q4coR6Nv@unified-dashboard.wisisoq.mongodb.net/?appName=Unified-Dashboard}"
 export UNIFIED_MONGODB_DB_NAME="${UNIFIED_MONGODB_DB_NAME:-unified_service_db}"
 
+# Automatically link any keys mounted in subdirectories into /usr/src/app/keys/
+mkdir -p /usr/src/app/keys
+for f in /usr/src/app/keys/*/*; do
+  [ -f "$f" ] && ln -sf "$f" "/usr/src/app/keys/$(basename "$f")" 2>/dev/null || true
+done
+
 echo "🚀 Launching Node.js Express Gateway & Core Unified Server on port ${PORT}..."
 exec node server.js

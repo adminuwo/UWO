@@ -23,6 +23,6 @@ echo.
 echo ===================================================
 echo  Service 1 (Pure Node.js Unified Core):  http://localhost:8080
 echo  UWO Main Website (Dev Server):          http://localhost:3000
-echo  Service 2 (User Dashboard Portal):      http://localhost:5173
+echo  Service 2 (User Dashboard Portal):      http://localhost:5173/user/
 echo  Service 3 (Unified Dashboard UI):       http://localhost:5174
 echo ===================================================
