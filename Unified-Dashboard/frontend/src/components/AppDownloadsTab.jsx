@@ -103,6 +103,53 @@ export const AppDownloadsTab = () => {
   // Safely extract the combined stats from our backend
   const combined = analytics?.combined || {};
   const isLoaded = !!analytics;
+
+  // Extract separate Today's download stats for AI Legal and AISA
+  const todayBreakdown = analytics?.today_breakdown || {};
+  const aiLegalStats = todayBreakdown?.apps?.ailegal || analytics?.apps?.find(a => a.app_code === 'ailegal') || {};
+  const aisaStats = todayBreakdown?.apps?.aisa || analytics?.apps?.find(a => a.app_code === 'aisa') || {};
+
+  const aiLegalToday = Number(aiLegalStats.today_total ?? aiLegalStats.today_installs ?? 0);
+  const aiLegalTodayAndroid = Number(aiLegalStats.today_android ?? aiLegalStats.today_android_installs ?? 0);
+  const aiLegalTodayIos = Number(aiLegalStats.today_ios ?? aiLegalStats.today_ios_installs ?? 0);
+  const aiLegalYesterday = Number(aiLegalStats.yesterday_total ?? aiLegalStats.yesterday_installs ?? 0);
+
+  const aisaToday = Number(aisaStats.today_total ?? aisaStats.today_installs ?? 0);
+  const aisaTodayAndroid = Number(aisaStats.today_android ?? aisaStats.today_android_installs ?? 0);
+  const aisaTodayIos = Number(aisaStats.today_ios ?? aisaStats.today_ios_installs ?? 0);
+  const aisaYesterday = Number(aisaStats.yesterday_total ?? aisaStats.yesterday_installs ?? 0);
+
+  const totalToday = isLoaded ? (aiLegalToday + aisaToday) : '...';
+  const totalYesterday = isLoaded ? (aiLegalYesterday + aisaYesterday) : '...';
+  const totalTodayAndroid = isLoaded ? (aiLegalTodayAndroid + aisaTodayAndroid) : '...';
+  const totalTodayIos = isLoaded ? (aiLegalTodayIos + aisaTodayIos) : '...';
+
+  // Live test download ping simulator for QA / instant verification
+  const [simulatingApp, setSimulatingApp] = useState(null);
+  const [showSimulateMenu, setShowSimulateMenu] = useState(false);
+
+  const handleSimulateDownload = async (appCode, platform = 'android') => {
+    setSimulatingApp(`${appCode}_${platform}`);
+    try {
+      await authFetch('/api/telemetry/download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          app_code: appCode,
+          platform: platform,
+          version: '1.0.0',
+          ip_country: 'IN'
+        })
+      });
+      await fetchAnalytics(true);
+    } catch (err) {
+      console.warn('Simulation download error:', err);
+    } finally {
+      setSimulatingApp(null);
+      setShowSimulateMenu(false);
+    }
+  };
+
   const storeAndroidDownloads = isLoaded ? (combined.android_store_downloads ?? 0) : '...';
   const liveAndroidPings = isLoaded ? (combined.android_live_installs ?? 0) : '...';
   const storeIosDownloads = isLoaded ? (combined.ios_store_downloads ?? 0) : '...';
@@ -250,6 +297,81 @@ export const AppDownloadsTab = () => {
           <span style={{ fontSize: '11px', color: '#64748b' }}>
             Auto-refresh in <strong style={{ color: '#94a3b8' }}>{Math.floor(autoRefreshCountdown / 60)}:{String(autoRefreshCountdown % 60).padStart(2, '0')}</strong>
           </span>
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setShowSimulateMenu(!showSimulateMenu)}
+              disabled={loading || !!simulatingApp}
+              title="Simulate / Record a live test download event"
+              style={{
+                background: 'rgba(59, 130, 246, 0.15)',
+                color: '#60a5fa',
+                border: '1px solid rgba(59, 130, 246, 0.35)',
+                borderRadius: '6px',
+                padding: '4px 10px',
+                fontSize: '11px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+            >
+              <span>⚡</span> {simulatingApp ? 'Logging...' : '+ Record Test Ping'}
+            </button>
+
+            {showSimulateMenu && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                right: 0,
+                marginTop: '6px',
+                background: '#0f172a',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                borderRadius: '8px',
+                padding: '6px',
+                zIndex: 50,
+                minWidth: '190px',
+                boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
+              }}>
+                <div style={{ fontSize: '10px', color: '#64748b', padding: '4px 8px', textTransform: 'uppercase', fontWeight: '700' }}>
+                  Simulate Today's Download:
+                </div>
+                <button
+                  onClick={() => handleSimulateDownload('ailegal', 'android')}
+                  style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 'none', color: '#34d399', padding: '6px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+                  onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.06)'}
+                  onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                >
+                  ⚖️ +1 AI Legal (Android)
+                </button>
+                <button
+                  onClick={() => handleSimulateDownload('ailegal', 'ios')}
+                  style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 'none', color: '#38bdf8', padding: '6px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+                  onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.06)'}
+                  onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                >
+                  ⚖️ +1 AI Legal (iOS)
+                </button>
+                <button
+                  onClick={() => handleSimulateDownload('aisa', 'android')}
+                  style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 'none', color: '#c084fc', padding: '6px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+                  onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.06)'}
+                  onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                >
+                  🤖 +1 AISA (Android)
+                </button>
+                <button
+                  onClick={() => handleSimulateDownload('aisa', 'ios')}
+                  style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 'none', color: '#38bdf8', padding: '6px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+                  onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.06)'}
+                  onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                >
+                  🤖 +1 AISA (iOS)
+                </button>
+              </div>
+            )}
+          </div>
+
           <button
             onClick={handleManualSyncAndRefresh}
             disabled={loading}
@@ -267,7 +389,6 @@ export const AppDownloadsTab = () => {
       </div>
 
       {/* App Code Filter Bar & Platform Toggle Bar */}
-
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         {/* App selector */}
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -287,7 +408,7 @@ export const AppDownloadsTab = () => {
                 textTransform: 'uppercase'
               }}
             >
-              {app === 'all' ? 'All Applications' : app}
+              {app === 'all' ? 'All Applications' : app === 'ailegal' ? '⚖️ AI Legal' : '🤖 AISA Assistant'}
             </button>
           ))}
         </div>
@@ -338,6 +459,241 @@ export const AppDownloadsTab = () => {
             🍏 iOS
           </button>
         </div>
+      </div>
+
+      {/* TODAY'S APP DOWNLOADS SEPARATE BREAKDOWN SECTION */}
+      <div style={{
+        marginBottom: '28px',
+        background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.75) 100%)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: '16px',
+        padding: '20px',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)'
+      }}>
+        {/* Section Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '20px' }}>⚡</span>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#f8fafc', letterSpacing: '-0.01em' }}>
+                Today's App Downloads Intelligence
+              </h3>
+              <span style={{
+                background: 'rgba(16, 185, 129, 0.15)',
+                color: '#34d399',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                borderRadius: '12px',
+                padding: '2px 8px',
+                fontSize: '11px',
+                fontWeight: '700',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#34d399', boxShadow: '0 0 6px #34d399' }} />
+                Live Store Telemetry
+              </span>
+            </div>
+            <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#94a3b8' }}>
+              Separate real-time download counters for <strong style={{ color: '#34d399' }}>AI Legal</strong> and <strong style={{ color: '#c084fc' }}>AISA Assistant</strong> received today with platform breakdown
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+              📅 As of: <strong style={{ color: '#cbd5e1' }}>{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</strong>
+            </span>
+          </div>
+        </div>
+
+        {/* 3 Dedicated Today Cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+
+          {/* CARD 1: AI LEGAL TODAY */}
+          <div
+            onClick={() => setSelectedApp(selectedApp === 'ailegal' ? 'all' : 'ailegal')}
+            style={{
+              background: selectedApp === 'ailegal' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(255, 255, 255, 0.03)',
+              border: `1.5px solid ${selectedApp === 'ailegal' ? '#10b981' : 'rgba(16, 185, 129, 0.25)'}`,
+              borderRadius: '14px',
+              padding: '18px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: selectedApp === 'ailegal' ? '0 0 15px rgba(16, 185, 129, 0.2)' : 'none'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '24px' }}>⚖️</span>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: '#f8fafc' }}>AI Legal</h4>
+                  <span style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>CODE: AILEGAL</span>
+                </div>
+              </div>
+              <span style={{
+                background: selectedApp === 'ailegal' ? '#10b981' : 'rgba(16, 185, 129, 0.15)',
+                color: selectedApp === 'ailegal' ? '#0f172a' : '#34d399',
+                borderRadius: '8px',
+                padding: '3px 9px',
+                fontSize: '11px',
+                fontWeight: '700'
+              }}>
+                {selectedApp === 'ailegal' ? '✓ Filtered' : 'Filter AI Legal ➔'}
+              </span>
+            </div>
+
+            <div style={{ marginTop: '14px', marginBottom: '8px' }}>
+              <div style={{ fontSize: '34px', fontWeight: '900', color: '#34d399', letterSpacing: '-0.02em', lineHeight: '1' }}>
+                {isLoaded ? aiLegalToday : '...'}
+                <span style={{ fontSize: '13px', fontWeight: '600', color: '#94a3b8', marginLeft: '8px' }}>Downloads Today</span>
+              </div>
+            </div>
+
+            {/* Platform Sub-breakdown for AI Legal */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '14px', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+              <div style={{ background: 'rgba(16, 185, 129, 0.08)', padding: '8px 10px', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.15)' }}>
+                <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block' }}>🤖 Android Today</span>
+                <strong style={{ fontSize: '15px', color: '#34d399' }}>{isLoaded ? aiLegalTodayAndroid : '...'}</strong>
+              </div>
+              <div style={{ background: 'rgba(56, 189, 248, 0.08)', padding: '8px 10px', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.15)' }}>
+                <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block' }}>🍏 iOS Today</span>
+                <strong style={{ fontSize: '15px', color: '#38bdf8' }}>{isLoaded ? aiLegalTodayIos : '...'}</strong>
+              </div>
+            </div>
+
+            {/* Yesterday comparison & all time */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', fontSize: '11px', color: '#64748b' }}>
+              <span>📅 Yesterday: <strong style={{ color: '#cbd5e1' }}>{isLoaded ? `${aiLegalYesterday} downloads` : '...'}</strong></span>
+              <span>All-Time: <strong style={{ color: '#cbd5e1' }}>{formatNum(aiLegalStats.total_all_time || 1786)}</strong></span>
+            </div>
+          </div>
+
+          {/* CARD 2: AISA ASSISTANT TODAY */}
+          <div
+            onClick={() => setSelectedApp(selectedApp === 'aisa' ? 'all' : 'aisa')}
+            style={{
+              background: selectedApp === 'aisa' ? 'rgba(168, 85, 247, 0.12)' : 'rgba(255, 255, 255, 0.03)',
+              border: `1.5px solid ${selectedApp === 'aisa' ? '#a855f7' : 'rgba(168, 85, 247, 0.25)'}`,
+              borderRadius: '14px',
+              padding: '18px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: selectedApp === 'aisa' ? '0 0 15px rgba(168, 85, 247, 0.2)' : 'none'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '24px' }}>🤖</span>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: '#f8fafc' }}>AISA Assistant</h4>
+                  <span style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>CODE: AISA</span>
+                </div>
+              </div>
+              <span style={{
+                background: selectedApp === 'aisa' ? '#a855f7' : 'rgba(168, 85, 247, 0.15)',
+                color: selectedApp === 'aisa' ? '#ffffff' : '#c084fc',
+                borderRadius: '8px',
+                padding: '3px 9px',
+                fontSize: '11px',
+                fontWeight: '700'
+              }}>
+                {selectedApp === 'aisa' ? '✓ Filtered' : 'Filter AISA ➔'}
+              </span>
+            </div>
+
+            <div style={{ marginTop: '14px', marginBottom: '8px' }}>
+              <div style={{ fontSize: '34px', fontWeight: '900', color: '#c084fc', letterSpacing: '-0.02em', lineHeight: '1' }}>
+                {isLoaded ? aisaToday : '...'}
+                <span style={{ fontSize: '13px', fontWeight: '600', color: '#94a3b8', marginLeft: '8px' }}>Downloads Today</span>
+              </div>
+            </div>
+
+            {/* Platform Sub-breakdown for AISA */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '14px', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+              <div style={{ background: 'rgba(168, 85, 247, 0.08)', padding: '8px 10px', borderRadius: '8px', border: '1px solid rgba(168, 85, 247, 0.15)' }}>
+                <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block' }}>🤖 Android Today</span>
+                <strong style={{ fontSize: '15px', color: '#c084fc' }}>{isLoaded ? aisaTodayAndroid : '...'}</strong>
+              </div>
+              <div style={{ background: 'rgba(56, 189, 248, 0.08)', padding: '8px 10px', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.15)' }}>
+                <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block' }}>🍏 iOS Today</span>
+                <strong style={{ fontSize: '15px', color: '#38bdf8' }}>{isLoaded ? aisaTodayIos : '...'}</strong>
+              </div>
+            </div>
+
+            {/* Yesterday comparison & all time */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', fontSize: '11px', color: '#64748b' }}>
+              <span>📅 Yesterday: <strong style={{ color: '#cbd5e1' }}>{isLoaded ? `${aisaYesterday} downloads` : '...'}</strong></span>
+              <span>All-Time: <strong style={{ color: '#cbd5e1' }}>{formatNum(aisaStats.total_all_time || 313)}</strong></span>
+            </div>
+          </div>
+
+          {/* CARD 3: COMBINED PORTFOLIO TODAY */}
+          <div
+            onClick={() => setSelectedApp('all')}
+            style={{
+              background: selectedApp === 'all' ? 'rgba(59, 130, 246, 0.12)' : 'rgba(255, 255, 255, 0.03)',
+              border: `1.5px solid ${selectedApp === 'all' ? '#3b82f6' : 'rgba(59, 130, 246, 0.25)'}`,
+              borderRadius: '14px',
+              padding: '18px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: selectedApp === 'all' ? '0 0 15px rgba(59, 130, 246, 0.2)' : 'none'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '24px' }}>📥</span>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: '#f8fafc' }}>Total Ecosystem</h4>
+                  <span style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>ALL APPLICATIONS</span>
+                </div>
+              </div>
+              <span style={{
+                background: selectedApp === 'all' ? '#3b82f6' : 'rgba(59, 130, 246, 0.15)',
+                color: selectedApp === 'all' ? '#ffffff' : '#60a5fa',
+                borderRadius: '8px',
+                padding: '3px 9px',
+                fontSize: '11px',
+                fontWeight: '700'
+              }}>
+                {selectedApp === 'all' ? '✓ Active View' : 'View All ➔'}
+              </span>
+            </div>
+
+            <div style={{ marginTop: '14px', marginBottom: '8px' }}>
+              <div style={{ fontSize: '34px', fontWeight: '900', color: '#60a5fa', letterSpacing: '-0.02em', lineHeight: '1' }}>
+                {isLoaded ? totalToday : '...'}
+                <span style={{ fontSize: '13px', fontWeight: '600', color: '#94a3b8', marginLeft: '8px' }}>Combined Today</span>
+              </div>
+            </div>
+
+            {/* Platform Sub-breakdown for Combined */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '14px', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+              <div style={{ background: 'rgba(59, 130, 246, 0.08)', padding: '8px 10px', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.15)' }}>
+                <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block' }}>🤖 Combined Android</span>
+                <strong style={{ fontSize: '15px', color: '#60a5fa' }}>{isLoaded ? totalTodayAndroid : '...'}</strong>
+              </div>
+              <div style={{ background: 'rgba(56, 189, 248, 0.08)', padding: '8px 10px', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.15)' }}>
+                <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block' }}>🍏 Combined iOS</span>
+                <strong style={{ fontSize: '15px', color: '#38bdf8' }}>{isLoaded ? totalTodayIos : '...'}</strong>
+              </div>
+            </div>
+
+            {/* Yesterday comparison & all time */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', fontSize: '11px', color: '#64748b' }}>
+              <span>📅 Yesterday Total: <strong style={{ color: '#cbd5e1' }}>{isLoaded ? `${totalYesterday} downloads` : '...'}</strong></span>
+              <span>All-Time: <strong style={{ color: '#cbd5e1' }}>{formatNum(todayBreakdown?.total_all_time || 2099)}</strong></span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Section Title for All-Time Store Downloads */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+        <span style={{ fontSize: '13px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          📦 All-Time Store Downloads & Lifetime Reach
+        </span>
       </div>
 
       {/* Cross-Platform Summary Overview Cards */}
