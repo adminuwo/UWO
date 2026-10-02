@@ -13,6 +13,7 @@ export const Sidebar = ({ currentTab, setTab }) => {
     { id: 'app_downloads', label: 'App Downloads', icon: '📥' },
     { id: 'users', label: 'User Directory', icon: '👥' },
     { id: 'revenue', label: 'Revenue & Plans', icon: '💳' },
+    { id: 'active_subscriptions', label: 'Active Subscriptions', icon: '🔄' },
     { id: 'logs', label: 'Central Logs', icon: '📜' },
     { id: 'sandbox', label: 'API Sandbox', icon: '⚡' },
   ];

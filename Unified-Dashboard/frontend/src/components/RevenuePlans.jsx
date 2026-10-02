@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { ActiveSubscriptions } from './ActiveSubscriptions';
 
-export const RevenuePlans = () => {
+export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
   const { authFetch } = useAuth();
 
   // State management
@@ -29,7 +30,7 @@ export const RevenuePlans = () => {
   const [syncing, setSyncing] = useState(false);
   const [syncNotice, setSyncNotice] = useState(null);
   const [selectedTx, setSelectedTx] = useState(null);
-  const [activeSubTab, setActiveSubTab] = useState('overview'); // 'overview' | 'transactions' | 'health' | 'reconciliation'
+  const [activeSubTab, setActiveSubTab] = useState(defaultSubTab); // 'overview' | 'subscriptions' | 'transactions' | 'health' | 'reconciliation'
   const [lastRefreshedAt, setLastRefreshedAt] = useState(new Date());
 
   // Fetch all analytics and data
@@ -328,6 +329,7 @@ export const RevenuePlans = () => {
       }}>
         {[
           { id: 'overview', label: '📊 Financial Overview & Breakdown' },
+          { id: 'subscriptions', label: '🔄 Active Subscriptions' },
           { id: 'transactions', label: `💳 Live Transactions Explorer (${totalTxCount})` },
           { id: 'reconciliation', label: '⚖️ Reconciliation Audit' },
           { id: 'health', label: '📡 Sync Health & Gateways' }
@@ -940,6 +942,11 @@ export const RevenuePlans = () => {
         </>
       )}
 
+      {/* TAB: ACTIVE SUBSCRIPTIONS INTELLIGENCE */}
+      {activeSubTab === 'subscriptions' && (
+        <ActiveSubscriptions />
+      )}
+
       {/* TAB 2: LIVE TRANSACTIONS EXPLORER */}
       {activeSubTab === 'transactions' && (
         <div style={{
@@ -1009,11 +1016,13 @@ export const RevenuePlans = () => {
                 }}
               >
                 <option value="all">📦 All Products</option>
-                <option value="aisa">AISA Assistant</option>
-                <option value="ailegal">AI Legal</option>
-                <option value="uwoconnect">UWO Connect</option>
-                <option value="efvframework">EFV Framework</option>
-                <option value="aiads">AI Ads</option>
+                <option value="ailegal">⚖️ AI Legal</option>
+                <option value="aisa">🤖 AISA Assistant</option>
+                <option value="efvframework">⚡ EFV Framework</option>
+                <option value="aimall">🛍️ AI Mall</option>
+                <option value="uwo">🌐 UWO Web</option>
+                <option value="uwoconnect">🔗 UWO Connect</option>
+                <option value="aiads">📢 AI Ads</option>
               </select>
 
               <select
@@ -1322,8 +1331,10 @@ export const RevenuePlans = () => {
                       <tr key={i} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)', fontSize: '13px' }}>
                         <td style={{ padding: '14px 14px', fontWeight: '700', color: '#f8fafc' }}>
                           {r.product_code === 'aisa' ? '🤖 AISA Assistant' :
-                           r.product_code === 'efvframework' ? '📚 EFV Framework' :
+                           r.product_code === 'efvframework' ? '⚡ EFV Framework' :
                            r.product_code === 'ailegal' ? '⚖️ AI Legal' :
+                           r.product_code === 'aimall' ? '🛍️ AI Mall' :
+                           r.product_code === 'uwo' ? '🌐 UWO Web' :
                            r.product_code === 'uwoconnect' ? '🔗 UWO Connect' :
                            r.product_code === 'aiads' ? '📢 AI Ads' :
                            '📦 Other Applications'}
