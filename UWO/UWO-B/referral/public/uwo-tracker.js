@@ -14,14 +14,29 @@
 (function (window, document) {
   'use strict';
 
-  // 1. Detect Base Engine URL (auto-detect from script tag or fallback to uwo24.com)
+  // 1. Detect Base Engine URL, site identifier, and telemetry endpoint
   var baseUrl = window.UWO_CORE_URL || 'https://uwo24.com';
-  if (document.currentScript && document.currentScript.src) {
-    try {
-      var sUrl = new URL(document.currentScript.src);
-      baseUrl = sUrl.origin;
-    } catch (e) {}
+  var scriptSite = null;
+  var scriptEndpoint = null;
+
+  var currentScript = document.currentScript;
+  if (!currentScript && typeof document !== 'undefined') {
+    currentScript = document.querySelector('script[data-site], script[src*="web-stats/tracker"], script[src*="uwo-tracker"]');
   }
+
+  if (currentScript) {
+    if (currentScript.src) {
+      try {
+        var sUrl = new URL(currentScript.src);
+        baseUrl = sUrl.origin;
+      } catch (e) {}
+    }
+    scriptSite = currentScript.getAttribute('data-site') || currentScript.getAttribute('data-app');
+    scriptEndpoint = currentScript.getAttribute('data-endpoint');
+  }
+
+  var cleanBaseUrl = (baseUrl && baseUrl !== 'null') ? baseUrl : 'https://uwo24.com';
+  var targetCollectEndpoint = scriptEndpoint || (cleanBaseUrl + '/api/web-stats/collect');
 
   // 2. Cookie Helpers with Top-Level Subdomain Support
   function getRootDomain() {
@@ -71,17 +86,63 @@
 
   // 4. Product Slug Detection
   function detectProductSlug() {
+    if (scriptSite) return scriptSite;
     var host = (window.location.hostname || '').toLowerCase();
-    if (host.includes('efv')) return 'efv';
-    if (host.includes('aisa')) return 'aisa';
+    if (host.includes('efv')) return 'efvframework';
+    if (host.includes('aimall')) return 'aimall';
     if (host.includes('ailegal') || host.includes('legal')) return 'ailegal';
-    if (host.includes('connect')) return 'aiconnect';
+    if (host.includes('yugamc')) return 'yugamc';
+    if (host.includes('connect')) return 'uwoconnect';
+    if (host.includes('aisa')) return 'aisa';
+    if (host.includes('uwo24') || host.includes('uwo')) return 'uwo';
 
     var path = (window.location.pathname || '').toLowerCase();
-    if (path.includes('efv')) return 'efv';
-    if (path.includes('aisa')) return 'aisa';
+    if (path.includes('efv')) return 'efvframework';
+    if (path.includes('aimall')) return 'aimall';
     if (path.includes('legal')) return 'ailegal';
+    if (path.includes('aisa')) return 'aisa';
     return 'general';
+  }
+
+  // 5. Unified Web Pageview Telemetry Engine
+  var lastPageviewPath = null;
+  function sendPageViewTelemetry() {
+    try {
+      var currentPath = window.location.pathname || '/';
+      if (lastPageviewPath === currentPath) return;
+      lastPageviewPath = currentPath;
+
+      var currentProduct = detectProductSlug();
+      var vid = getOrCreateVisitorId();
+      var sid = getOrCreateSessionId();
+
+      var payload = JSON.stringify({
+        site: currentProduct,
+        app_code: currentProduct,
+        url: window.location.href,
+        path: currentPath,
+        title: document.title || '',
+        referrer: document.referrer || '',
+        visitorId: vid,
+        visitor_id: vid,
+        sessionId: sid,
+        session_id: sid,
+        screen: (window.screen ? window.screen.width + 'x' + window.screen.height : ''),
+        language: (navigator.language || ''),
+        timestamp: Date.now()
+      });
+
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(targetCollectEndpoint, new Blob([payload], { type: 'application/json' }));
+      } else if (typeof fetch !== 'undefined') {
+        fetch(targetCollectEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload,
+          keepalive: true
+        }).catch(function () {});
+      }
+    } catch (e) {}
   }
 
   // ==========================================================================
@@ -198,6 +259,22 @@
     }
 
     autoFillInputs();
+    sendPageViewTelemetry();
+  }
+
+  // SPA navigation tracking
+  if (typeof window !== 'undefined') {
+    window.addEventListener('popstate', function () {
+      setTimeout(sendPageViewTelemetry, 100);
+    });
+    if (window.history && window.history.pushState) {
+      var origPushState = window.history.pushState;
+      window.history.pushState = function () {
+        var ret = origPushState.apply(this, arguments);
+        setTimeout(sendPageViewTelemetry, 100);
+        return ret;
+      };
+    }
   }
 
   function autoFillInputs() {
@@ -290,6 +367,9 @@
     },
     trackSale: function (details) {
       return window.UWO.trackConversion(details);
+    },
+    trackPageView: function () {
+      return sendPageViewTelemetry();
     }
   };
 

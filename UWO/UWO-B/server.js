@@ -264,15 +264,74 @@ app.use('/api/analytics', unifiedAdminRouter);
 app.use('/api/unified-analytics', unifiedAdminRouter);
 app.use('/api/revenue', unifiedRevenueRouter);
 app.use('/api/marketing', unifiedMarketingRouter);
+const { getUnifiedDb } = require('./unified_routes/db');
+
 app.get('/api/web-stats/tracker.js', (req, res) => {
     res.type('application/javascript');
+    res.setHeader('Cache-Control', 'public, max-age=300');
     const trackerPath = path.join(__dirname, 'referral/public/uwo-tracker.js');
     if (fs.existsSync(trackerPath)) {
         return res.sendFile(trackerPath);
     }
     res.send('// uwo tracker loaded');
 });
-app.use('/api/web-stats', (req, res) => res.json({ success: true, visits: 12000, unique: 8400 }));
+
+// Telemetry collection endpoint for all apps/websites
+app.post('/api/web-stats/collect', async (req, res) => {
+    try {
+        const body = req.body || {};
+        const site = String(body.site || body.app_code || req.query.site || 'general').toLowerCase().trim();
+        const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || null;
+        const userAgent = req.headers['user-agent'] || '';
+        const pagePath = body.path || '/';
+        const url = body.url || '';
+        const referrer = body.referrer || '';
+        const visitorId = body.visitorId || body.visitor_id || null;
+        const sessionId = body.sessionId || body.session_id || null;
+        const title = body.title || '';
+
+        const db = await getUnifiedDb();
+        const now = new Date();
+
+        // 1. Record pageview in marketing_events (queried by unified analytics)
+        await db.collection('marketing_events').insertOne({
+            event_type: 'pageview',
+            app_code: site,
+            site: site,
+            path: pagePath,
+            url: url,
+            referrer: referrer,
+            title: title,
+            visitor_id: visitorId,
+            session_id: sessionId,
+            ip: clientIp,
+            user_agent: (userAgent || '').slice(0, 300),
+            timestamp: now
+        }).catch(e => console.warn('[Collect Pageview Event Error]:', e.message));
+
+        // 2. Also record in web_pageviews for high-granularity aggregation
+        await db.collection('web_pageviews').insertOne({
+            app_code: site,
+            site: site,
+            path: pagePath,
+            url: url,
+            referrer: referrer,
+            title: title,
+            visitor_id: visitorId,
+            session_id: sessionId,
+            ip: clientIp,
+            user_agent: (userAgent || '').slice(0, 300),
+            timestamp: now
+        }).catch(() => {});
+
+        return res.json({ success: true, recorded: true, site });
+    } catch (err) {
+        console.error('[WebStats Collect] Error:', err.message);
+        return res.status(200).json({ success: false, error: err.message });
+    }
+});
+
+app.use('/api/web-stats', (req, res) => res.json({ success: true, status: 'operational' }));
 
 
 // MongoDB Connection with enhanced error handling for Cloud Run

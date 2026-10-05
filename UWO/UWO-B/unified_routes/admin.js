@@ -337,10 +337,10 @@ router.get('/unified-analytics/overview', verifyAdminToken, async (req, res) => 
       db.collection('marketing_installs').countDocuments({ timestamp: { $gte: cutoff } }).catch(() => 0)
     ]);
 
-    const periodRev = revAgg[0] ? Number(revAgg[0].total) : 0;
-    const periodPageviews = clicksCount;
-    const periodInstalls = installsCount;
-    const periodUsers = Math.max(activeUsersCount, totalUsers);
+    let periodRev = revAgg[0] ? Number(revAgg[0].total) : 0;
+    let periodPageviews = clicksCount;
+    let periodInstalls = installsCount;
+    let periodUsers = Math.max(activeUsersCount, totalUsers);
 
     const rawAppCode = String(req.query.app_code || 'all').toLowerCase().trim();
     const APP_CONFIG = {
@@ -358,8 +358,23 @@ router.get('/unified-analytics/overview', verifyAdminToken, async (req, res) => 
     const targetApp = isAppFiltered ? APP_CONFIG[rawAppCode] : null;
 
     if (targetApp) {
-      periodUsers = Math.max(1, Math.round(periodUsers * targetApp.userShare));
-      periodPageviews = Math.max(1, Math.round(periodPageviews * targetApp.viewShare));
+      const [appEventsCount, appUsersCount] = await Promise.all([
+        db.collection('marketing_events').countDocuments({ app_code: rawAppCode, timestamp: { $gte: cutoff } }).catch(() => 0),
+        db.collection('users').countDocuments({ connected_apps: rawAppCode }).catch(() => 0)
+      ]);
+
+      if (appEventsCount > 0) {
+        periodPageviews = appEventsCount;
+      } else {
+        periodPageviews = Math.max(1, Math.round(periodPageviews * targetApp.viewShare));
+      }
+
+      if (appUsersCount > 0) {
+        periodUsers = appUsersCount;
+      } else {
+        periodUsers = Math.max(1, Math.round(periodUsers * targetApp.userShare));
+      }
+
       periodInstalls = Math.round(periodInstalls * targetApp.installShare);
       periodRev = Math.round(periodRev * targetApp.revShare);
     }
@@ -560,7 +575,7 @@ router.get('/unified-analytics/mobile', verifyAdminToken, async (req, res) => {
 
     const androidPlay = playAgg[0]?.installs || 0;
     const androidInstalls = androidPlay;
-    const iosInstalls = iosStore;
+    const iosInstalls = iosAgg[0]?.total || 0;
     const totalInstalls = androidInstalls + iosInstalls;
     const activeDevices = playAgg[0]?.active || 0;
     const userLoss = Math.max(0, androidInstalls - activeDevices);
