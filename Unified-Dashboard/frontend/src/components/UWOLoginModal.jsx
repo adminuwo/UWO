@@ -1,6 +1,21 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getApiUrl } from '../config/api';
+import { getApiUrl, API_BASE_URL } from '../config/api';
+
+// Central UWO SSO backend — uses /unified-auth/ routes on uwo24.com
+const getUnifiedAuthBase = () => {
+  const envUrl = (typeof import !== 'undefined' && typeof import.meta !== 'undefined') ? import.meta.env?.VITE_UNIFIED_BACKEND_API : null;
+  if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+    return `${envUrl.trim().replace(/\/+$/, '')}/unified-auth`;
+  }
+  // In production, always use central UWO SSO
+  const isLive = typeof window !== 'undefined' &&
+    window.location.hostname !== 'localhost' &&
+    window.location.hostname !== '127.0.0.1';
+  if (isLive) return 'https://uwo24.com/api/unified-auth';
+  // Local dev: fall back to local backend auth routes
+  return `${API_BASE_URL}/auth`;
+};
 
 export const UWOLoginModal = ({ isOpen, onClose, onSuccess, appCode = "aisa", apiKey = "key_aisa_live_master_2026" }) => {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
@@ -21,8 +36,8 @@ export const UWOLoginModal = ({ isOpen, onClose, onSuccess, appCode = "aisa", ap
 
     try {
       if (isRegisterMode) {
-        // 1. Register new central account
-        const regRes = await fetch(getApiUrl('/api/auth/register'), {
+        const authBase = getUnifiedAuthBase();
+        const regRes = await fetch(`${authBase}/register`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -39,8 +54,9 @@ export const UWOLoginModal = ({ isOpen, onClose, onSuccess, appCode = "aisa", ap
         setSuccessMsg('Account created successfully! Signing in...');
       }
 
-      // 2. Authenticate & Obtain Tokens
-      const loginRes = await fetch(getApiUrl('/api/auth/login'), {
+      // 2. Authenticate & Obtain Tokens via Central UWO SSO
+      const authBase = getUnifiedAuthBase();
+      const loginRes = await fetch(`${authBase}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
