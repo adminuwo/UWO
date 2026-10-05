@@ -50,6 +50,13 @@ const PRODUCT_CATALOG = {
     description: 'Central Identity, SSO & Organization Security Portal',
     color: '#EC4899',
   },
+  aiads: {
+    name: 'AI ADS',
+    url: 'https://aiads.aisa24.com',
+    web_url: 'https://aiads.aisa24.com',
+    description: 'Autonomous Content Intelligence & 8K Creative Studio',
+    color: '#6366F1',
+  },
   yugamc: {
     name: 'Yugamc',
     url: 'https://yugamc.com',

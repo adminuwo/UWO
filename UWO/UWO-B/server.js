@@ -1590,24 +1590,30 @@ app.get(/^\/api\/media\/(.+)$/, async (req, res) => {
             // continue to Cloud Run proxy
         }
 
-        // 3. Fallback: Proxy directly from production Cloud Run backend
+        // 3. Fallback: Proxy directly from production backend (uwo24.com or Cloud Run)
         try {
-            const prodUrl = `https://uwo-backend-977864306871.asia-south1.run.app/api/media/${filePath}`;
-            const prodRes = await fetch(prodUrl);
-            if (prodRes.ok) {
-                res.setHeader('Content-Type', prodRes.headers.get('content-type') || 'application/octet-stream');
-                res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-                res.setHeader('Access-Control-Allow-Origin', '*');
-                res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-                res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+            const prodUrls = [
+                `https://uwo24.com/api/media/${filePath}`,
+                `https://uwo-backend-977864306871.asia-south1.run.app/api/media/${filePath}`
+            ];
+            for (const prodUrl of prodUrls) {
+                try {
+                    const prodRes = await fetch(prodUrl);
+                    if (prodRes.ok) {
+                        res.setHeader('Content-Type', prodRes.headers.get('content-type') || 'application/octet-stream');
+                        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+                        res.setHeader('Access-Control-Allow-Origin', '*');
+                        res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+                        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
 
-                const arrayBuffer = await prodRes.arrayBuffer();
-                return res.send(Buffer.from(arrayBuffer));
-            } else {
-                return res.status(prodRes.status).json({ message: "File not found" });
+                        const arrayBuffer = await prodRes.arrayBuffer();
+                        return res.send(Buffer.from(arrayBuffer));
+                    }
+                } catch (e) {}
             }
+            return res.status(404).json({ message: "File not found" });
         } catch (proxyErr) {
-            console.error("Cloud Run media fallback proxy failed:", proxyErr);
+            console.error("Media fallback proxy failed:", proxyErr);
             return res.status(404).json({ message: "File not found" });
         }
     } catch (err) {

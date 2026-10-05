@@ -1,0 +1,2349 @@
+/* ==========================================================================
+   AI LEGAL™ — Premium Legal Intelligence & Practice Platform Stylesheet
+   UWO™ Brand Architecture: Light Theme | Soft Gold (#C8A34D / #B88E2D) | Crisp Slate
+   Compact, Neat, High-End Enterprise Legal SaaS Aesthetics
+   ========================================================================== */
+
+:root {
+  --al-bg-page: #FBFBFA;
+  --al-bg-subtle: #F5F3ED;
+  --al-bg-surface: #FFFFFF;
+  --al-bg-card: #FFFFFF;
+  --al-bg-card-hover: #FDFCF9;
+  --al-bg-glass: rgba(255, 255, 255, 0.9);
+
+  --al-gold: #B88E2D;
+  --al-gold-light: #C8A34D;
+  --al-gold-dark: #8F6D1F;
+  --al-gold-cream: #FAF7EE;
+  --al-gold-glow: rgba(184, 142, 45, 0.18);
+  --al-gold-glow-subtle: rgba(184, 142, 45, 0.08);
+  --al-gold-border: rgba(184, 142, 45, 0.22);
+  --al-gold-border-hover: rgba(184, 142, 45, 0.45);
+
+  --al-text-main: #0F172A;
+  --al-text-sub: #475569;
+  --al-text-muted: #64748B;
+  --al-border-subtle: #E2E8F0;
+
+  --al-shadow-card: 0 4px 16px -2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.03);
+  --al-shadow-hover: 0 10px 24px -4px rgba(15, 23, 42, 0.1), 0 0 16px rgba(184, 142, 45, 0.12);
+  --al-transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Base Page Wrapper */
+.ai-legal-page {
+  background-color: var(--al-bg-page);
+  color: var(--al-text-main);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow-x: hidden;
+  position: relative;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.ai-legal-container {
+  width: 100%;
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 0 20px;
+  position: relative;
+  z-index: 2;
+}
+
+/* Subtle Ambient Glows (Light Theme) */
+.ai-legal-ambient {
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.12;
+}
+
+.ambient-gold-1 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, #D4AF37 0%, transparent 70%);
+  top: 3%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.ambient-gold-2 {
+  width: 450px;
+  height: 450px;
+  background: radial-gradient(circle, #C8A34D 0%, transparent 70%);
+  top: 35%;
+  right: -80px;
+}
+
+.ambient-gold-3 {
+  width: 450px;
+  height: 450px;
+  background: radial-gradient(circle, #E2BA5A 0%, transparent 70%);
+  bottom: 8%;
+  left: -80px;
+}
+
+/* Compact Section Headings */
+.al-section-header {
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto 38px;
+}
+
+.al-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--al-gold);
+  background: rgba(184, 142, 45, 0.08);
+  border: 1px solid var(--al-gold-border);
+  padding: 4px 12px;
+  border-radius: 999px;
+  margin-bottom: 12px;
+}
+
+.al-eyebrow i {
+  font-size: 0.7rem;
+}
+
+.al-section-title {
+  font-size: 1.95rem;
+  font-weight: 800;
+  line-height: 1.22;
+  color: var(--al-text-main);
+  letter-spacing: -0.02em;
+  margin-bottom: 10px;
+}
+
+.al-section-title span.al-gold-text {
+  color: var(--al-gold);
+  background: linear-gradient(135deg, #B88E2D 0%, #C8A34D 60%, #8F6D1F 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.al-section-subtitle {
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--al-text-sub);
+  margin: 0 auto;
+}
+
+/* ==========================================================================
+   1. HERO SECTION (COMPACT & LIGHT)
+   ========================================================================== */
+.al-hero-section {
+  position: relative;
+  min-height: 82vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 130px 0 95px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #F9F8F5 0%, #FFFFFF 100%);
+  border-bottom: 1px solid var(--al-border-subtle);
+}
+
+.al-hero-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Hero Split Grid (Text Left, Image Right) */
+.al-hero-split-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.05fr;
+  gap: 44px;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  text-align: left;
+  width: 100%;
+}
+
+.al-hero-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.al-hero-left .al-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #FFFFFF;
+  border: 1px solid var(--al-gold-border);
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--al-text-main);
+  margin-bottom: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+
+.al-hero-left .al-hero-badge .al-uwo-tag {
+  color: var(--al-gold);
+  font-weight: 700;
+}
+
+.al-hero-left .al-hero-badge .al-badge-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--al-gold);
+  border-radius: 50%;
+  box-shadow: 0 0 6px var(--al-gold);
+}
+
+.al-hero-left .al-hero-title {
+  font-size: 2.75rem;
+  font-weight: 900;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  color: var(--al-text-main);
+  margin-bottom: 10px;
+  text-align: left;
+}
+
+.al-hero-left .al-hero-supporting {
+  font-size: 1.15rem;
+  line-height: 1.45;
+  color: var(--al-gold);
+  font-weight: 700;
+  max-width: 100%;
+  margin: 0 0 10px 0;
+  text-align: left;
+}
+
+.al-hero-left .al-hero-lead {
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--al-text-sub);
+  max-width: 100%;
+  margin: 0 0 22px 0;
+  text-align: left;
+}
+
+.al-hero-left .al-hero-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.al-hero-left .al-hero-footer-note {
+  font-size: 0.8rem;
+  color: var(--al-text-muted);
+  letter-spacing: 0.02em;
+  text-align: left;
+}
+
+.al-hero-right {
+  position: relative;
+  width: 100%;
+}
+
+/* Real AI LEGAL Hero Image Frame & Floating Badges */
+.al-hero-image-frame {
+  position: relative;
+  width: 100%;
+  border-radius: 12px;
+  overflow: visible;
+  border: 1px solid var(--al-border-subtle);
+  box-shadow: 0 16px 45px -10px rgba(15, 23, 42, 0.12), 0 0 20px rgba(184, 142, 45, 0.08);
+  background: #FFFFFF;
+}
+
+.al-hero-image-frame:hover {
+  box-shadow: 0 20px 48px -10px rgba(15, 23, 42, 0.16), 0 0 24px rgba(184, 142, 45, 0.12);
+}
+
+.al-hero-real-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+  border-radius: 11px;
+}
+
+/* Floating Intelligence Badges */
+.al-hero-float-badge {
+  position: absolute;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--al-gold-border);
+  box-shadow: 0 8px 20px -2px rgba(15, 23, 42, 0.12), 0 0 12px rgba(184, 142, 45, 0.15);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--al-text-main);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.al-float-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--al-gold);
+  box-shadow: 0 0 6px var(--al-gold);
+}
+
+.badge-top-left {
+  top: -14px;
+  left: 20px;
+}
+
+.badge-bottom-right {
+  bottom: -14px;
+  right: 20px;
+}
+
+.badge-bottom-left {
+  bottom: 24px;
+  left: -16px;
+}
+
+@media (max-width: 768px) {
+  .al-hero-float-badge {
+    display: none !important;
+  }
+}
+
+/* Capability Pills Row */
+.al-hero-feature-pills {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  margin-top: 36px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(226, 232, 240, 0.85);
+}
+
+.al-feature-pill {
+  background: #FFFFFF;
+  border: 1px solid var(--al-border-subtle);
+  border-radius: 8px;
+  padding: 10px 10px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+  transition: var(--al-transition);
+}
+
+.al-feature-pill:hover {
+  border-color: var(--al-gold);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(184, 142, 45, 0.12);
+}
+
+.al-pill-title {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #0F172A;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.al-pill-sub {
+  font-size: 0.68rem;
+  color: #64748B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Button System */
+.al-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 10px 22px;
+  border-radius: 8px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: var(--al-transition);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.al-btn-primary {
+  background: linear-gradient(135deg, #E6B325 0%, #D49D10 50%, #B88102 100%);
+  color: #FFFFFF;
+  border-color: #BD8704;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 4px 18px rgba(212, 157, 16, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+}
+
+.al-btn-primary:hover {
+  background: linear-gradient(135deg, #F5C235 0%, #E2AA1B 50%, #C78D0A 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(212, 157, 16, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.5);
+  color: #FFFFFF;
+}
+
+.al-btn-secondary {
+  background: #FFFFFF;
+  color: var(--al-text-main);
+  border: 1px solid #CBD5E1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.al-btn-secondary:hover {
+  background: #F8FAFC;
+  border-color: #94A3B8;
+  color: #0F172A;
+  transform: translateY(-2px);
+}
+
+.al-btn-outline-gold {
+  background: #FFFFFF;
+  color: var(--al-gold);
+  border: 1px solid var(--al-gold-border);
+}
+
+.al-btn-outline-gold:hover {
+  background: rgba(184, 142, 45, 0.08);
+  border-color: var(--al-gold);
+  color: var(--al-gold-dark);
+  transform: translateY(-2px);
+}
+
+/* ==========================================================================
+   2. PRODUCT INTRODUCTION (SPLIT LAYOUT)
+   ========================================================================== */
+.al-overview-section {
+  padding: 65px 0;
+  position: relative;
+  background: #FFFFFF;
+  border-bottom: 1px solid var(--al-border-subtle);
+}
+
+.al-split-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  align-items: center;
+}
+
+.al-overview-text h2 {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: var(--al-text-main);
+  line-height: 1.22;
+  margin-bottom: 14px;
+}
+
+.al-overview-lead {
+  font-size: 0.96rem;
+  line-height: 1.6;
+  color: var(--al-gold-dark);
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.al-overview-pillars,
+.al-overview-pillars-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-top: 32px;
+}
+
+.al-pillar-item {
+  padding: 12px 14px;
+  background: var(--al-bg-subtle);
+  border: 1px solid var(--al-border-subtle);
+  border-radius: 8px;
+  transition: var(--al-transition);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.al-pillar-item:hover {
+  border-color: var(--al-gold-border);
+  transform: translateY(-2px);
+  background: #FFFFFF;
+  box-shadow: var(--al-shadow-card);
+}
+
+.al-pillar-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(184, 142, 45, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--al-gold);
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+}
+
+.al-pillar-item h4 {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--al-text-main);
+  margin-bottom: 4px;
+}
+
+.al-pillar-item p {
+  font-size: 0.74rem;
+  line-height: 1.42;
+  color: var(--al-text-sub);
+  margin: 0;
+}
+
+.al-overview-visual-card {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--al-border-subtle);
+  background: #FFFFFF;
+  box-shadow: 0 16px 40px -10px rgba(15, 23, 42, 0.1), 0 0 16px rgba(184, 142, 45, 0.06);
+  transition: var(--al-transition);
+}
+
+.al-overview-visual-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 48px -10px rgba(15, 23, 42, 0.15), 0 0 22px rgba(184, 142, 45, 0.12);
+  border-color: var(--al-gold-border);
+}
+
+.al-overview-visual-card img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+}
+
+/* ==========================================================================
+   3. "ONE PLATFORM. COMPLETE LEGAL INTELLIGENCE" (ECOSYSTEM)
+   ========================================================================== */
+.al-ecosystem-section {
+  padding: 65px 0;
+  background: #F8F7F3;
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--al-border-subtle);
+}
+
+.al-central-hub-box {
+  background: #FFFFFF;
+  border: 1px solid var(--al-gold-border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  box-shadow: var(--al-shadow-card);
+}
+
+.al-central-hub-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.al-central-hub-logo {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #C8A34D 0%, #8F6D1F 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  font-size: 1.2rem;
+  box-shadow: 0 2px 10px rgba(184, 142, 45, 0.25);
+}
+
+.al-central-hub-title h3 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--al-text-main);
+  margin: 0;
+}
+
+.al-central-hub-title p {
+  font-size: 0.82rem;
+  color: var(--al-text-sub);
+  margin: 2px 0 0;
+}
+
+.al-central-hub-stats {
+  display: flex;
+  gap: 22px;
+}
+
+.al-hub-stat-item {
+  text-align: right;
+}
+
+.al-hub-stat-num {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--al-gold);
+}
+
+.al-hub-stat-lbl {
+  font-size: 0.7rem;
+  color: var(--al-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.al-ecosystem-matrix {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  position: relative;
+  z-index: 2;
+}
+
+.al-ecosystem-card {
+  padding: 16px 14px;
+  background: #FFFFFF;
+  border: 1px solid var(--al-border-subtle);
+  border-radius: 10px;
+  transition: var(--al-transition);
+  cursor: pointer;
+  position: relative;
+}
+
+.al-ecosystem-card:hover,
+.al-ecosystem-card.active {
+  background: #FFFFFF;
+  border-color: var(--al-gold);
+  transform: translateY(-2px);
+  box-shadow: var(--al-shadow-hover);
+}
+
+.al-eco-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.al-eco-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: rgba(184, 142, 45, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--al-gold);
+  font-size: 0.95rem;
+}
+
+.al-eco-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #F1F5F9;
+  color: var(--al-text-muted);
+}
+
+.al-ecosystem-card.active .al-eco-badge {
+  background: rgba(184, 142, 45, 0.15);
+  color: var(--al-gold-dark);
+}
+
+.al-ecosystem-card h3 {
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: var(--al-text-main);
+  margin-bottom: 6px;
+}
+
+.al-ecosystem-card p {
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--al-text-sub);
+  margin: 0;
+}
+
+/* ==========================================================================
+   4. FEATURE EXPLORER (COMPACT & NEAT)
+   ========================================================================== */
+.al-features-section {
+  padding: 65px 0;
+  background: #FFFFFF;
+  position: relative;
+  border-bottom: 1px solid var(--al-border-subtle);
+}
+
+.al-feature-explorer-container {
+  display: grid;
+  grid-template-columns: 290px 1fr;
+  gap: 22px;
+  background: #FFFFFF;
+  border: 1px solid var(--al-border-subtle);
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: var(--al-shadow-card);
+}
+
+.al-feature-nav-col {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.al-feature-nav-col::-webkit-scrollbar {
+  width: 4px;
+}
+
+.al-feature-nav-col::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 4px;
+}
+
+.al-feat-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--al-text-sub);
+  text-align: left;
+  cursor: pointer;
+  transition: var(--al-transition);
+  width: 100%;
+}
+
+.al-feat-nav-btn:hover {
+  background: #F8FAFC;
+  color: var(--al-text-main);
+}
+
+.al-feat-nav-btn.active {
+  background: rgba(184, 142, 45, 0.08);
+  border-color: var(--al-gold-border);
+  color: var(--al-text-main);
+}
+
+.al-feat-nav-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: #F1F5F9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  color: var(--al-text-sub);
+  flex-shrink: 0;
+}
+
+.al-feat-nav-btn.active .al-feat-nav-icon {
+  background: rgba(184, 142, 45, 0.15);
+  color: var(--al-gold);
+}
+
+.al-feat-nav-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--al-text-main);
+}
+
+.al-feat-nav-sub {
+  font-size: 0.7rem;
+  color: var(--al-text-muted);
+}
+
+.al-feature-preview-col {
+  background: #F8FAFC;
+  border: 1px solid var(--al-border-subtle);
+  border-radius: 12px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.al-feat-header-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--al-gold);
+  margin-bottom: 4px;
+}
+
+.al-feat-title {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--al-text-main);
+  margin-bottom: 8px;
+}
+
+.al-feat-desc {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--al-text-sub);
+  margin-bottom: 18px;
+}
+
+.al-feat-highlights-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.al-feat-highlight-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--al-text-main);
+  background: #FFFFFF;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--al-border-subtle);
+}
+
+.al-feat-highlight-item i {
+  color: var(--al-gold);
+  margin-top: 2px;
+  font-size: 0.74rem;
+}
+
+.al-feat-live-sim {
+  background: #FFFFFF;
+  border: 1px solid var(--al-gold-border);
+  border-radius: 10px;
+  padding: 16px;
+  margin-top: auto;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.al-sim-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--al-border-subtle);
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+.al-sim-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--al-gold-dark);
+}
+
+.al-sim-status {
+  font-size: 0.7rem;
+  color: #059669;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.al-sim-status::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #059669;
+}
+
+.al-sim-content {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--al-text-main);
+}
+
+/* ==========================================================================
+   5. LEGAL PROFESSIONAL ROLES (COMPACT)
+   ========================================================================== */
+.al-roles-section {
+  padding: 65px 0;
+  background: #F8F7F3;
+  position: relative;
+  border-bottom: 1px solid var(--al-border-subtle);
+}
+
+.al-role-selector-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.al-role-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: #FFFFFF;
+  border: 1px solid var(--al-border-subtle);
+  color: var(--al-text-sub);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--al-transition);
+}
+
+.al-role-tab-btn:hover {
+  background: #F1F5F9;
+  color: var(--al-text-main);
+}
+
+.al-role-tab-btn.active {
+  background: rgba(184, 142, 45, 0.12);
+  border-color: var(--al-gold);
+  color: var(--al-gold-dark);
+  font-weight: 700;
+}
+
+.al-role-tab-btn.active i {
+  color: var(--al-gold);
+}
+
+.al-role-detail-card {
+  background: #FFFFFF;
+  border: 1px solid var(--al-border-subtle);
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: var(--al-shadow-card);
+}
+
+.al-role-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--al-border-subtle);
+  padding-bottom: 10px;
+}
+
+.al-role-top h3 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--al-text-main);
+  margin-bottom: 4px;
+}
+
+.al-role-summary {
+  font-size: 0.84rem;
+  color: var(--al-text-sub);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.al-role-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.al-role-box {
+  background: #F8FAFC;
+  border-radius: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--al-border-subtle);
+  display: flex;
+  flex-direction: column;
+}
+
+.al-role-box-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--al-text-main);
+  margin-bottom: 8px;
+}
+
+.al-role-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.al-role-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 0.76rem;
+  line-height: 1.35;
+  color: var(--al-text-sub);
+}
+
+.al-role-list.problems li i { 
+  color: #ef4444; 
+  font-size: 0.72rem;
+  margin-top: 2px;
+}
+
+.al-role-list.solutions li i { 
+  color: var(--al-gold); 
+  font-size: 0.72rem;
+  margin-top: 2px;
+}
+
+.al-role-workflow-title {
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: var(--al-text-main);
+  margin-bottom: 12px;
+}
+
+.al-role-workflow-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.al-role-step-card {
+  background: #F8FAFC;
+  border: 1px solid var(--al-border-subtle);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.al-role-step-num {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--al-gold);
+  margin-bottom: 4px;
+}
+
+.al-role-step-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--al-text-main);
+  margin-bottom: 4px;
+}
+
+.al-role-step-desc {
+  font-size: 0.74rem;
+  line-height: 1.4;
+  color: var(--al-text-sub);
+  margin: 0;
+}
+
+/* ==========================================================================
+   6. REAL-WORLD USE CASES (COMPACT)
+   ========================================================================== */
+.al-usecases-section {
+  padding: 65px 0;
+  background: #FFFFFF;
+  position: relative;
+  border-bottom: 1px solid var(--al-border-subtle);
+}
+
+.al-usecases-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.al-usecase-card {
+  background: var(--al-bg-subtle);
+  border: 1px solid var(--al-border-subtle);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  transition: var(--al-transition);
+}
+
+.al-usecase-card:hover {
+  background: #FFFFFF;
+  border-color: var(--al-gold);
+  transform: translateY(-2px);
+  box-shadow: var(--al-shadow-card);
+}
+
+.al-usecase-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.al-usecase-num {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--al-gold);
+  letter-spacing: 0.04em;
+}
+
+.al-usecase-badge {
+  font-size: 0.62rem;
+  color: var(--al-text-muted);
+  background: #E2E8F0;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.al-usecase-card h3 {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--al-text-main);
+  margin-bottom: 2px;
+}
+
+.al-usecase-subtitle {
+  font-size: 0.73rem;
+  color: var(--al-text-sub);
+  margin-bottom: 10px;
+  line-height: 1.35;
+}
+
+.al-usecase-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: auto;
+}
+
+.al-flow-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  position: relative;
+}
+
+.al-flow-circle {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 1.5px solid var(--al-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.64rem;
+  font-weight: 700;
+  color: var(--al-gold-dark);
+  flex-shrink: 0;
+  z-index: 2;
+  margin-top: 1px;
+  box-shadow: 0 1px 3px rgba(184, 142, 45, 0.12);
+}
+
+.al-flow-info {
+  font-size: 0.72rem;
+  line-height: 1.32;
+}
+
+.al-flow-title {
+  font-size: 0.73rem;
+  font-weight: 700;
+  color: var(--al-text-main);
+  margin-right: 3px;
+}
+
+.al-flow-desc {
+  font-size: 0.71rem;
+  color: var(--al-text-sub);
+  line-height: 1.32;
+}
+
+/* ==========================================================================
+   7. "HOW AI LEGAL WORKS" (4-STEP WORKFLOW)
+   ========================================================================== */
+.al-workflow-section {
+  padding: 65px 0;
+  background: #F8F7F3;
+  position: relative;
+  border-bottom: 1px solid var(--al-border-subtle);
+}
+
+.al-workflow-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.al-workflow-card {
+  background: #FFFFFF;
+  border: 1px solid var(--al-border-subtle);
+  border-radius: 12px;
+  padding: 20px 16px;
+  transition: var(--al-transition);
+}
+
+.al-workflow-card:hover {
+  border-color: var(--al-gold);
+  transform: translateY(-2px);
+  box-shadow: var(--al-shadow-card);
+}
+
+.al-workflow-step-badge {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--al-gold);
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.al-workflow-icon-wrap {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: rgba(184, 142, 45, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--al-gold);
+  font-size: 1.05rem;
+  margin-bottom: 14px;
+}
+
+.al-workflow-phase {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--al-text-main);
+  margin-bottom: 4px;
+}
+
+.al-workflow-summary {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--al-gold-dark);
+  margin-bottom: 8px;
+}
+
+.al-workflow-desc {
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--al-text-sub);
+  margin-bottom: 14px;
+}
+
+.al-workflow-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.al-workflow-tag {
+  font-size: 0.68rem;
+  color: var(--al-text-sub);
+  background: #F1F5F9;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.al-workflow-disclaimer-box {
+  margin-top: 32px;
+  padding: 12px 18px;
+  background: #FFFFFF;
+  border: 1px solid var(--al-gold-border);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+}
+
+.al-workflow-disclaimer-box i {
+  color: var(--al-gold);
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.al-workflow-disclaimer-box p {
+  font-size: 0.78rem;
+  color: var(--al-text-sub);
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* ==========================================================================
+   8. PRODUCT EXPERIENCE (MULTI-UI SHOWCASE)
+   ========================================================================== */
+.al-showcase-section {
+  padding: 65px 0;
+  background: #FFFFFF;
+  position: relative;
+  border-bottom: 1px solid var(--al-border-subtle);
+}
+
+.al-showcase-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.al-showcase-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: 6px;
+  background: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  color: var(--al-text-sub);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--al-transition);
+}
+
+.al-showcase-tab-btn.active {
+  background: rgba(184, 142, 45, 0.12);
+  border-color: var(--al-gold);
+  color: var(--al-gold-dark);
+  font-weight: 700;
+}
+
+.al-showcase-browser-frame {
+  max-width: 660px;
+  margin: 0 auto;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--al-border-subtle);
+  background: #FFFFFF;
+  box-shadow: 0 14px 40px -10px rgba(15, 23, 42, 0.08);
+}
+
+.al-showcase-browser-frame .al-mockup-topbar {
+  background: #F1F5F9;
+  border-bottom: 1px solid var(--al-border-subtle);
+  padding: 6px 14px;
+}
+
+.al-showcase-browser-frame .al-mockup-address {
+  background: #FFFFFF;
+  color: var(--al-text-sub);
+  border: 1px solid var(--al-border-subtle);
+  font-size: 0.7rem;
+  padding: 3px 10px;
+}
+
+.al-showcase-img-wrap {
+  position: relative;
+  width: 100%;
+  background: #FFFFFF;
+}
+
+.al-showcase-img-wrap img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+/* ==========================================================================
+   9. DIFFERENTIATOR SECTION ("MORE THAN A CHATBOT")
+   ========================================================================== */
+.al-diff-section {
+  padding: 65px 0;
+  background: #F8F7F3;
+  position: relative;
+  border-bottom: 1px solid var(--al-border-subtle);
+}
+
+.al-diff-equation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 16px;
+  background: #FFFFFF;
+  border: 1px solid var(--al-gold-border);
+  border-radius: 10px;
+  margin-bottom: 30px;
+  box-shadow: var(--al-shadow-card);
+}
+
+.al-eq-pill {
+  padding: 4px 10px;
+  border-radius: 5px;
+  background: #F1F5F9;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--al-text-main);
+}
+
+.al-eq-plus {
+  color: var(--al-gold);
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+
+.al-eq-equals {
+  color: var(--al-gold);
+  font-weight: 800;
+  font-size: 0.95rem;
+  margin: 0 2px;
+}
+
+.al-eq-result {
+  padding: 5px 12px;
+  border-radius: 6px;
+  background: rgba(184, 142, 45, 0.12);
+  border: 1px solid var(--al-gold);
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--al-gold-dark);
+}
+
+.al-diff-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--al-border-subtle);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #FFFFFF;
+  box-shadow: var(--al-shadow-card);
+}
+
+.al-diff-table th,
+.al-diff-table td {
+  padding: 14px 18px;
+  text-align: left;
+}
+
+.al-diff-table thead tr {
+  background: #F8FAFC;
+  border-bottom: 1px solid var(--al-border-subtle);
+}
+
+.al-diff-table th {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--al-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.al-diff-table th.al-th-ailegal {
+  color: var(--al-gold-dark);
+  background: rgba(184, 142, 45, 0.08);
+}
+
+.al-diff-table tbody tr {
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.al-diff-table tbody tr:hover {
+  background: #FAF8F5;
+}
+
+.al-diff-dim {
+  font-weight: 700;
+  color: var(--al-text-main);
+  font-size: 0.84rem;
+}
+
+.al-diff-generic {
+  color: var(--al-text-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.al-diff-highlight {
+  color: var(--al-text-main);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  background: rgba(184, 142, 45, 0.04);
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   10. WEB + MOBILE PLATFORM AVAILABILITY
+   ========================================================================== */
+.al-platform-section {
+  padding: 65px 0;
+  background: #FFFFFF;
+  position: relative;
+  border-bottom: 1px solid var(--al-border-subtle);
+}
+
+.al-platform-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.al-platform-card {
+  background: var(--al-bg-subtle);
+  border: 1px solid var(--al-border-subtle);
+  border-radius: 12px;
+  padding: 22px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: var(--al-transition);
+}
+
+.al-platform-card:hover {
+  background: #FFFFFF;
+  border-color: var(--al-gold);
+  transform: translateY(-2px);
+  box-shadow: var(--al-shadow-card);
+}
+
+.al-platform-icon-wrap {
+  width: 48px;
+  height: 48px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.al-platform-card:hover .al-platform-icon-wrap {
+  transform: translateY(-2px) scale(1.08);
+  box-shadow: none;
+  border-color: transparent;
+}
+
+.al-platform-card h3 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--al-text-main);
+  margin-bottom: 6px;
+}
+
+.al-platform-card p {
+  font-size: 0.78rem;
+  color: var(--al-text-sub);
+  line-height: 1.45;
+  margin-bottom: 18px;
+}
+
+.al-platform-btn {
+  width: 100%;
+  margin-top: auto;
+}
+
+/* ==========================================================================
+   11. TRUST / SECURITY SECTION
+   ========================================================================== */
+.al-trust-section {
+  padding: 65px 0;
+  background: #F8F7F3;
+  position: relative;
+  border-bottom: 1px solid var(--al-border-subtle);
+}
+
+.al-trust-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.al-trust-card {
+  padding: 18px 16px;
+  background: #FFFFFF;
+  border: 1px solid var(--al-border-subtle);
+  border-radius: 10px;
+  transition: var(--al-transition);
+}
+
+.al-trust-card:hover {
+  border-color: var(--al-gold-border);
+  transform: translateY(-2px);
+  box-shadow: var(--al-shadow-card);
+}
+
+.al-trust-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: rgba(184, 142, 45, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--al-gold);
+  font-size: 0.95rem;
+  margin-bottom: 12px;
+}
+
+.al-trust-card h4 {
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: var(--al-text-main);
+  margin-bottom: 6px;
+}
+
+.al-trust-card p {
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--al-text-sub);
+  margin: 0;
+}
+
+/* ==========================================================================
+   12. ROADMAP SECTION
+   ========================================================================== */
+.al-roadmap-section {
+  padding: 65px 0;
+  background: #FFFFFF;
+  position: relative;
+  border-bottom: 1px solid var(--al-border-subtle);
+}
+
+.al-roadmap-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.al-roadmap-card {
+  background: #F8FAFC;
+  border: 1px solid var(--al-border-subtle);
+  border-radius: 12px;
+  padding: 20px 18px;
+  display: flex;
+  flex-direction: column;
+}
+
+.al-roadmap-card.status-now {
+  background: #FFFFFF;
+  border-color: var(--al-gold-border);
+  box-shadow: var(--al-shadow-card);
+}
+
+.al-roadmap-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.al-roadmap-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.status-now .al-roadmap-badge {
+  background: rgba(184, 142, 45, 0.12);
+  color: var(--al-gold-dark);
+  border: 1px solid var(--al-gold-border);
+}
+
+.status-next .al-roadmap-badge {
+  background: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.status-future .al-roadmap-badge {
+  background: rgba(147, 51, 234, 0.1);
+  color: #7e22ce;
+  border: 1px solid rgba(147, 51, 234, 0.25);
+}
+
+.al-roadmap-tier {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--al-text-main);
+  margin-bottom: 16px;
+}
+
+.al-roadmap-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.al-roadmap-items li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--al-text-sub);
+  line-height: 1.4;
+}
+
+.al-roadmap-items li i {
+  margin-top: 3px;
+  font-size: 0.7rem;
+  color: var(--al-gold);
+}
+
+/* ==========================================================================
+   13. FINAL CTA & DISCLAIMER
+   ========================================================================== */
+.al-final-cta-section {
+  padding: 85px 0 65px;
+  background: radial-gradient(circle at 50% 20%, rgba(200, 163, 77, 0.12) 0%, #FBFBFA 60%, #F5F1E4 100%);
+  position: relative;
+  text-align: center;
+  border-top: 1px solid var(--al-gold-border);
+}
+
+.al-final-cta-box {
+  max-width: 820px;
+  margin: 0 auto;
+  background: linear-gradient(135deg, #FFFFFF 0%, #FDFBF5 50%, #FAF5E8 100%);
+  border: 1px solid rgba(184, 142, 45, 0.35);
+  border-radius: 18px;
+  padding: 44px 36px 36px;
+  box-shadow: 0 20px 50px -10px rgba(184, 142, 45, 0.15), 0 0 24px rgba(184, 142, 45, 0.08);
+}
+
+.al-final-cta-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--al-gold-dark);
+  margin-bottom: 12px;
+}
+
+.al-final-cta-title {
+  font-size: 2.35rem;
+  font-weight: 900;
+  line-height: 1.15;
+  color: var(--al-text-main);
+  letter-spacing: -0.02em;
+  margin-bottom: 10px;
+}
+
+.al-final-cta-sub {
+  font-size: 1.05rem;
+  color: var(--al-gold);
+  font-weight: 700;
+  margin-bottom: 24px;
+}
+
+.al-final-cta-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.al-final-brand-tag {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--al-text-muted);
+  margin-bottom: 26px;
+}
+
+.al-final-brand-tag span {
+  color: var(--al-gold-dark);
+  font-weight: 700;
+}
+
+.al-legal-disclaimer-card {
+  background: #FFFFFF;
+  border: 1px solid var(--al-border-subtle);
+  border-radius: 8px;
+  padding: 14px 18px;
+  max-width: 720px;
+  margin: 0 auto;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+}
+
+.al-legal-disclaimer-card p {
+  font-size: 0.74rem;
+  line-height: 1.5;
+  color: var(--al-text-muted);
+  margin: 0;
+}
+
+/* ==========================================================================
+   14. NAVBAR DROPDOWN STYLING ENHANCEMENT
+   ========================================================================== */
+.projects-menu .ai-legal-nav-item {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  background: rgba(184, 142, 45, 0.08) !important;
+  border-left: 3px solid #B88E2D !important;
+  margin-bottom: 4px !important;
+  border-radius: 6px !important;
+  padding: 6px 12px !important;
+  transition: all 0.2s ease !important;
+  text-decoration: none !important;
+}
+
+.projects-menu .ai-legal-nav-item:hover {
+  background: rgba(184, 142, 45, 0.16) !important;
+  text-decoration: none !important;
+  transform: translateX(2px) !important;
+}
+
+.ai-legal-nav-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.ai-legal-nav-title {
+  color: #0F172A !important;
+  font-weight: 800 !important;
+  font-size: 0.9rem !important;
+  line-height: 1.2 !important;
+}
+
+.ai-legal-nav-sub {
+  color: #B88E2D !important;
+  font-size: 0.68rem !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+}
+
+.ai-legal-badge {
+  background: #B88E2D;
+  color: #FFFFFF;
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+
+/* Mobile drawer AI Legal item */
+.mobile-projects .mobile-ai-legal-link {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  border-left: 3px solid #B88E2D !important;
+  background: rgba(184, 142, 45, 0.08) !important;
+  padding: 8px 12px !important;
+  margin-bottom: 8px !important;
+  color: #0F172A !important;
+}
+
+.mobile-projects .mobile-ai-legal-sub {
+  font-size: 0.68rem;
+  color: #B88E2D;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   CINEMATIC MOTION & INTERACTION UPGRADE STYLES
+   ========================================================================== */
+
+/* 1. Product Overview Spotlight */
+.al-overview-visual-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid var(--al-border-subtle);
+  background: #ffffff;
+  box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.08);
+}
+
+.al-pillar-item {
+  position: relative;
+  cursor: pointer;
+  outline: none;
+  transition: var(--al-transition);
+}
+
+.al-pillar-item:hover,
+.al-pillar-item.active {
+  border-color: var(--al-gold) !important;
+  background: #FDFCF9 !important;
+  box-shadow: 0 8px 24px -4px rgba(184, 142, 45, 0.16) !important;
+}
+
+/* 2. Ecosystem Living Network & Central Hub */
+.al-central-hub-box {
+  position: relative;
+  overflow: hidden;
+}
+
+.al-hub-ambient-pulse {
+  position: absolute;
+  top: -60%;
+  left: -20%;
+  width: 140%;
+  height: 220%;
+  background: radial-gradient(circle, rgba(200, 163, 77, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+  animation: alHubDrift 14s ease-in-out infinite alternate;
+}
+
+.al-central-hub-logo-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.al-central-hub-ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: 12px;
+  border: 2px solid var(--al-gold);
+  pointer-events: none;
+}
+
+.al-hub-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10B981;
+  box-shadow: 0 0 8px #10B981;
+  animation: alBlink 1.8s infinite;
+}
+
+.al-sync-indicator {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--al-gold);
+  margin-right: 5px;
+  animation: alBlink 1.5s infinite;
+}
+
+.al-eco-active-glow-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #B88E2D, #C8A34D, #B88E2D);
+  border-radius: 10px 10px 0 0;
+}
+
+.al-eco-packet-stream {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(184, 142, 45, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  color: var(--al-gold);
+  font-weight: 700;
+}
+
+.al-eco-packet-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--al-gold);
+  animation: alPulseRing 1.2s infinite;
+}
+
+/* 3. Role Explorer Glider & Workflow Track */
+.al-role-selector-tabs {
+  position: relative;
+}
+
+.al-role-tab-btn {
+  position: relative;
+}
+
+.al-role-tab-glider {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #B88E2D 0%, #C8A34D 100%);
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(184, 142, 45, 0.35);
+  z-index: 1;
+}
+
+.al-role-tab-btn.active span,
+.al-role-tab-btn.active i {
+  color: #FFFFFF !important;
+}
+
+.al-role-workflow-track {
+  width: 100%;
+  height: 3px;
+  background: #E2E8F0;
+  border-radius: 3px;
+  margin: 12px 0 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.al-role-workflow-progress-line {
+  height: 100%;
+  background: linear-gradient(90deg, #B88E2D, #C8A34D);
+  border-radius: 3px;
+}
+
+/* 4. Use Case Interactive Flow Steps (No cutting line) */
+.al-flow-step {
+  position: relative;
+  z-index: 1;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+
+.al-flow-step.active {
+  background: rgba(184, 142, 45, 0.07);
+}
+
+.al-flow-step.active .al-flow-circle {
+  background: #B88E2D !important;
+  color: #FFFFFF !important;
+  border-color: #B88E2D !important;
+  box-shadow: 0 0 10px rgba(184, 142, 45, 0.4);
+}
+
+.al-flow-step.active .al-flow-title {
+  color: var(--al-gold-dark) !important;
+}
+
+/* 5. Workflow Pipeline Track & Data Packet */
+.al-workflow-pipeline-track {
+  position: relative;
+  width: 100%;
+  max-width: 900px;
+  height: 18px;
+  margin: 0 auto 28px;
+  display: flex;
+  align-items: center;
+}
+
+.al-pipeline-line-bg {
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(184, 142, 45, 0.2) 0%, rgba(184, 142, 45, 0.6) 50%, rgba(184, 142, 45, 0.2) 100%);
+}
+
+.al-pipeline-packet {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.al-packet-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #B88E2D;
+  box-shadow: 0 0 10px #B88E2D;
+}
+
+.al-packet-glow {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(184, 142, 45, 0.3);
+  animation: alPulseRing 1.2s infinite;
+}
+
+.al-workflow-card.pipeline-active {
+  border-color: var(--al-gold) !important;
+  box-shadow: 0 10px 28px -4px rgba(184, 142, 45, 0.18) !important;
+  background: #FDFCF9 !important;
+}
+
+.al-workflow-active-glow {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #B88E2D, #C8A34D);
+  border-radius: 0 0 10px 10px;
+}
+
+/* 6. Product Showcase Glider, Expand & Hotspots */
+.al-showcase-tab-glider {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #B88E2D 0%, #C8A34D 100%);
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(184, 142, 45, 0.35);
+  z-index: 1;
+}
+
+.al-showcase-tab-btn.active span,
+.al-showcase-tab-btn.active i {
+  color: #FFFFFF !important;
+}
+
+.al-verified-platform-tag {
+  font-size: 0.74rem;
+  color: var(--al-gold);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.al-showcase-img-wrap {
+  cursor: default;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 7. Differentiator Highlight Badge */
+.al-diff-highlight-badge {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 600;
+  color: #0F172A;
+}
+
+/* 8. Platform Top Bar */
+.al-platform-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 12px;
+}
+
+.al-plat-device-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--al-gold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* 9. Trust Top Status */
+.al-trust-top-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.al-trust-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10B981;
+  box-shadow: 0 0 6px #10B981;
+}
+
+.al-trust-status-txt {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--al-text-sub);
+}
+
+/* 10. Final CTA Ambient Glow & Border Sweep */
+.al-cta-ambient-glow {
+  position: absolute;
+  top: -60%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(200, 163, 77, 0.16) 0%, transparent 70%);
+  pointer-events: none;
+  animation: alHubDrift 12s ease-in-out infinite alternate;
+}
+
+.al-cta-border-shimmer {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 1px;
+  background: linear-gradient(135deg, transparent 20%, rgba(200, 163, 77, 0.4) 50%, transparent 80%);
+  background-size: 250% 250%;
+  animation: alBorderShimmer 12s linear infinite;
+  pointer-events: none;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+/* 11. Keyframe Animations */
+@keyframes alBeaconPulse {
+  0% { transform: scale(0.6); opacity: 0.9; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+@keyframes alSpotlightPulse {
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.01); }
+}
+
+@keyframes alPulseRing {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(184, 142, 45, 0.5); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(184, 142, 45, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(184, 142, 45, 0); }
+}
+
+@keyframes alHubDrift {
+  0% { transform: translate(-20%, -50%) scale(1); }
+  100% { transform: translate(-10%, -45%) scale(1.08); }
+}
+
+@keyframes alBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@keyframes alBorderShimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes alAmbientDrift {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(30px, -20px) scale(1.05); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+
+.ambient-gold-1 {
+  animation: alAmbientDrift 20s ease-in-out infinite alternate;
+}
+
+.ambient-gold-2 {
+  animation: alAmbientDrift 24s ease-in-out infinite alternate-reverse;
+}
+
+.ambient-gold-3 {
+  animation: alAmbientDrift 22s ease-in-out infinite alternate;
+}
+
+/* ==========================================================================
+   15. RESPONSIVE BREAKPOINTS
+   ========================================================================== */
+@media (max-width: 1024px) {
+  .al-hero-split-grid {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .al-hero-left {
+    align-items: center;
+    text-align: center;
+  }
+  .al-hero-left .al-hero-title,
+  .al-hero-left .al-hero-supporting,
+  .al-hero-left .al-hero-lead,
+  .al-hero-left .al-hero-footer-note {
+    text-align: center;
+  }
+  .al-hero-left .al-hero-actions {
+    justify-content: center;
+  }
+  .al-hero-right .al-hero-dashboard-preview,
+  .al-hero-right .al-hero-image-frame {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  .al-hero-left .al-hero-title { font-size: 2.15rem; }
+  .al-hero-feature-pills { grid-template-columns: repeat(3, 1fr); }
+  .al-ecosystem-matrix { grid-template-columns: repeat(2, 1fr); }
+  .al-usecases-grid { grid-template-columns: repeat(2, 1fr); }
+  .al-workflow-grid { grid-template-columns: repeat(2, 1fr); }
+  .al-roadmap-grid { grid-template-columns: repeat(1, 1fr); }
+  .al-split-layout { grid-template-columns: 1fr; gap: 30px; }
+  .al-feature-explorer-container { grid-template-columns: 1fr; }
+  .al-overview-pillars,
+  .al-overview-pillars-row { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+}
+
+@media (max-width: 768px) {
+  .al-hero-section { min-height: auto; padding: 85px 0 55px; }
+  .al-hero-title { font-size: 1.85rem; }
+  .al-hero-supporting { font-size: 0.95rem; }
+  .al-hero-feature-pills { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 24px; padding-top: 16px; }
+  .al-hero-lead { font-size: 0.85rem; }
+  .al-section-title { font-size: 1.55rem; }
+  .al-section-header { margin-bottom: 28px; }
+  .al-ecosystem-matrix { grid-template-columns: 1fr; }
+  .al-usecases-grid { grid-template-columns: 1fr; }
+  .al-workflow-grid { grid-template-columns: 1fr; }
+  .al-trust-grid { grid-template-columns: 1fr; }
+  .al-platform-grid { grid-template-columns: 1fr; }
+  .al-feat-highlights-grid { grid-template-columns: 1fr; }
+  .al-role-grid-2 { grid-template-columns: 1fr; }
+  .al-role-workflow-grid { grid-template-columns: 1fr; }
+  .al-central-hub-box { flex-direction: column; align-items: flex-start; }
+  .al-central-hub-stats { width: 100%; justify-content: space-between; }
+  .al-btn { width: 100%; }
+  .al-hero-actions { flex-direction: column; width: 100%; }
+  .al-final-cta-actions { flex-direction: column; width: 100%; }
+  .al-final-cta-title { font-size: 1.8rem; }
+  .al-overview-pillars,
+  .al-overview-pillars-row { grid-template-columns: 1fr; }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -9,6 +9,10 @@ import BlogSinglePage from './pages/BlogSinglePage';
 import ContactPage from './pages/ContactPage';
 import AisaPage from './pages/AisaPage';
 import EfvPage from './pages/EfvPage';
+import AiLegalPage from './pages/AiLegalPage';
+import UwoConnectPage from './pages/UwoConnectPage';
+import AiEducationPage from './pages/AiEducationPage';
+import AiAdsPage from './pages/AiAdsPage';
 import PartnerLoginPage from './pages/PartnerLoginPage';
 import PartnerDashboardPage from './pages/PartnerDashboardPage';
 import AdminPage from './pages/AdminPage';
@@ -47,6 +51,17 @@ export default function App() {
           <Route path="/aisa.html" element={<AisaPage />} />
           <Route path="/efv" element={<EfvPage />} />
           <Route path="/efv.html" element={<EfvPage />} />
+          <Route path="/ai-legal" element={<AiLegalPage />} />
+          <Route path="/ai-legal.html" element={<AiLegalPage />} />
+          <Route path="/projects/uwo-connect" element={<UwoConnectPage />} />
+          <Route path="/uwo-connect" element={<UwoConnectPage />} />
+          <Route path="/uwo-connect.html" element={<UwoConnectPage />} />
+          <Route path="/ai-education" element={<AiEducationPage />} />
+          <Route path="/ai-education.html" element={<AiEducationPage />} />
+          <Route path="/projects/ai-education" element={<AiEducationPage />} />
+          <Route path="/ai-ads" element={<AiAdsPage />} />
+          <Route path="/ai-ads.html" element={<AiAdsPage />} />
+          <Route path="/projects/ai-ads" element={<AiAdsPage />} />
           <Route path="/partner-login" element={<PartnerLoginPage />} />
           <Route path="/partner-login.html" element={<PartnerLoginPage />} />
           <Route path="/partner-dashboard" element={<PartnerDashboardPage />} />

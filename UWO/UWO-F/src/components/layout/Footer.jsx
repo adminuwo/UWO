@@ -1,5 +1,4 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 
 export default function Footer({ onOpenLegal }) {
   const currentYear = new Date().getFullYear();
@@ -84,7 +83,7 @@ export default function Footer({ onOpenLegal }) {
 
         {/* RIGHT SIDE */}
         <div className="footer-right">
-          <h2 className="partner-heading">AISA<sup>&trade;</sup> | AI Mall<sup>&trade;</sup> | A-Series&trade;</h2>
+          <h2 className="partner-heading">UWO Connect<sup>&trade;</sup> | AI ADS<sup>&trade;</sup> | AI LEGAL<sup>&trade;</sup> | AISA<sup>&trade;</sup> | AI Mall<sup>&trade;</sup> | A-Series&trade; | EFV<sup>™</sup></h2>
           <div className="partner-logos-row">
             <div className="logo-item"><img src="/images/azure.png" alt="Azure" height="38" /></div>
             <div className="logo-item"><img src="/images/AWS.png" alt="AWS" height="38" /></div>

@@ -373,6 +373,52 @@ header.navbar-blogs .hamburger div {
   /* Underline on hover */
 }
 
+
+
+/* ==========================================================================
+   NAVBAR STYLING ON UWO CONNECT LIGHT SAAS THEME
+   ========================================================================== */
+.navbar.navbar-uwo-connect {
+  background: rgba(255, 255, 255, 0.94) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.85) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
+}
+
+.navbar.navbar-uwo-connect .nav-links a,
+.navbar.navbar-uwo-connect .projects-link {
+  color: #334155 !important;
+  font-weight: 600;
+}
+
+.navbar.navbar-uwo-connect .nav-links a:hover,
+.navbar.navbar-uwo-connect .projects-link:hover,
+.navbar.navbar-uwo-connect .nav-links a.active {
+  color: #0B8F78 !important;
+}
+
+.navbar.navbar-uwo-connect .hamburger div {
+  background: #0F172A !important;
+}
+
+.navbar.navbar-uwo-connect .projects-menu {
+  background: #FFFFFF !important;
+  border: 1px solid #E2E8F0 !important;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.08) !important;
+}
+
+.navbar.navbar-uwo-connect .projects-menu a {
+  color: #334155 !important;
+}
+
+.navbar.navbar-uwo-connect .projects-menu a:hover {
+  background: #F0FDF9 !important;
+  color: #0B8F78 !important;
+}
+
+
+
 .hamburger {
   display: none;
   cursor: pointer;
@@ -560,7 +606,12 @@ header.navbar-blogs .hamburger div {
   text-align: center;
   font-size: 2.5rem;
   font-weight: 700;
-  margin-bottom: 24px;
+  margin: 0 auto 24px auto;
+  display: block;
+  width: -moz-fit-content;
+  width: fit-content;
+  max-width: 100%;
+  position: relative;
   /* Slightly increased margin */
 }
 
@@ -575,9 +626,10 @@ header.navbar-blogs .hamburger div {
 .section-subtitle {
   text-align: center;
   color: var(--text-muted);
-  max-width: 600px;
-  margin: 0 auto 60px;
+  max-width: 720px;
+  margin: 0 auto 60px auto;
   font-size: 1.1rem;
+  line-height: 1.6;
 }
 
 /* ================= FEATURES (What We Build) ================= */
@@ -693,80 +745,194 @@ header.navbar-blogs .hamburger div {
   color: #000 !important;
 }
 
-.project-cards {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 30px;
-  max-width: 1200px;
+/* ================= FLAGSHIP PROJECTS CAROUSEL ================= */
+.projects-carousel-wrapper {
+  position: relative;
+  max-width: 1220px;
   margin: 0 auto;
-  perspective: 1000px;
+  padding: 0 46px;
 }
 
-.project-card {
-  flex: 0 1 calc((100% - 60px) / 3);
-  width: calc((100% - 60px) / 3);
-  min-width: 300px;
-  max-width: 380px;
+.projects-carousel-track {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 12px 4px 18px 4px;
+}
+
+.projects-carousel-track::-webkit-scrollbar {
+  display: none;
+}
+
+.project-carousel-card {
+  flex: 0 0 calc((100% - 40px) / 3);
+  min-width: 280px;
+  max-width: 370px;
+  height: 250px;
   box-sizing: border-box;
+  scroll-snap-align: start;
   color: #0f172a;
-  /* Force Dark text inside light cards */
-  background: #fdfbf7;
-  /* Solid light beige for perfect blending */
-  border-radius: 24px;
-  padding: 40px;
-  border: 1px solid var(--border-light);
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 20px 22px 18px 22px;
+  border: 1px solid rgba(214, 165, 89, 0.35);
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  transition: all 0.3s ease-out;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  justify-content: space-between;
+  text-decoration: none;
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+  user-select: none;
 }
 
-@media (max-width: 992px) {
-  .project-card {
-    flex: 0 1 calc((100% - 30px) / 2);
-    width: calc((100% - 30px) / 2);
-    min-width: 280px;
-    max-width: 420px;
-  }
-}
-
-@media (max-width: 600px) {
-  .project-cards {
-    gap: 20px;
-  }
-
-  .project-card {
-    flex: 0 1 100%;
-    width: 100%;
-    max-width: 100%;
-  }
-}
-
-.project-card:hover {
+.project-carousel-card:hover {
   background: #ffffff;
-  transform: translateY(-8px) scale(1.05);
-  box-shadow: 0 0 30px var(--primary), 0 0 50px var(--primary-glow);
-  border-color: var(--primary);
+  transform: translateY(-6px);
+  box-shadow: 0 12px 30px rgba(214, 165, 89, 0.35);
+  border-color: var(--primary, #D6A559);
 }
 
-.project-icon {
-  width: 120px;
-  height: 120px;
+.project-icon-compact {
+  width: 58px;
+  height: 58px;
   object-fit: contain;
   mix-blend-mode: multiply !important;
   background: transparent !important;
-  margin: 0 auto 24px auto;
+  margin: 0 auto 8px auto;
   display: block;
-  /* Ensure it behaves as a block in the flex container */
+  flex-shrink: 0;
+  transition: transform 0.25s ease;
 }
 
-/* Card animations handled by the card scale itself */
-.project-card h3 {
-  font-size: 1.8rem;
-  margin-bottom: 16px;
+.project-carousel-card:hover .project-icon-compact {
+  transform: scale(1.1);
+}
+
+.project-card-title {
+  font-size: 1.22rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 6px 0;
+  line-height: 1.25;
+}
+
+.project-card-desc {
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: #475569;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.project-card-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #b8863b;
+  margin-top: 10px;
+  transition: gap 0.2s ease;
+}
+
+.project-carousel-card:hover .project-card-cta {
+  gap: 8px;
+  color: #8c5b16;
+}
+
+/* Carousel Nav Arrow Buttons */
+.projects-carousel-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid rgba(214, 165, 89, 0.5);
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.projects-carousel-arrow:hover {
+  background: #D6A559;
+  color: #ffffff;
+  border-color: #D6A559;
+  transform: translateY(-50%) scale(1.1);
+  box-shadow: 0 6px 18px rgba(214, 165, 89, 0.4);
+}
+
+.projects-carousel-arrow.prev {
+  left: 0;
+}
+
+.projects-carousel-arrow.next {
+  right: 0;
+}
+
+/* Dots */
+.projects-carousel-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 22px;
+}
+
+.projects-carousel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.2);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.25s ease;
+}
+
+.projects-carousel-dot.active {
+  width: 24px;
+  background: #0f172a;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.25);
+}
+
+@media (max-width: 992px) {
+  .project-carousel-card {
+    flex: 0 0 calc((100% - 20px) / 2);
+    min-width: 260px;
+  }
+}
+
+@media (max-width: 640px) {
+  .projects-carousel-wrapper {
+    padding: 0 4px;
+  }
+  .projects-carousel-arrow {
+    display: none;
+  }
+  .project-carousel-card {
+    flex: 0 0 85%;
+    min-width: 240px;
+    height: 235px;
+  }
 }
 
 /* ================= TEAM SECTION (New) ================= */
@@ -1698,7 +1864,13 @@ a.btn:hover {
 /* Section Title Animations */
 .section-title {
   position: relative;
-  display: inline-block;
+  display: block;
+  width: -moz-fit-content;
+  width: fit-content;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
 }
 
 .section-title::after {

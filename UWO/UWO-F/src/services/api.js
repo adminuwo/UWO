@@ -88,9 +88,9 @@ export function getBlogFallbackImage(category = '', title = '') {
   return 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=1200&q=80';
 }
 
-export const CLOUD_RUN_BACKEND = typeof window !== 'undefined'
-  ? (window.location.hostname === "localhost" && window.location.port === "3000" ? "http://localhost:8080" : window.location.origin)
-  : "https://uwo-backend-977864306871.asia-south1.run.app";
+export const CLOUD_RUN_BACKEND = typeof window !== 'undefined' && window.location.origin.includes('uwo24.com')
+  ? window.location.origin
+  : "https://uwo24.com";
 
 export function resolveBlogImageUrl(blog) {
   if (!blog) return getBlogFallbackImage();
@@ -99,17 +99,27 @@ export function resolveBlogImageUrl(blog) {
 
   // GCS Private assets must be fetched via media proxy
   if (img.includes('storage.googleapis.com/uwo-document/')) {
-    const objectPath = img.split('storage.googleapis.com/uwo-document/')[1];
-    return `${API_URL}/media/${objectPath.replace(/^\/+/, '')}`;
+    const objectPath = img.split('storage.googleapis.com/uwo-document/')[1].replace(/^\/+/, '');
+    // In local dev, load directly from authoritative production CDN to guarantee 100% image availability
+    if (typeof window !== 'undefined' && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
+      return `https://uwo24.com/api/media/${objectPath}`;
+    }
+    return `${API_URL}/media/${objectPath}`;
   }
   if (img.includes('/api/media/')) {
-    const mediaPath = img.split('/api/media/')[1];
-    return `${API_URL}/media/${mediaPath.replace(/^\/+/, '')}`;
+    const mediaPath = img.split('/api/media/')[1].replace(/^\/+/, '');
+    if (typeof window !== 'undefined' && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
+      return `https://uwo24.com/api/media/${mediaPath}`;
+    }
+    return `${API_URL}/media/${mediaPath}`;
   }
   if (img.startsWith('http://') || img.startsWith('https://') || img.startsWith('data:')) {
     return img;
   }
   if (img.startsWith('/uploads/')) {
+    if (typeof window !== 'undefined' && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
+      return `https://uwo24.com${img}`;
+    }
     return `${BACKEND_BASE}${img}`;
   }
   return `${API_URL}/media/${img.replace(/^\/+/, '')}`;

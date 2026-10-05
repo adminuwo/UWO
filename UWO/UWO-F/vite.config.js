@@ -63,6 +63,7 @@ export default defineConfig({
             '/contact', '/contact.html',
             '/aisa', '/aisa.html',
             '/efv', '/efv.html',
+            '/ai-legal', '/ai-legal.html',
             '/blog-single', '/blog-single.html',
             '/partner-login', '/partner-login.html',
             '/partner-dashboard', '/partner-dashboard.html',

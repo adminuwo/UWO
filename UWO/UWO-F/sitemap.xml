@@ -49,6 +49,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://uwo24.com/ai-legal</loc>
+    <lastmod>2026-10-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
     <loc>https://uwo24.com/privacy-policy</loc>
     <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>

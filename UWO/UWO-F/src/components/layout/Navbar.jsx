@@ -4,9 +4,12 @@ import { Link, NavLink, useLocation } from 'react-router-dom';
 export default function Navbar({ onOpenEarnRefer, onToggleDrawer }) {
   const location = useLocation();
   const isBlogsPage = location.pathname.startsWith('/blogs') || location.pathname.startsWith('/blog-single');
+  const isUwoConnect = location.pathname.startsWith('/projects/uwo-connect') || location.pathname.startsWith('/uwo-connect');
+  const isAiEducation = location.pathname.startsWith('/ai-education') || location.pathname.startsWith('/projects/ai-education');
+  const isAiAds = location.pathname.startsWith('/ai-ads') || location.pathname.startsWith('/projects/ai-ads');
 
   return (
-    <header className={`navbar${isBlogsPage ? ' navbar-blogs' : ''}`}>
+    <header className={`navbar${isBlogsPage ? ' navbar-blogs' : ''}${isUwoConnect ? ' navbar-uwo-connect' : ''}${isAiEducation ? ' navbar-ai-education' : ''}${isAiAds ? ' navbar-ai-ads' : ''}`}>
       <div className="nav-container">
         {/* LOGO */}
         <Link to="/" className="nav-logo" title="UWO Home">
@@ -27,9 +30,11 @@ export default function Navbar({ onOpenEarnRefer, onToggleDrawer }) {
             <span className="projects-link">Our Projects &#9662;</span>
             <div className="projects-menu">
               <Link to="/aisa">AISA<sup>™</sup></Link>
-              <a href="/aisa-connect/" target="_blank" rel="noopener noreferrer">AISA Connect</a>
               <a href="https://aimall24.com/" target="_blank" rel="noopener noreferrer">AI Mall<sup>™</sup></a>
-              <a href="https://education.uwo24.com" target="_blank" rel="noopener noreferrer">AI-Education<sup>™</sup></a>
+              <a href="/ai-legal" target="_blank" rel="noopener noreferrer">AI LEGAL<sup>™</sup></a>
+              <a href="/projects/uwo-connect" target="_blank" rel="noopener noreferrer">UWO Connect<sup>™</sup></a>
+              <Link to="/ai-ads">AI ADS<sup>™</sup></Link>
+              <Link to="/ai-education">AI-Education<sup>™</sup></Link>
               <Link to="/efv">EFV<sup>™</sup></Link>
             </div>
           </div>

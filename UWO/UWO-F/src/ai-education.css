@@ -1,0 +1,1219 @@
+/* ==========================================================================
+   🎓 AI EDUCATION™ — ENTERPRISE ACADEMIC OS DESIGN SYSTEM
+   Theme: Deep Navy / Emerald Accent / Cyan Glow / Enterprise Dark
+   Preserves 100% of the live AI Education login interface visual language
+   ========================================================================== */
+
+:root {
+  --aied-bg-root: #05080d;
+  --aied-bg-surface: #080c12;
+  --aied-bg-card: #0b101a;
+  --aied-bg-panel: #101827;
+  --aied-bg-panel-elevated: #111a2b;
+  --aied-bg-input: #090e17;
+
+  --aied-emerald: #00b87a;
+  --aied-emerald-glow: rgba(0, 184, 122, 0.35);
+  --aied-emerald-light: #08b982;
+  --aied-emerald-surface: rgba(0, 184, 122, 0.08);
+  --aied-emerald-border: rgba(0, 184, 122, 0.25);
+
+  --aied-cyan: #16b8e8;
+  --aied-cyan-glow: rgba(22, 184, 232, 0.3);
+  --aied-cyan-surface: rgba(22, 184, 232, 0.08);
+
+  --aied-blue: #2997ff;
+  --aied-blue-surface: rgba(41, 151, 255, 0.08);
+
+  --aied-purple: #8b5cf6;
+  --aied-purple-surface: rgba(139, 92, 246, 0.08);
+
+  --aied-text-main: #f5f7fa;
+  --aied-text-muted: #8b9ab0;
+  --aied-text-subtle: #57657a;
+
+  --aied-border: rgba(255, 255, 255, 0.08);
+  --aied-border-strong: rgba(255, 255, 255, 0.16);
+
+  --aied-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --aied-font-mono: 'Space Grotesk', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Base Page Wrapper */
+.aied-page-root {
+  background-color: var(--aied-bg-root);
+  color: var(--aied-text-main);
+  font-family: var(--aied-font-sans);
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   NAVBAR ON AI EDUCATION PAGE
+   ========================================================================== */
+.navbar.navbar-ai-education {
+  background: rgba(5, 8, 13, 0.88) !important;
+  backdrop-filter: blur(16px) saturate(180%);
+  border-bottom: 1px solid rgba(0, 184, 122, 0.18) !important;
+}
+
+.navbar.navbar-ai-education .nav-links a {
+  color: #c4d1e2 !important;
+}
+
+.navbar.navbar-ai-education .nav-links a:hover,
+.navbar.navbar-ai-education .nav-links a.active {
+  color: var(--aied-emerald) !important;
+}
+
+.navbar.navbar-ai-education .projects-link {
+  color: #c4d1e2 !important;
+}
+
+.navbar.navbar-ai-education .projects-dropdown:hover .projects-link {
+  color: var(--aied-emerald) !important;
+}
+
+.navbar.navbar-ai-education .projects-menu {
+  background: var(--aied-bg-card);
+  border: 1px solid rgba(0, 184, 122, 0.25);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7), 0 0 20px rgba(0, 184, 122, 0.15);
+}
+
+.navbar.navbar-ai-education .projects-menu a {
+  color: var(--aied-text-main) !important;
+}
+
+.navbar.navbar-ai-education .projects-menu a:hover {
+  background: var(--aied-emerald-surface) !important;
+  color: var(--aied-emerald) !important;
+  text-decoration: none !important;
+}
+
+/* Common Section Container */
+.aied-section {
+  position: relative;
+  padding: 44px 0;
+  border-bottom: 1px solid var(--aied-border);
+}
+
+.aied-container {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 20px;
+  position: relative;
+  z-index: 2;
+}
+
+/* Section Header Typography */
+.aied-section-header {
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto 22px auto;
+}
+
+.aied-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--aied-emerald-surface);
+  border: 1px solid var(--aied-emerald-border);
+  border-radius: 9999px;
+  color: var(--aied-emerald);
+  font-family: var(--aied-font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.aied-badge-cyan {
+  background: var(--aied-cyan-surface);
+  border-color: rgba(22, 184, 232, 0.3);
+  color: var(--aied-cyan);
+}
+
+.aied-badge-purple {
+  background: var(--aied-purple-surface);
+  border-color: rgba(139, 92, 246, 0.3);
+  color: var(--aied-purple);
+}
+
+.aied-section-title {
+  font-size: 1.65rem;
+  font-weight: 800;
+  line-height: 1.22;
+  color: var(--aied-text-main);
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
+.aied-gradient-emerald {
+  background: linear-gradient(135deg, #00b87a 0%, #16b8e8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.aied-section-subtitle {
+  font-size: 0.85rem;
+  color: var(--aied-text-muted);
+  line-height: 1.5;
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+/* ==========================================================================
+   HERO SECTION
+   ========================================================================== */
+.aied-hero-section {
+  position: relative;
+  padding: 120px 0 70px 0;
+  min-height: 82vh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.aied-hero-bg-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background-image: 
+    radial-gradient(circle at 50% 20%, rgba(0, 184, 122, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(22, 184, 232, 0.08) 0%, transparent 40%),
+    linear-gradient(to bottom, rgba(5, 8, 13, 0.4), var(--aied-bg-root));
+}
+
+@keyframes aiedGridDrift {
+  0% { background-position: 0 0; }
+  100% { background-position: 40px 40px; }
+}
+
+@keyframes aiedPulseGlow {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.35); opacity: 0.65; }
+}
+
+.aied-pulse-dot {
+  animation: aiedPulseGlow 2.4s ease-in-out infinite;
+}
+
+.aied-academic-grid {
+  position: absolute;
+  inset: 0;
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
+  animation: aiedGridDrift 35s linear infinite;
+}
+
+.aied-hero-content {
+  display: grid;
+  grid-template-columns: 1.25fr 0.75fr;
+  gap: 28px;
+  align-items: center;
+}
+
+.aied-hero-visual-col {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.aied-hero-text h1 {
+  font-size: 2.05rem;
+  font-weight: 850;
+  line-height: 1.18;
+  letter-spacing: -0.025em;
+  color: #ffffff;
+  margin-bottom: 12px;
+}
+
+.aied-hero-desc {
+  font-size: 0.88rem;
+  color: var(--aied-text-muted);
+  line-height: 1.5;
+  margin-bottom: 18px;
+  max-width: 480px;
+}
+
+.aied-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.aied-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: linear-gradient(135deg, #00b87a 0%, #08b982 100%);
+  color: #05080d;
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 18px var(--aied-emerald-glow);
+  text-decoration: none;
+}
+
+.aied-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 184, 122, 0.45);
+  color: #05080d;
+}
+
+.aied-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--aied-bg-panel);
+  color: var(--aied-text-main);
+  font-weight: 600;
+  font-size: 0.82rem;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--aied-border-strong);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-decoration: none;
+}
+
+.aied-btn-secondary:hover {
+  background: var(--aied-bg-panel-elevated);
+  border-color: var(--aied-emerald);
+  transform: translateY(-2px);
+  color: #ffffff;
+}
+
+.aied-hero-telemetry-strip {
+  display: flex;
+  gap: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--aied-border);
+}
+
+.aied-telemetry-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.aied-telemetry-val {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--aied-emerald);
+  font-family: var(--aied-font-mono);
+}
+
+.aied-telemetry-lbl {
+  font-size: 0.68rem;
+  color: var(--aied-text-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ==========================================================================
+   REAL PRODUCT LOGIN UI RECREATION (HERO & INTERACTIVE WIDGET)
+   ========================================================================== */
+.aied-hero-visual-col .aied-product-browser-frame {
+  max-width: 330px !important;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.aied-showcase-browser-frame {
+  max-width: 980px !important;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.aied-product-browser-frame {
+  width: 100%;
+  margin: 0 auto;
+  background: var(--aied-bg-surface);
+  border: 1px solid var(--aied-border-strong);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.75), 0 0 20px rgba(0, 184, 122, 0.1);
+  overflow: hidden;
+  position: relative;
+  transition: border-color 0.3s ease;
+}
+
+.aied-product-browser-frame:hover {
+  border-color: rgba(0, 184, 122, 0.35);
+}
+
+.aied-browser-chrome {
+  background: #0b111c;
+  padding: 5px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--aied-border);
+}
+
+.aied-browser-dots {
+  display: flex;
+  gap: 3.5px;
+}
+
+.aied-browser-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.aied-browser-dot.red { background: #ef4444; }
+.aied-browser-dot.yellow { background: #f59e0b; }
+.aied-browser-dot.green { background: #10b981; }
+
+.aied-browser-address {
+  font-family: var(--aied-font-mono);
+  font-size: 0.6rem;
+  color: var(--aied-text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 1px 7px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.aied-login-widget {
+  padding: 9px 12px;
+  background: radial-gradient(circle at 50% 0%, #111a2b 0%, #080c12 100%);
+}
+
+.aied-login-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.aied-login-brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.aied-login-brand-logo {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  object-fit: cover;
+  border: 1px solid var(--aied-emerald-border);
+}
+
+.aied-login-brand-text h3 {
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  line-height: 1.1;
+}
+
+.aied-login-brand-text p {
+  font-size: 0.52rem;
+  color: var(--aied-text-muted);
+  margin: 0;
+  line-height: 1.1;
+}
+
+/* Primary Scope Switcher: School vs Tuition */
+.aied-scope-switcher {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  background: var(--aied-bg-input);
+  padding: 2px;
+  border-radius: 5px;
+  border: 1px solid var(--aied-border);
+  margin-bottom: 5px;
+}
+
+.aied-scope-btn {
+  padding: 3px 4px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: var(--aied-text-muted);
+  font-size: 0.63rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  line-height: 1.1;
+}
+
+.aied-scope-btn.active {
+  background: var(--aied-bg-panel);
+  color: #ffffff;
+  border: 1px solid var(--aied-emerald-border);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* Sub-Portal Tabs: Faculty / Student / Parent */
+.aied-portal-tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 5px;
+  border-bottom: 1px solid var(--aied-border);
+  padding-bottom: 4px;
+}
+
+.aied-portal-tab {
+  padding: 2px 4px;
+  border-radius: 3px;
+  background: transparent;
+  border: none;
+  color: var(--aied-text-muted);
+  font-size: 0.6rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  line-height: 1.1;
+}
+
+.aied-portal-tab:hover {
+  color: #ffffff;
+}
+
+.aied-portal-tab.active {
+  background: var(--aied-emerald-surface);
+  color: var(--aied-emerald);
+}
+
+/* Active Institutional Workspace Bar */
+.aied-workspace-strip {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--aied-border);
+  border-radius: 5px;
+  padding: 3px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.aied-workspace-info {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.aied-workspace-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--aied-emerald);
+  box-shadow: 0 0 4px var(--aied-emerald);
+}
+
+.aied-workspace-name {
+  font-size: 0.64rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.1;
+}
+
+.aied-workspace-slug {
+  font-family: var(--aied-font-mono);
+  font-size: 0.52rem;
+  color: var(--aied-text-subtle);
+  line-height: 1.1;
+}
+
+.aied-switch-inst-btn {
+  background: transparent;
+  border: 1px solid var(--aied-border);
+  color: var(--aied-cyan);
+  font-size: 0.53rem;
+  font-weight: 600;
+  padding: 1px 4px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s;
+  line-height: 1.1;
+}
+
+.aied-switch-inst-btn:hover {
+  background: var(--aied-cyan-surface);
+  border-color: var(--aied-cyan);
+}
+
+/* Login Form Inputs */
+.aied-form-group {
+  margin-bottom: 4px !important;
+  text-align: left;
+}
+
+.aied-login-widget label,
+.aied-login-widget .aied-form-label {
+  display: block !important;
+  font-size: 0.57rem !important;
+  font-weight: 600 !important;
+  color: var(--aied-text-muted) !important;
+  margin: 0 0 2px 0 !important;
+  margin-bottom: 2px !important;
+  font-family: var(--aied-font-mono) !important;
+  line-height: 1.1 !important;
+  text-transform: none !important;
+}
+
+.aied-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.aied-input-wrapper i {
+  position: absolute;
+  left: 7px;
+  color: var(--aied-text-subtle);
+  font-size: 0.58rem;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.aied-login-widget input.aied-input,
+.aied-input {
+  width: 100% !important;
+  height: 25px !important;
+  min-height: 25px !important;
+  max-height: 25px !important;
+  background: #090e17 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 4px !important;
+  padding: 2px 6px 2px 21px !important;
+  margin: 0 !important;
+  margin-bottom: 0 !important;
+  color: #ffffff !important;
+  font-size: 0.66rem !important;
+  font-family: var(--aied-font-sans) !important;
+  line-height: 1 !important;
+  box-shadow: none !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.aied-login-widget input.aied-input:focus,
+.aied-input:focus {
+  outline: none !important;
+  border-color: var(--aied-emerald) !important;
+  background: #0d1522 !important;
+  box-shadow: 0 0 6px rgba(0, 184, 122, 0.25) !important;
+}
+
+.aied-login-widget input.aied-input:-webkit-autofill,
+.aied-login-widget input.aied-input:-webkit-autofill:hover, 
+.aied-login-widget input.aied-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #ffffff !important;
+  -webkit-box-shadow: 0 0 0px 1000px #090e17 inset !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+}
+
+/* Quick Demo Login Preset Buttons */
+.aied-demo-presets {
+  margin-top: 4px;
+  margin-bottom: 4px;
+  padding: 3px 5px;
+  background: rgba(0, 184, 122, 0.04);
+  border: 1px dashed rgba(0, 184, 122, 0.25);
+  border-radius: 4px;
+}
+
+.aied-demo-presets-title {
+  font-size: 0.52rem;
+  font-family: var(--aied-font-mono);
+  color: var(--aied-emerald);
+  text-transform: uppercase;
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  line-height: 1.1;
+}
+
+.aied-demo-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.aied-demo-pill {
+  background: var(--aied-bg-panel);
+  border: 1px solid var(--aied-border);
+  color: var(--aied-text-muted);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 0.53rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  line-height: 1.2;
+}
+
+.aied-demo-pill:hover {
+  background: var(--aied-emerald-surface);
+  border-color: var(--aied-emerald);
+  color: #ffffff;
+}
+
+/* Login Action Button */
+.aied-signin-btn {
+  width: 100%;
+  height: 27px;
+  background: linear-gradient(135deg, #00b87a 0%, #08b982 100%);
+  color: #05080d;
+  font-weight: 700;
+  font-size: 0.67rem;
+  padding: 3px 6px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  box-shadow: 0 2px 6px var(--aied-emerald-glow);
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+.aied-signin-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 184, 122, 0.45);
+  color: #05080d;
+}
+
+.aied-login-footer-notice {
+  font-size: 0.52rem;
+  color: var(--aied-text-subtle);
+  margin-top: 3px;
+  text-align: center;
+  line-height: 1.1;
+}
+
+/* Floating Telemetry Badges */
+.aied-floating-pill {
+  position: absolute;
+  padding: 2px 5px;
+  background: rgba(16, 24, 39, 0.92);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--aied-border-strong);
+  border-radius: 5px;
+  font-size: 0.54rem;
+  color: var(--aied-text-main);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.aied-floating-pill.pill-top-right {
+  top: -6px;
+  right: -6px;
+  border-color: rgba(0, 184, 122, 0.3);
+}
+
+.aied-floating-pill.pill-bottom-left {
+  bottom: -6px;
+  left: -6px;
+  border-color: rgba(22, 184, 232, 0.3);
+}
+
+/* ==========================================================================
+   ACADEMIC OS & ECOSYSTEM GRAPH SECTION
+   ========================================================================== */
+.aied-os-diagram {
+  position: relative;
+  background: var(--aied-bg-card);
+  border: 1px solid var(--aied-border);
+  border-radius: 18px;
+  padding: 36px 20px;
+  overflow: hidden;
+  box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.5);
+}
+
+.aied-os-center {
+  position: relative;
+  margin: 0 auto;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #101827 0%, #05080d 100%);
+  border: 2px solid var(--aied-emerald);
+  box-shadow: 0 0 40px var(--aied-emerald-glow);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  text-align: center;
+  padding: 14px;
+}
+
+.aied-os-center-logo {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 6px;
+  border-radius: 8px;
+  box-shadow: 0 0 12px var(--aied-emerald);
+}
+
+.aied-os-center-title {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.04em;
+}
+
+.aied-os-center-sub {
+  font-size: 0.62rem;
+  color: var(--aied-emerald);
+  font-family: var(--aied-font-mono);
+  text-transform: uppercase;
+}
+
+.aied-os-nodes-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-top: 28px;
+  position: relative;
+  z-index: 4;
+}
+
+.aied-os-node-card {
+  background: var(--aied-bg-panel);
+  border: 1px solid var(--aied-border);
+  border-radius: 10px;
+  padding: 12px 10px;
+  text-align: center;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.aied-os-node-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--aied-emerald);
+  box-shadow: 0 8px 20px rgba(0, 184, 122, 0.15);
+}
+
+.aied-os-node-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  background: var(--aied-emerald-surface);
+  color: var(--aied-emerald);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 8px auto;
+  font-size: 0.95rem;
+}
+
+.aied-os-node-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 2px;
+}
+
+.aied-os-node-desc {
+  font-size: 0.68rem;
+  color: var(--aied-text-muted);
+  line-height: 1.35;
+}
+
+/* ==========================================================================
+   ROLE-BASED EXPERIENCE TABS
+   ========================================================================== */
+.aied-role-nav {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.aied-role-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 6px;
+  background: var(--aied-bg-card);
+  border: 1px solid var(--aied-border);
+  color: var(--aied-text-muted);
+  font-weight: 600;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.aied-role-btn:hover {
+  color: #ffffff;
+  border-color: var(--aied-border-strong);
+}
+
+.aied-role-btn.active {
+  background: var(--aied-bg-panel);
+  border-color: var(--aied-emerald);
+  color: #ffffff;
+  box-shadow: 0 3px 12px rgba(0, 184, 122, 0.18);
+}
+
+.aied-role-card {
+  background: var(--aied-bg-panel);
+  border: 1px solid var(--aied-border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 24px;
+  align-items: center;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+}
+
+.aied-role-feature-item {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.aied-role-feature-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: var(--aied-emerald-surface);
+  color: var(--aied-emerald);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.aied-role-preview-box {
+  background: var(--aied-bg-card);
+  border: 1px solid var(--aied-border-strong);
+  border-radius: 12px;
+  padding: 18px;
+  position: relative;
+}
+
+/* ==========================================================================
+   CORE MODULES EXPLORER (SPLIT VIEW & COMPACT HEIGHT)
+   ========================================================================== */
+.aied-modules-split {
+  display: grid;
+  grid-template-columns: 310px 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.aied-modules-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.aied-module-item-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 11px;
+  background: var(--aied-bg-card);
+  border: 1px solid var(--aied-border);
+  border-radius: 9px;
+  color: var(--aied-text-main);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.aied-module-item-btn:hover {
+  background: var(--aied-bg-panel);
+  border-color: var(--aied-border-strong);
+}
+
+.aied-module-item-btn.active {
+  background: var(--aied-bg-panel);
+  border-color: var(--aied-emerald);
+  box-shadow: 0 3px 14px rgba(0, 184, 122, 0.12);
+}
+
+.aied-module-item-left {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.aied-module-item-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--aied-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.aied-module-item-btn.active .aied-module-item-icon {
+  background: var(--aied-emerald-surface);
+  color: var(--aied-emerald);
+}
+
+.aied-module-preview-panel {
+  background: var(--aied-bg-panel);
+  border: 1px solid var(--aied-border-strong);
+  border-radius: 16px;
+  padding: 20px 22px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  position: relative;
+  min-height: auto;
+}
+
+/* ==========================================================================
+   ACADEMIC WORKFLOWS PROGRESSION
+   ========================================================================== */
+.aied-workflow-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+
+.aied-workflow-tab {
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: var(--aied-bg-card);
+  border: 1px solid var(--aied-border);
+  color: var(--aied-text-muted);
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.aied-workflow-tab.active {
+  background: var(--aied-bg-panel);
+  border-color: var(--aied-emerald);
+  color: #ffffff;
+}
+
+.aied-workflow-track {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  position: relative;
+  margin-top: 20px;
+}
+
+.aied-workflow-step {
+  background: var(--aied-bg-card);
+  border: 1px solid var(--aied-border);
+  border-radius: 10px;
+  padding: 12px 10px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.aied-workflow-step:hover {
+  border-color: var(--aied-emerald);
+  transform: translateY(-2px);
+}
+
+.aied-workflow-step-num {
+  font-family: var(--aied-font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--aied-emerald);
+  margin-bottom: 4px;
+}
+
+.aied-workflow-step-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 4px;
+}
+
+.aied-workflow-step-desc {
+  font-size: 0.68rem;
+  color: var(--aied-text-muted);
+  line-height: 1.35;
+}
+
+/* ==========================================================================
+   CLASS TEXTBOOK RAG SHOWCASE
+   ========================================================================== */
+.aied-rag-showcase {
+  background: var(--aied-bg-panel);
+  border: 1px solid var(--aied-border-strong);
+  border-radius: 16px;
+  padding: 24px;
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 24px;
+  align-items: center;
+}
+
+.aied-rag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(0, 184, 122, 0.12);
+  border: 1px solid rgba(0, 184, 122, 0.35);
+  color: #08b982;
+  font-family: var(--aied-font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 3px 7px;
+  border-radius: 5px;
+}
+
+/* ==========================================================================
+   TRUST & SECURITY (CASA TIER-2)
+   ========================================================================== */
+.aied-trust-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.aied-trust-card {
+  background: var(--aied-bg-card);
+  border: 1px solid var(--aied-border);
+  border-radius: 12px;
+  padding: 16px 14px;
+  transition: all 0.3s;
+}
+
+.aied-trust-card:hover {
+  border-color: var(--aied-emerald);
+  transform: translateY(-2px);
+}
+
+.aied-trust-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  background: var(--aied-emerald-surface);
+  color: var(--aied-emerald);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  margin-bottom: 10px;
+}
+
+/* ==========================================================================
+   FINAL CTA SECTION
+   ========================================================================== */
+.aied-final-cta-section {
+  position: relative;
+  padding: 55px 0;
+  text-align: center;
+  background: radial-gradient(circle at 50% 50%, rgba(0, 184, 122, 0.1) 0%, transparent 60%), #05080d;
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN BREAKPOINTS
+   ========================================================================== */
+@media (max-width: 1024px) {
+  .aied-hero-content {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .aied-hero-text h1 {
+    font-size: 2.1rem;
+  }
+  .aied-role-card {
+    grid-template-columns: 1fr;
+  }
+  .aied-modules-split {
+    grid-template-columns: 1fr;
+  }
+  .aied-workflow-track {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .aied-os-nodes-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .aied-trust-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .aied-rag-showcase {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .aied-section {
+    padding: 36px 0;
+  }
+  .aied-hero-section {
+    padding: 85px 0 40px 0;
+  }
+  .aied-hero-text h1 {
+    font-size: 1.85rem;
+  }
+  .aied-section-title {
+    font-size: 1.45rem;
+  }
+  .aied-workflow-track {
+    grid-template-columns: 1fr;
+  }
+  .aied-os-nodes-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .aied-trust-grid {
+    grid-template-columns: 1fr;
+  }
+  .aied-login-widget {
+    padding: 10px 12px;
+  }
+  .aied-floating-pill {
+    display: none;
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
