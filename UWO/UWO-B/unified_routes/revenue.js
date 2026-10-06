@@ -822,6 +822,43 @@ router.get('/subscriptions/:id', async (req, res) => {
   }
 });
 
+// PATCH /api/admin/revenue/subscriptions/:id/auto-renew
+router.patch('/subscriptions/:id/auto-renew', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { auto_renew } = req.body;
+    if (auto_renew === undefined) {
+      return res.status(400).json({ success: false, error: 'Missing auto_renew boolean in request body.' });
+    }
+    const updated = await subscriptionRepository.updateAutoRenew(id, !!auto_renew);
+    return res.json({
+      success: true,
+      message: `Auto-renew successfully ${auto_renew ? 'enabled' : 'disabled'} for subscription.`,
+      subscription: updated
+    });
+  } catch (err) {
+    console.error('[SubscriptionsAutoRenew] Error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/admin/revenue/subscriptions/:id/renew
+router.post('/subscriptions/:id/renew', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { days = 30, reason = 'Admin Manual Renewal', amount = null } = req.body;
+    const updated = await subscriptionRepository.renewSubscription(id, { days, reason, amount });
+    return res.json({
+      success: true,
+      message: `Subscription successfully renewed for +${days} days! New expiry: ${new Date(updated.expiry_date).toLocaleDateString()}.`,
+      subscription: updated
+    });
+  } catch (err) {
+    console.error('[SubscriptionsRenew] Error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // POST /api/admin/revenue/subscriptions/webhook/apple
 router.post('/subscriptions/webhook/apple', async (req, res) => {
   try {

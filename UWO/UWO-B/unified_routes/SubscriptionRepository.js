@@ -492,6 +492,143 @@ class SubscriptionRepository {
 
     return res;
   }
+
+  /**
+   * Toggles auto_renew on/off for a subscription and syncs to source DB
+   */
+  async updateAutoRenew(id, autoRenew) {
+    const db = await getUnifiedDb();
+    const { ObjectId } = require('mongodb');
+    const queryConditions = [
+      { _id: id },
+      { subscription_id: id },
+      { transaction_id: id }
+    ];
+    if (ObjectId.isValid(id) && typeof id === 'string' && id.length === 24) {
+      queryConditions.push({ _id: new ObjectId(id) });
+    }
+
+    const sub = await db.collection('subscriptions').findOne({ $or: queryConditions });
+    if (!sub) {
+      throw new Error('Subscription not found');
+    }
+
+    const updated = await db.collection('subscriptions').findOneAndUpdate(
+      { _id: sub._id },
+      {
+        $set: {
+          auto_renew: !!autoRenew,
+          updated_at: new Date()
+        }
+      },
+      { returnDocument: 'after' }
+    );
+
+    // Sync to AISA MongoDB if applicable
+    if (sub.subscription_id || sub.customer_id) {
+      try {
+        const { MongoClient, ObjectId } = require('mongodb');
+        const AISA_URI = process.env.AISA_MONGODB_URI || 'mongodb+srv://admin_db_user:ailegal050804@cluster0.265idhx.mongodb.net/AISA?appName=Cluster0';
+        const client = await MongoClient.connect(AISA_URI, { serverSelectionTimeoutMS: 5000 });
+        const aisaDb = client.db('AISA');
+        const aFilter = {};
+        if (ObjectId.isValid(sub.subscription_id)) {
+          aFilter._id = new ObjectId(sub.subscription_id);
+        } else {
+          aFilter._id = sub.subscription_id;
+        }
+        await aisaDb.collection('subscriptions').updateOne(aFilter, {
+          $set: {
+            autoRenew: !!autoRenew,
+            updatedAt: new Date()
+          }
+        });
+        await client.close();
+      } catch (err) {
+        console.warn('[SubscriptionRepository] Notice syncing autoRenew to AISA DB:', err.message);
+      }
+    }
+
+    const doc = updated.value || updated;
+    return this.computeDynamicStatus(doc);
+  }
+
+  /**
+   * Manually renews or extends a subscription entitlement (+days) and reactivates it
+   */
+  async renewSubscription(id, { days = 30, reason = 'Admin Manual Renewal', amount = null } = {}) {
+    const db = await getUnifiedDb();
+    const { ObjectId } = require('mongodb');
+    const queryConditions = [
+      { _id: id },
+      { subscription_id: id },
+      { transaction_id: id }
+    ];
+    if (ObjectId.isValid(id) && typeof id === 'string' && id.length === 24) {
+      queryConditions.push({ _id: new ObjectId(id) });
+    }
+
+    const sub = await db.collection('subscriptions').findOne({ $or: queryConditions });
+    if (!sub) {
+      throw new Error('Subscription not found');
+    }
+
+    const now = new Date();
+    // If currently active and expiry is in future, extend from existing expiry; otherwise extend from now
+    let baseDate = now;
+    if (sub.expiry_date && new Date(sub.expiry_date) > now) {
+      baseDate = new Date(sub.expiry_date);
+    }
+    const newExpiryDate = new Date(baseDate.getTime() + Number(days) * 24 * 60 * 60 * 1000);
+
+    const updateFields = {
+      status: 'active',
+      start_date: sub.start_date || now,
+      expiry_date: newExpiryDate,
+      auto_renew: true,
+      last_renewed_at: now,
+      renewed_by: 'admin',
+      renewal_reason: reason,
+      updated_at: now
+    };
+    if (amount) updateFields.amount = Number(amount);
+
+    const updated = await db.collection('subscriptions').findOneAndUpdate(
+      { _id: sub._id },
+      { $set: updateFields },
+      { returnDocument: 'after' }
+    );
+
+    // Sync to AISA MongoDB if applicable
+    if (sub.subscription_id || sub.customer_id) {
+      try {
+        const { MongoClient, ObjectId } = require('mongodb');
+        const AISA_URI = process.env.AISA_MONGODB_URI || 'mongodb+srv://admin_db_user:ailegal050804@cluster0.265idhx.mongodb.net/AISA?appName=Cluster0';
+        const client = await MongoClient.connect(AISA_URI, { serverSelectionTimeoutMS: 5000 });
+        const aisaDb = client.db('AISA');
+        const aFilter = {};
+        if (ObjectId.isValid(sub.subscription_id)) {
+          aFilter._id = new ObjectId(sub.subscription_id);
+        } else {
+          aFilter._id = sub.subscription_id;
+        }
+        await aisaDb.collection('subscriptions').updateOne(aFilter, {
+          $set: {
+            status: 'active',
+            expiryDate: newExpiryDate,
+            autoRenew: true,
+            updatedAt: now
+          }
+        });
+        await client.close();
+      } catch (err) {
+        console.warn('[SubscriptionRepository] Notice syncing renewal to AISA DB:', err.message);
+      }
+    }
+
+    const doc = updated.value || updated;
+    return this.computeDynamicStatus(doc);
+  }
 }
 
 // Singleton instance

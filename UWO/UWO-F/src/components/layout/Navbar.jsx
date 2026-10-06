@@ -13,7 +13,7 @@ export default function Navbar({ onOpenEarnRefer, onToggleDrawer }) {
       <div className="nav-container">
         {/* LOGO */}
         <Link to="/" className="nav-logo" title="UWO Home">
-          <img src="/images/uwo-logo.png" alt="UWO™ Logo" onError={(e) => { e.currentTarget.src = '/images/logo..webp'; }} />
+          <img src="/images/uwo-logo-light.png" alt="UWO™ Logo" onError={(e) => { e.currentTarget.src = '/images/uwo-logo.png'; }} />
         </Link>
 
         {/* DESKTOP NAV */}

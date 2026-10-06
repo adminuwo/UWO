@@ -60,7 +60,7 @@ export default function Layout() {
       </main>
 
       {/* Global Footer */}
-      <Footer onOpenLegal={handleOpenLegal} />
+      <Footer onOpenLegal={handleOpenLegal} onOpenEarnRefer={() => setEarnReferOpen(true)} />
 
       {/* 2-Field Earn & Refer Modal */}
       <EarnReferModal 
