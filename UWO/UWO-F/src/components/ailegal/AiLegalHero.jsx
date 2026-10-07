@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { AI_LEGAL_WEB_URL, AI_LEGAL_ANDROID_URL } from '../../constants/aiLegalConstants';
+import { AI_LEGAL_WEB_URL } from '../../constants/aiLegalConstants';
 import { fadeUp, scaleIn, btnMotion, EASE_PREMIUM } from './motionVariants';
 
 export default function AiLegalHero({ onExploreClick, onDownloadClick }) {
@@ -262,18 +262,17 @@ export default function AiLegalHero({ onExploreClick, onDownloadClick }) {
                 <span>Open Web App</span>
               </motion.a>
 
-              <motion.a
-                href={AI_LEGAL_ANDROID_URL}
-                target="_blank"
-                rel="noopener noreferrer"
+              <motion.button
+                type="button"
                 className="al-btn al-btn-outline-gold"
-                aria-label="Download AI Legal on Google Play"
+                onClick={onDownloadClick}
+                aria-label="Download AI Legal Mobile App"
                 whileHover={btnMotion.hover}
                 whileTap={btnMotion.tap}
               >
-                <i className="fa-brands fa-google-play"></i>
-                <span>Google Play</span>
-              </motion.a>
+                <i className="fa-solid fa-mobile-screen"></i>
+                <span>Download App</span>
+              </motion.button>
             </motion.div>
 
             <motion.p

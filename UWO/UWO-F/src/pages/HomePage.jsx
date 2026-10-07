@@ -343,7 +343,7 @@ export default function HomePage() {
                   const CardTag = isSpaRoute ? Link : 'a';
                   const linkAttributes = isSpaRoute 
                     ? { to: project.project_url, className: 'project-carousel-card' }
-                    : { href: project.project_url, target: '_blank', rel: 'noopener noreferrer', className: 'project-carousel-card' };
+                    : { href: project.project_url, className: 'project-carousel-card' };
 
                   return (
                     <CardTag key={index} {...linkAttributes}>

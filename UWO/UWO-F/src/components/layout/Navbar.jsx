@@ -3,6 +3,33 @@ import { Link, NavLink, useLocation } from 'react-router-dom';
 
 export default function Navbar({ onOpenEarnRefer, onToggleDrawer }) {
   const location = useLocation();
+  const [dropdownOpen, setDropdownOpen] = React.useState(false);
+  const dropdownRef = React.useRef(null);
+
+  // Close dropdown on route change
+  React.useEffect(() => {
+    setDropdownOpen(false);
+  }, [location.pathname]);
+
+  // Close dropdown when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, []);
+
+  const handleOptionClick = () => {
+    setDropdownOpen(false);
+  };
+
   const isBlogsPage = location.pathname.startsWith('/blogs') || location.pathname.startsWith('/blog-single');
   const isUwoConnect = location.pathname.startsWith('/projects/uwo-connect') || location.pathname.startsWith('/uwo-connect');
   const isAiEducation = location.pathname.startsWith('/ai-education') || location.pathname.startsWith('/projects/ai-education');
@@ -45,16 +72,29 @@ export default function Navbar({ onOpenEarnRefer, onToggleDrawer }) {
           </NavLink>
 
           {/* OUR PROJECTS DROPDOWN */}
-          <div className="projects-dropdown">
-            <span className="projects-link">Our Projects &#9662;</span>
-            <div className="projects-menu">
-              <Link to="/aisa">AISA<sup>™</sup></Link>
-              <a href="https://aimall24.com/" target="_blank" rel="noopener noreferrer">AI Mall<sup>™</sup></a>
-              <a href="/ai-legal" target="_blank" rel="noopener noreferrer">AI LEGAL<sup>™</sup></a>
-              <a href="/projects/uwo-connect" target="_blank" rel="noopener noreferrer">UWO Connect<sup>™</sup></a>
-              <Link to="/ai-ads">AI ADS<sup>™</sup></Link>
-              <Link to="/ai-education">AI-Education<sup>™</sup></Link>
-              <Link to="/efv">EFV<sup>™</sup></Link>
+          <div 
+            className={`projects-dropdown ${dropdownOpen ? 'is-open' : ''}`}
+            ref={dropdownRef}
+            onMouseEnter={() => setDropdownOpen(true)}
+            onMouseLeave={() => setDropdownOpen(false)}
+          >
+            <span 
+              className="projects-link"
+              onClick={() => setDropdownOpen((prev) => !prev)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { setDropdownOpen((prev) => !prev); } }}
+            >
+              Our Projects &#9662;
+            </span>
+            <div className={`projects-menu ${dropdownOpen ? 'open' : ''}`}>
+              <Link to="/aisa" onClick={handleOptionClick}>AISA<sup>™</sup></Link>
+              <a href="https://aimall24.com/" onClick={handleOptionClick}>AI Mall<sup>™</sup></a>
+              <Link to="/ai-legal" onClick={handleOptionClick}>AI LEGAL<sup>™</sup></Link>
+              <Link to="/projects/uwo-connect" onClick={handleOptionClick}>UWO Connect<sup>™</sup></Link>
+              <Link to="/ai-ads" onClick={handleOptionClick}>AI ADS<sup>™</sup></Link>
+              <Link to="/ai-education" onClick={handleOptionClick}>AI-Education<sup>™</sup></Link>
+              <Link to="/efv" onClick={handleOptionClick}>EFV<sup>™</sup></Link>
             </div>
           </div>
 

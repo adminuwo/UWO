@@ -57,9 +57,9 @@ export default function Footer({ onOpenLegal, onOpenEarnRefer }) {
             <div className="footer-platforms-list">
               <Link to="/projects/uwo-connect" className="platform-tag">UWO Connect<sup>&trade;</sup></Link>
               <Link to="/ai-ads" className="platform-tag">AI ADS<sup>&trade;</sup></Link>
-              <a href="/ai-legal" target="_blank" rel="noopener noreferrer" className="platform-tag">AI LEGAL<sup>&trade;</sup></a>
+              <Link to="/ai-legal" className="platform-tag">AI LEGAL<sup>&trade;</sup></Link>
               <Link to="/aisa" className="platform-tag">AISA<sup>&trade;</sup></Link>
-              <a href="https://aimall24.com/" target="_blank" rel="noopener noreferrer" className="platform-tag">AI Mall<sup>&trade;</sup></a>
+              <a href="https://aimall24.com/" className="platform-tag">AI Mall<sup>&trade;</sup></a>
               <Link to="/ai-education" className="platform-tag">AI Education<sup>&trade;</sup></Link>
               <Link to="/efv" className="platform-tag">EFV<sup>&trade;</sup></Link>
             </div>
