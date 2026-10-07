@@ -2,7 +2,7 @@
 
 export const UWO_CONNECT_WEB_URL = 'http://uwoconnect.aisa24.com/';
 export const UWO_CONNECT_IOS_URL = 'https://apps.apple.com/app/uwo-connect/id6470000000';
-export const UWO_CONNECT_ANDROID_URL = 'https://play.google.com/store/apps/details?id=com.uwo.uwoconnect&pli=1';
+export const UWO_CONNECT_ANDROID_URL = 'https://play.google.com/store/apps/details?id=com.uwo.uwoconnect&pcampaignid=web_share';
 export const UWO_CONNECT_DEMO_URL = '/contact';
 
 export const UWO_CONNECT_META = {

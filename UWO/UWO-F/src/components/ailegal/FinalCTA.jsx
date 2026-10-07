@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { AI_LEGAL_WEB_URL } from '../../constants/aiLegalConstants';
+import { AI_LEGAL_WEB_URL, AI_LEGAL_ANDROID_URL } from '../../constants/aiLegalConstants';
 import { fadeUp, btnMotion, EASE_PREMIUM } from './motionVariants';
 
 export default function FinalCTA({ onExploreClick, onDownloadClick }) {
@@ -82,17 +82,18 @@ export default function FinalCTA({ onExploreClick, onDownloadClick }) {
               <span>Open Web App</span>
             </motion.a>
 
-            <motion.button
-              type="button"
+            <motion.a
+              href={AI_LEGAL_ANDROID_URL}
+              target="_blank"
+              rel="noopener noreferrer"
               className="al-btn al-btn-outline-gold"
-              onClick={onDownloadClick}
-              aria-label="Download AI Legal Mobile Applications"
+              aria-label="Download AI Legal on Google Play"
               whileHover={btnMotion.hover}
               whileTap={btnMotion.tap}
             >
-              <i className="fa-solid fa-mobile-screen"></i>
-              <span>Download the App</span>
-            </motion.button>
+              <i className="fa-brands fa-google-play"></i>
+              <span>Google Play</span>
+            </motion.a>
           </motion.div>
 
           <motion.div

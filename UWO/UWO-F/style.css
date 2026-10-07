@@ -235,30 +235,6 @@ select:focus {
   box-shadow: 0 12px 35px -5px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
-/* Blogs Editorial Navbar Theme */
-header.navbar-blogs {
-  background: rgba(255, 255, 255, 0.85) !important;
-  backdrop-filter: blur(16px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
-  border: 1px solid rgba(221, 208, 184, 0.6) !important;
-  box-shadow: 0 10px 30px -5px rgba(110, 98, 87, 0.12) !important;
-}
-
-header.navbar-blogs .nav-links a,
-header.navbar-blogs .projects-link {
-  color: #1F1A17 !important;
-}
-
-header.navbar-blogs .nav-links a:hover,
-header.navbar-blogs .nav-links a.active,
-header.navbar-blogs .projects-link:hover {
-  color: #B8955A !important;
-}
-
-header.navbar-blogs .hamburger div {
-  background: #1F1A17 !important;
-}
-
 .nav-container {
   width: 100%;
   padding: 0 40px;
@@ -272,7 +248,7 @@ header.navbar-blogs .hamburger div {
   cursor: pointer;
   transition: transform 0.3s ease;
   animation: none;
-  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45));
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
 }
 
 .nav-logo img:hover {
@@ -288,17 +264,19 @@ header.navbar-blogs .hamburger div {
 
 .nav-links a,
 .projects-link {
-  font-weight: 700;
+  font-weight: 600;
   font-size: 15px;
   color: #ffffff;
   cursor: pointer;
   position: relative;
   padding-bottom: 5px;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
   display: inline-flex;
   align-items: center;
   line-height: 1;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8), 0 0 10px rgba(0, 0, 0, 0.45);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Animated Underline Effect */
@@ -325,11 +303,9 @@ header.navbar-blogs .hamburger div {
 .nav-links a:hover,
 .projects-link:hover,
 .nav-links a.active {
-  color: var(--primary);
-  /* Gold on hover */
-  text-shadow: 0 0 8px rgba(214, 165, 89, 0.3);
+  color: #FABE56;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
   transform: translateY(-2px);
-  /* Animate tabs on hover */
 }
 
 /* Navbar Dropdown */
@@ -384,45 +360,132 @@ header.navbar-blogs .hamburger div {
 
 
 /* ==========================================================================
-   NAVBAR STYLING ON UWO CONNECT LIGHT SAAS THEME
+   UNIFIED LIGHT THEME NAVBARS (UWO Connect, Blogs, AI Legal, AI Ads)
+   Crisp, non-blurry typography, high contrast, zero shadow smudging
    ========================================================================== */
-.navbar.navbar-uwo-connect {
-  background: rgba(255, 255, 255, 0.94) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
-  border-bottom: 1px solid rgba(226, 232, 240, 0.85) !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
+.navbar.navbar-light,
+.navbar.navbar-uwo-connect,
+header.navbar-blogs,
+.navbar.navbar-ai-legal,
+.navbar.navbar-ai-ads {
+  background: rgba(255, 255, 255, 0.90) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid rgba(226, 232, 240, 0.9) !important;
+  box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
 }
 
+.navbar.navbar-light:hover,
+.navbar.navbar-uwo-connect:hover,
+header.navbar-blogs:hover,
+.navbar.navbar-ai-legal:hover,
+.navbar.navbar-ai-ads:hover {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: rgba(203, 213, 225, 1) !important;
+  box-shadow: 0 14px 35px -5px rgba(15, 23, 42, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+}
+
+/* Nav links on light navbar — ZERO text shadow, ultra-crisp slate typography */
+.navbar.navbar-light .nav-links a,
+.navbar.navbar-light .projects-link,
 .navbar.navbar-uwo-connect .nav-links a,
-.navbar.navbar-uwo-connect .projects-link {
-  color: #334155 !important;
-  font-weight: 600;
+.navbar.navbar-uwo-connect .projects-link,
+header.navbar-blogs .nav-links a,
+header.navbar-blogs .projects-link,
+.navbar.navbar-ai-legal .nav-links a,
+.navbar.navbar-ai-legal .projects-link,
+.navbar.navbar-ai-ads .nav-links a,
+.navbar.navbar-ai-ads .projects-link {
+  color: #1e293b !important;
+  font-weight: 600 !important;
+  text-shadow: none !important;
+  filter: none !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
 }
 
+/* Hover and active states on light navbar */
+.navbar.navbar-light .nav-links a:hover,
+.navbar.navbar-light .projects-link:hover,
+.navbar.navbar-light .nav-links a.active,
+header.navbar-blogs .nav-links a:hover,
+header.navbar-blogs .projects-link:hover,
+header.navbar-blogs .nav-links a.active,
+.navbar.navbar-ai-legal .nav-links a:hover,
+.navbar.navbar-ai-legal .projects-link:hover,
+.navbar.navbar-ai-legal .nav-links a.active {
+  color: #B8955A !important;
+  text-shadow: none !important;
+  filter: none !important;
+  transform: translateY(-2px);
+}
+
+/* UWO Connect emerald hover */
 .navbar.navbar-uwo-connect .nav-links a:hover,
 .navbar.navbar-uwo-connect .projects-link:hover,
 .navbar.navbar-uwo-connect .nav-links a.active {
   color: #0B8F78 !important;
+  text-shadow: none !important;
+  filter: none !important;
+  transform: translateY(-2px);
 }
 
-.navbar.navbar-uwo-connect .hamburger div {
-  background: #0F172A !important;
+/* AI Ads purple hover */
+.navbar.navbar-ai-ads .nav-links a:hover,
+.navbar.navbar-ai-ads .projects-link:hover,
+.navbar.navbar-ai-ads .nav-links a.active {
+  color: #7c3aed !important;
+  text-shadow: none !important;
+  filter: none !important;
+  transform: translateY(-2px);
 }
 
-.navbar.navbar-uwo-connect .projects-menu {
-  background: #FFFFFF !important;
-  border: 1px solid #E2E8F0 !important;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.08) !important;
+/* Logo on light navbar — remove any dark drop shadow */
+.navbar.navbar-light .nav-logo img,
+.navbar.navbar-uwo-connect .nav-logo img,
+header.navbar-blogs .nav-logo img,
+.navbar.navbar-ai-legal .nav-logo img,
+.navbar.navbar-ai-ads .nav-logo img {
+  filter: none !important;
 }
 
-.navbar.navbar-uwo-connect .projects-menu a {
-  color: #334155 !important;
+/* Hamburger lines on light navbar */
+.navbar.navbar-light .hamburger div,
+.navbar.navbar-uwo-connect .hamburger div,
+header.navbar-blogs .hamburger div,
+.navbar.navbar-ai-legal .hamburger div,
+.navbar.navbar-ai-ads .hamburger div {
+  background: #1e293b !important;
+}
+
+/* Dropdown menu on light navbar */
+.navbar.navbar-light .projects-menu,
+.navbar.navbar-uwo-connect .projects-menu,
+header.navbar-blogs .projects-menu,
+.navbar.navbar-ai-legal .projects-menu,
+.navbar.navbar-ai-ads .projects-menu {
+  background: #ffffff !important;
+  border: 1px solid rgba(226, 232, 240, 0.9) !important;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.1) !important;
+}
+
+.navbar.navbar-light .projects-menu a,
+.navbar.navbar-uwo-connect .projects-menu a,
+header.navbar-blogs .projects-menu a,
+.navbar.navbar-ai-legal .projects-menu a,
+.navbar.navbar-ai-ads .projects-menu a {
+  color: #1e293b !important;
+  text-shadow: none !important;
 }
 
 .navbar.navbar-uwo-connect .projects-menu a:hover {
   background: #F0FDF9 !important;
   color: #0B8F78 !important;
+}
+
+.navbar.navbar-ai-ads .projects-menu a:hover {
+  background: #F5F3FF !important;
+  color: #7c3aed !important;
 }
 
 

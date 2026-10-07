@@ -20,6 +20,9 @@
   font-size: 14.5px !important;
   font-weight: 700 !important;
   line-height: 1 !important;
+  text-shadow: none !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
   cursor: pointer !important;
   pointer-events: auto !important;
   text-decoration: none !important;

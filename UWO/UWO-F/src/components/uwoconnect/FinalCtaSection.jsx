@@ -1,7 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { 
-  UWO_CONNECT_WEB_URL
+  UWO_CONNECT_WEB_URL,
+  UWO_CONNECT_ANDROID_URL
 } from '../../constants/uwoConnectConstants';
 import { fadeUp, btnMotion, EASE_PREMIUM } from './motionVariants';
 
@@ -58,9 +59,22 @@ export default function FinalCtaSection() {
               <i className="fa-solid fa-arrow-right"></i>
             </motion.a>
 
+            <motion.a
+              href={UWO_CONNECT_ANDROID_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="uwoc-btn uwoc-btn-secondary uwoc-btn-lg"
+              aria-label="Download UWO Connect on Google Play Store"
+              whileHover={btnMotion.hover}
+              whileTap={btnMotion.tap}
+            >
+              <i className="fa-brands fa-google-play"></i>
+              <span>Get on Google Play</span>
+            </motion.a>
+
             <motion.button
               type="button"
-              className="uwoc-btn uwoc-btn-secondary uwoc-btn-lg"
+              className="uwoc-btn uwoc-btn-dark-outline uwoc-btn-lg"
               onClick={scrollToFeatures}
               whileHover={btnMotion.hover}
               whileTap={btnMotion.tap}

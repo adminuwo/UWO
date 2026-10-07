@@ -11,7 +11,7 @@ import BeforeAfterComparison from '../components/uwoconnect/BeforeAfterCompariso
 import WebMobileAccess from '../components/uwoconnect/WebMobileAccess';
 import SecurityTrustSection from '../components/uwoconnect/SecurityTrustSection';
 import FinalCtaSection from '../components/uwoconnect/FinalCtaSection';
-import { UWO_CONNECT_META } from '../constants/uwoConnectConstants';
+import { UWO_CONNECT_META, UWO_CONNECT_ANDROID_URL } from '../constants/uwoConnectConstants';
 import '../uwo-connect.css';
 
 export default function UwoConnectPage() {
@@ -77,6 +77,7 @@ export default function UwoConnectPage() {
           'operatingSystem': 'Web, Android, iOS',
           'applicationCategory': 'BusinessApplication, CommunicationSoftware, CRMSoftware',
           'softwareVersion': '2.0.0',
+          'installUrl': UWO_CONNECT_ANDROID_URL,
           'description': UWO_CONNECT_META.description,
           'publisher': {
             '@type': 'Organization',

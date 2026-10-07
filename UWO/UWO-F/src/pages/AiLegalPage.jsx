@@ -10,7 +10,7 @@ import DifferentiatorSection from '../components/ailegal/DifferentiatorSection';
 import PlatformAvailability from '../components/ailegal/PlatformAvailability';
 import TrustSection from '../components/ailegal/TrustSection';
 import FinalCTA from '../components/ailegal/FinalCTA';
-import { AI_LEGAL_META } from '../constants/aiLegalConstants';
+import { AI_LEGAL_META, AI_LEGAL_ANDROID_URL } from '../constants/aiLegalConstants';
 import '../ai-legal.css';
 
 export default function AiLegalPage() {
@@ -72,6 +72,7 @@ export default function AiLegalPage() {
       'name': 'AI LEGAL™',
       'operatingSystem': 'Web, Android, iOS',
       'applicationCategory': 'BusinessApplication, LegalSoftware',
+      'installUrl': AI_LEGAL_ANDROID_URL,
       'description': AI_LEGAL_META.description,
       'offers': {
         '@type': 'Offer',

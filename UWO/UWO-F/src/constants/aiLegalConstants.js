@@ -2,7 +2,7 @@
 // Derived from UWO production configuration
 
 export const AI_LEGAL_WEB_URL = 'https://ailegal.aisa24.com';
-export const AI_LEGAL_ANDROID_URL = 'https://play.google.com/store/apps/details?id=com.uwo.ailegal';
+export const AI_LEGAL_ANDROID_URL = 'https://play.google.com/store/apps/details?id=com.uwo.ailegal&pcampaignid=web_share';
 export const AI_LEGAL_IOS_URL = 'https://apps.apple.com/app/id6797449251';
 
 export const AI_LEGAL_META = {

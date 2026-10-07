@@ -11,7 +11,7 @@ const PRODUCT_CATALOG = {
   aisa: {
     name: 'AISA',
     url: 'https://aisa24.com',
-    play_store_url: 'https://play.google.com/store/apps/details?id=com.uwo.aisa',
+    play_store_url: 'https://play.google.com/store/apps/details?id=com.uwo.aisa&pcampaignid=web_share',
     app_store_url: 'https://apps.apple.com/app/id6779135418',
     web_url: 'https://aisa24.com',
     description: 'Next-Gen Enterprise AI Models & Assistant Platform',
@@ -32,7 +32,7 @@ const PRODUCT_CATALOG = {
   ailegal: {
     name: 'AI-Legal',
     url: 'https://ailegal.aisa24.com',
-    play_store_url: 'https://play.google.com/store/apps/details?id=com.uwo.ailegal',
+    play_store_url: 'https://play.google.com/store/apps/details?id=com.uwo.ailegal&pcampaignid=web_share',
     app_store_url: 'https://apps.apple.com/app/id6797449251',
     web_url: 'https://ailegal.aisa24.com',
     description: 'AI Legal Assistant & Advocates Practice Suite',
@@ -47,6 +47,8 @@ const PRODUCT_CATALOG = {
   uwoconnect: {
     name: 'UWO Connect',
     url: 'https://connect.uwo24.com',
+    play_store_url: 'https://play.google.com/store/apps/details?id=com.uwo.uwoconnect&pcampaignid=web_share',
+    web_url: 'http://uwoconnect.aisa24.com/',
     description: 'Central Identity, SSO & Organization Security Portal',
     color: '#EC4899',
   },

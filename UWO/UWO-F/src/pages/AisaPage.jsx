@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getApiUrl } from '../services/api';
 
+export const AISA_PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.uwo.aisa&pcampaignid=web_share';
+export const AISA_WEB_URL = 'https://aisa24.com';
+
 export default function AisaPage() {
   const [demoModalOpen, setDemoModalOpen] = useState(false);
   const [demoSubmitting, setDemoSubmitting] = useState(false);
@@ -249,20 +252,20 @@ export default function AisaPage() {
 
           <div
             className="aisa-cta-group"
-            style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', flexWrap: 'wrap' }}
+            style={{ display: 'flex', gap: '1.25rem', justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center' }}
           >
             <a
               href="https://aisa24.com"
               target="_blank"
               rel="noopener noreferrer"
               style={{
-                padding: '16px 42px',
+                padding: '16px 38px',
                 borderRadius: '16px',
                 border: 'none',
                 background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
                 color: '#fff',
                 fontWeight: 800,
-                fontSize: '1.1rem',
+                fontSize: '1.05rem',
                 cursor: 'pointer',
                 boxShadow: '0 20px 50px rgba(99, 102, 241, 0.4)',
                 display: 'inline-flex',
@@ -273,17 +276,56 @@ export default function AisaPage() {
             >
               Get Early Access <i className="fa-solid fa-arrow-right"></i>
             </a>
+
+            <a
+              href={AISA_PLAY_STORE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Download AISA on Google Play Store"
+              style={{
+                padding: '16px 36px',
+                borderRadius: '16px',
+                background: 'rgba(59, 130, 246, 0.12)',
+                border: '1px solid rgba(96, 165, 250, 0.4)',
+                color: '#93c5fd',
+                fontWeight: 800,
+                fontSize: '1.05rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '12px',
+                textDecoration: 'none',
+                backdropFilter: 'blur(20px)',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(59, 130, 246, 0.22)';
+                e.currentTarget.style.borderColor = '#60a5fa';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 12px 30px rgba(59, 130, 246, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(59, 130, 246, 0.12)';
+                e.currentTarget.style.borderColor = 'rgba(96, 165, 250, 0.4)';
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              <i className="fa-brands fa-google-play" style={{ color: '#60a5fa', fontSize: '1.25rem' }}></i>
+              <span>Google Play</span>
+            </a>
+
             <button
               type="button"
               onClick={() => setDemoModalOpen(true)}
               style={{
-                padding: '16px 42px',
+                padding: '16px 36px',
                 borderRadius: '16px',
                 background: 'rgba(255, 255, 255, 0.06)',
                 border: '1px solid rgba(255, 255, 255, 0.2)',
                 color: '#fff',
                 fontWeight: 800,
-                fontSize: '1.1rem',
+                fontSize: '1.05rem',
                 cursor: 'pointer',
                 backdropFilter: 'blur(20px)'
               }}
@@ -378,6 +420,159 @@ export default function AisaPage() {
         </div>
       </section>
 
+      {/* MOBILE APP SHOWCASE SECTION */}
+      <section
+        style={{
+          background: 'radial-gradient(ellipse at 50% 0%, rgba(99, 102, 241, 0.15) 0%, rgba(2, 6, 23, 1) 75%)',
+          position: 'relative',
+          padding: '90px 20px',
+          borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.06)'
+        }}
+      >
+        <div className="container" style={{ maxWidth: '1100px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
+          <div
+            style={{
+              background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%)',
+              border: '1px solid rgba(99, 102, 241, 0.25)',
+              borderRadius: '28px',
+              padding: 'clamp(36px, 5vw, 60px)',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+              gap: '40px',
+              alignItems: 'center',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.5)',
+              backdropFilter: 'blur(20px)'
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: 'rgba(59, 130, 246, 0.15)',
+                  border: '1px solid rgba(59, 130, 246, 0.35)',
+                  borderRadius: '50px',
+                  padding: '6px 18px',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  color: '#93c5fd',
+                  marginBottom: '20px',
+                  letterSpacing: '0.05em'
+                }}
+              >
+                <i className="fa-brands fa-android" style={{ color: '#34d399' }}></i>
+                <span>NOW AVAILABLE ON ANDROID</span>
+              </div>
+
+              <h2 style={{ fontSize: 'clamp(2rem, 3.5vw, 2.8rem)', fontWeight: 800, lineHeight: 1.2, marginBottom: '18px', color: '#fff' }}>
+                Take AISA™ Everywhere. <br />
+                <span style={{ background: 'linear-gradient(90deg, #60a5fa 0%, #a78bfa 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                  Productivity on the Go.
+                </span>
+              </h2>
+
+              <p style={{ color: 'rgba(203, 213, 225, 0.85)', fontSize: '1rem', lineHeight: 1.7, marginBottom: '28px' }}>
+                Download the official AISA app from the Google Play Store. Carry the power of your AI Super Assistant with voice intelligence, instant reasoning, multimodal document analysis, and 24/7 cross-device synchronization right in your pocket.
+              </p>
+
+              <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <a
+                  href={AISA_PLAY_STORE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Get AISA on Google Play Store"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '14px 32px',
+                    borderRadius: '14px',
+                    background: '#FFFFFF',
+                    color: '#0F172A',
+                    fontWeight: 800,
+                    fontSize: '1rem',
+                    textDecoration: 'none',
+                    boxShadow: '0 12px 30px rgba(0, 0, 0, 0.35)',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 16px 36px rgba(96, 165, 250, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 12px 30px rgba(0, 0, 0, 0.35)';
+                  }}
+                >
+                  <svg width="24" height="24" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M38.8 9.5C28.2 15.6 21.3 27 21.3 40.5v431c0 13.5 6.9 24.9 17.5 31L257.6 256 38.8 9.5z" fill="#00A0FF" />
+                    <path d="M331.4 182.2L257.6 256l73.8 73.8 84.7-48.7c16.2-9.3 26.2-26.6 26.2-45.1s-10-35.8-26.2-45.1l-84.7-48.7z" fill="#FFDA00" />
+                    <path d="M257.6 256L38.8 474.7c6.1 3.5 13.2 5.5 20.8 5.5 8.7 0 17.1-2.6 24.2-6.7l227.6-130.8L257.6 256z" fill="#FF3A44" />
+                    <path d="M311.4 168.3L83.8 37.5C76.7 33.4 68.3 30.8 59.6 30.8c-7.6 0-14.7 2-20.8 5.5L257.6 256l53.8-87.7z" fill="#00E676" />
+                  </svg>
+                  <span>GET IT ON Google Play</span>
+                </a>
+
+                <a
+                  href={AISA_WEB_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '14px 26px',
+                    borderRadius: '14px',
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: '1px solid rgba(255, 255, 255, 0.18)',
+                    color: '#fff',
+                    fontWeight: 700,
+                    fontSize: '0.95rem',
+                    textDecoration: 'none'
+                  }}
+                >
+                  <i className="fa-solid fa-globe"></i>
+                  <span>Launch Web App</span>
+                </a>
+              </div>
+            </div>
+
+            <div style={{ textAlign: 'center' }}>
+              <div
+                style={{
+                  background: 'rgba(15, 23, 42, 0.7)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '20px',
+                  padding: '30px 24px',
+                  display: 'inline-block',
+                  maxWidth: '360px',
+                  width: '100%'
+                }}
+              >
+                <div style={{ width: '64px', height: '64px', margin: '0 auto 16px', borderRadius: '16px', background: 'linear-gradient(135deg, #6366F1, #8B5CF6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <i className="fa-solid fa-robot" style={{ fontSize: '32px', color: '#fff' }}></i>
+                </div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '6px', color: '#fff' }}>AISA™ App</h3>
+                <span style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'block', marginBottom: '14px' }}>com.uwo.aisa • Android</span>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', color: '#F59E0B', fontSize: '0.85rem', marginBottom: '14px' }}>
+                  <i className="fa-solid fa-star"></i>
+                  <i className="fa-solid fa-star"></i>
+                  <i className="fa-solid fa-star"></i>
+                  <i className="fa-solid fa-star"></i>
+                  <i className="fa-solid fa-star"></i>
+                  <span style={{ color: '#fff', marginLeft: '6px', fontWeight: 700 }}>Official App</span>
+                </div>
+                <p style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.7)', margin: 0 }}>
+                  Instant setup • Cloud intelligence • Multilingual AI reasoning
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* TRUST SECTION */}
       <section style={{ background: '#020617', position: 'relative', overflow: 'hidden', padding: '100px 20px' }}>
         <div className="container" style={{ position: 'relative', zIndex: 5, textAlign: 'center', maxWidth: '850px' }}>
@@ -438,7 +633,7 @@ export default function AisaPage() {
             Ready to experience the future of work? Unify your potential, eliminate complexity, and redefine what's
             possible with AISA™.
           </p>
-          <div>
+          <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center' }}>
             <a
               href="https://aisa24.com"
               target="_blank"
@@ -458,6 +653,41 @@ export default function AisaPage() {
               }}
             >
               Get Early Access <i className="fa-solid fa-arrow-right"></i>
+            </a>
+
+            <a
+              href={AISA_PLAY_STORE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Download AISA on Google Play"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '14px 34px',
+                borderRadius: '50px',
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                color: '#fff',
+                fontWeight: 800,
+                fontSize: '1rem',
+                textDecoration: 'none',
+                boxShadow: '0 10px 30px rgba(0, 0, 0, 0.35)',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.16)';
+                e.currentTarget.style.borderColor = '#60a5fa';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              <i className="fa-brands fa-google-play" style={{ color: '#60a5fa' }}></i>
+              <span>Get on Google Play</span>
             </a>
           </div>
         </div>

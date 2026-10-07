@@ -7,13 +7,32 @@ export default function Navbar({ onOpenEarnRefer, onToggleDrawer }) {
   const isUwoConnect = location.pathname.startsWith('/projects/uwo-connect') || location.pathname.startsWith('/uwo-connect');
   const isAiEducation = location.pathname.startsWith('/ai-education') || location.pathname.startsWith('/projects/ai-education');
   const isAiAds = location.pathname.startsWith('/ai-ads') || location.pathname.startsWith('/projects/ai-ads');
+  const isAiLegal = location.pathname.startsWith('/ai-legal');
+
+  // Any page with a white/light surface requires dark typography, zero blur text-shadow, and the dark logo
+  const isLightPage = isUwoConnect || isBlogsPage || isAiLegal || isAiAds;
+  const logoSrc = isLightPage ? '/images/uwo-logo.png' : '/images/uwo-logo-light.png';
+
+  const navbarClassNames = [
+    'navbar',
+    isLightPage ? 'navbar-light' : 'navbar-dark',
+    isBlogsPage ? 'navbar-blogs' : '',
+    isUwoConnect ? 'navbar-uwo-connect' : '',
+    isAiEducation ? 'navbar-ai-education' : '',
+    isAiAds ? 'navbar-ai-ads' : '',
+    isAiLegal ? 'navbar-ai-legal' : ''
+  ].filter(Boolean).join(' ');
 
   return (
-    <header className={`navbar${isBlogsPage ? ' navbar-blogs' : ''}${isUwoConnect ? ' navbar-uwo-connect' : ''}${isAiEducation ? ' navbar-ai-education' : ''}${isAiAds ? ' navbar-ai-ads' : ''}`}>
+    <header className={navbarClassNames}>
       <div className="nav-container">
         {/* LOGO */}
         <Link to="/" className="nav-logo" title="UWO Home">
-          <img src="/images/uwo-logo-light.png" alt="UWO™ Logo" onError={(e) => { e.currentTarget.src = '/images/uwo-logo.png'; }} />
+          <img 
+            src={logoSrc} 
+            alt="UWO™ Logo" 
+            onError={(e) => { e.currentTarget.src = '/images/uwo-logo.png'; }} 
+          />
         </Link>
 
         {/* DESKTOP NAV */}
