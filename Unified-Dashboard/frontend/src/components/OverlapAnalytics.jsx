@@ -38,7 +38,7 @@ export const OverlapAnalytics = () => {
         <div className="metric-card">
           <div className="metric-header">
             <span>AISA App Downloads</span>
-            <div className="metric-icon">📱</div>
+            <div className="metric-icon"><img src="/images/aisa-logo.png" alt="AISA" style={{ width: '22px', height: '22px', objectFit: 'contain' }} /></div>
           </div>
           <div className="metric-value">{aisa_app?.users_count || 0}</div>
           <div className="metric-sub">Registered users on AISA</div>
@@ -47,7 +47,7 @@ export const OverlapAnalytics = () => {
         <div className="metric-card">
           <div className="metric-header">
             <span>AI Legal App Downloads</span>
-            <div className="metric-icon">⚖️</div>
+            <div className="metric-icon"><img src="/images/ailegallogo.png" alt="AI Legal" style={{ width: '22px', height: '22px', objectFit: 'contain' }} /></div>
           </div>
           <div className="metric-value">{ailegal_app?.users_count || 0}</div>
           <div className="metric-sub">Registered users on AI Legal</div>
@@ -96,6 +96,7 @@ export const OverlapAnalytics = () => {
                 flexDirection: 'column',
                 boxShadow: '0 0 20px rgba(99, 102, 241, 0.15)'
               }}>
+                <img src="/images/aisa-logo.png" alt="AISA" style={{ width: '28px', height: '28px', objectFit: 'contain', marginBottom: '4px' }} />
                 <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-muted)' }}>AISA</span>
                 <span style={{ fontSize: '18px', fontWeight: '800', color: '#fff' }}>{aisa_app?.users_count || 0}</span>
               </div>
@@ -114,6 +115,7 @@ export const OverlapAnalytics = () => {
                 flexDirection: 'column',
                 boxShadow: '0 0 20px rgba(6, 182, 212, 0.15)'
               }}>
+                <img src="/images/ailegallogo.png" alt="AI Legal" style={{ width: '28px', height: '28px', objectFit: 'contain', marginBottom: '4px' }} />
                 <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-muted)' }}>AI Legal</span>
                 <span style={{ fontSize: '18px', fontWeight: '800', color: '#fff' }}>{ailegal_app?.users_count || 0}</span>
               </div>

@@ -7,7 +7,8 @@ const APP_CONFIGS = {
     id: 'ailegal',
     name: 'AI Legal',
     platform: 'Web & Mobile App',
-    icon: '⚖️',
+    icon: '/images/ailegallogo.png',
+    isLogo: true,
     color: '#6366f1',
     metric1Title: 'Total Consultations & Cases',
     metric1Subtitle: 'Live legal inquiries, drafting & research',
@@ -23,7 +24,8 @@ const APP_CONFIGS = {
     id: 'aisa',
     name: 'AISA Assistant',
     platform: 'Web & Mobile App',
-    icon: '🤖',
+    icon: '/images/aisa-logo.png',
+    isLogo: true,
     color: '#38bdf8',
     metric1Title: 'Total Conversations & Prompts',
     metric1Subtitle: 'Conversational AI queries & multimodal workflows',
@@ -39,7 +41,8 @@ const APP_CONFIGS = {
     id: 'aiads',
     name: 'AI Ads',
     platform: 'Web Platform',
-    icon: '📢',
+    icon: '/images/aiads-logo.png',
+    isLogo: true,
     color: '#ec4899',
     metric1Title: 'Ad Copy & Creative Sessions',
     metric1Subtitle: 'Campaign prompts & variations generated',
@@ -55,7 +58,8 @@ const APP_CONFIGS = {
     id: 'efvframework',
     name: 'EFV Framework',
     platform: 'Web Platform',
-    icon: '📚',
+    icon: '/images/efv-logo.png',
+    isLogo: true,
     color: '#10b981',
     metric1Title: 'Knowledge & RAG Inquiries',
     metric1Subtitle: 'E-book queries & reading telemetry',
@@ -70,10 +74,10 @@ const APP_CONFIGS = {
 };
 
 const APPS_LIST = [
-  { id: 'ailegal', label: '⚖️ AI Legal (Web & App)' },
-  { id: 'aisa', label: '🤖 AISA Assistant (Web & App)' },
-  { id: 'aiads', label: '📢 AI Ads (Web)' },
-  { id: 'efvframework', label: '📚 EFV Framework (Web)' }
+  { id: 'ailegal', label: 'AI Legal (Web & App)', icon: '/images/ailegallogo.png', isLogo: true },
+  { id: 'aisa', label: 'AISA Assistant (Web & App)', icon: '/images/aisa-logo.png', isLogo: true },
+  { id: 'aiads', label: 'AI Ads (Web)', icon: '/images/aiads-logo.png', isLogo: true },
+  { id: 'efvframework', label: 'EFV Framework (Web)', icon: '/images/efv-logo.png', isLogo: true }
 ];
 
 export const ChatTrackingTab = () => {
@@ -269,7 +273,12 @@ export const ChatTrackingTab = () => {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '800', color: '#f8fafc', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>{currentConfig.icon}</span> {currentConfig.name} <span style={{ fontSize: '13px', fontWeight: '600', color: '#94a3b8' }}>({currentConfig.platform})</span>
+              {currentConfig.isLogo ? (
+                <img src={currentConfig.icon} alt="" style={{ width: '24px', height: '24px', objectFit: 'contain' }} />
+              ) : (
+                <span>{currentConfig.icon}</span>
+              )}
+              {currentConfig.name} <span style={{ fontSize: '13px', fontWeight: '600', color: '#94a3b8' }}>({currentConfig.platform})</span>
             </h2>
             <span style={{
               background: 'rgba(99, 102, 241, 0.15)',
@@ -386,6 +395,11 @@ export const ChatTrackingTab = () => {
                 gap: '8px'
               }}
             >
+              {app.isLogo ? (
+                <img src={app.icon} alt="" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
+              ) : (
+                <span>{app.icon}</span>
+              )}
               <span>{app.label}</span>
             </button>
           );

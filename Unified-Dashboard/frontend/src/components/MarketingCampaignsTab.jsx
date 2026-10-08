@@ -64,14 +64,15 @@ export const MarketingCampaignsTab = () => {
 
   // Default fallback catalog if API is loading
   const defaultProducts = {
-    aisa: { name: 'AISA', url: 'https://aisa24.com', color: '#6366F1', icon: '🤖' },
-    aimall: { name: 'AI-Mall', url: 'https://aimall24.com', color: '#8B5CF6', icon: '🛍️' },
-    efv: { name: 'EFV Franchise', url: 'https://efv.uwo24.com', color: '#10B981', icon: '⚡' },
-    ailegal: { name: 'AI-Legal', url: 'https://ailegal.aisa24.com', color: '#D4AF37', icon: '⚖️' },
-    uwo: { name: 'UWO Web', url: 'https://uwo24.com', color: '#3B82F6', icon: '🌐' },
-    uwoconnect: { name: 'UWO Connect', url: 'https://connect.uwo24.com', color: '#EC4899', icon: '🔐' },
+    aisa: { name: 'AISA', url: 'https://aisa24.com', androidUrl: 'https://play.google.com/store/apps/details?id=com.uwo.aisa&pcampaignid=web_share', play_store_url: 'https://play.google.com/store/apps/details?id=com.uwo.aisa&pcampaignid=web_share', color: '#6366F1', icon: '🤖', logo: '/images/aisa-logo.png' },
+    aimall: { name: 'AI-Mall', url: 'https://aimall24.com', color: '#8B5CF6', icon: '🛍️', logo: '/images/aimall-logo.webp' },
+    efv: { name: 'EFV Franchise', url: 'https://efv.uwo24.com', color: '#10B981', icon: '⚡', logo: '/images/efv-logo.png' },
+    ailegal: { name: 'AI-Legal', url: 'https://ailegal.aisa24.com', androidUrl: 'https://play.google.com/store/apps/details?id=com.uwo.ailegal&pcampaignid=web_share', play_store_url: 'https://play.google.com/store/apps/details?id=com.uwo.ailegal&pcampaignid=web_share', color: '#D4AF37', icon: '⚖️', logo: '/images/ailegallogo.png' },
+    uwo: { name: 'UWO Web', url: 'https://uwo24.com', color: '#3B82F6', icon: '🌐', logo: '/images/uwo-logo.png' },
+    uwoconnect: { name: 'UWO Connect', url: 'https://connect.uwo24.com', androidUrl: 'https://play.google.com/store/apps/details?id=com.uwo.uwoconnect&pcampaignid=web_share', play_store_url: 'https://play.google.com/store/apps/details?id=com.uwo.uwoconnect&pcampaignid=web_share', color: '#EC4899', icon: '🔐', logo: '/images/uwoconnectlogo.png' },
+    aiads: { name: 'AI-Ads', url: 'https://ads.uwo24.com', color: '#3B82F6', icon: '📢', logo: '/images/aiads-logo.png' },
+    aieducation: { name: 'AI-Education', url: 'https://education.uwo24.com', color: '#0284C7', icon: '🎓', logo: '/images/ai-education-logo.png' },
     yugamc: { name: 'Yugamc', url: 'https://yugamc.com', color: '#F59E0B', icon: '🏭' },
-    aieducation: { name: 'AI-Education', url: 'https://education.uwo24.com', color: '#0284C7', icon: '🎓' },
     custom: { name: 'Custom URL', url: '', color: '#94A3B8', icon: '🔗' },
   };
 
@@ -93,15 +94,17 @@ export const MarketingCampaignsTab = () => {
   const platforms = config?.platforms || defaultPlatforms;
 
   const PRODUCT_META = {
-    aisa: { color: '#6366F1', icon: '🤖' },
-    aimall: { color: '#8B5CF6', icon: '🛍️' },
-    efv: { color: '#10B981', icon: '⚡' },
-    ailegal: { color: '#D4AF37', icon: '⚖️' },
-    uwo: { color: '#3B82F6', icon: '🌐' },
-    uwoconnect: { color: '#EC4899', icon: '🔐' },
+    aisa: { color: '#6366F1', icon: '🤖', logo: '/images/aisa-logo.png' },
+    aimall: { color: '#8B5CF6', icon: '🛍️', logo: '/images/aimall-logo.webp' },
+    efv: { color: '#10B981', icon: '⚡', logo: '/images/efv-logo.png' },
+    efvframework: { color: '#10B981', icon: '⚡', logo: '/images/efv-logo.png' },
+    ailegal: { color: '#D4AF37', icon: '⚖️', logo: '/images/ailegallogo.png' },
+    uwo: { color: '#3B82F6', icon: '🌐', logo: '/images/uwo-logo.png' },
+    uwoconnect: { color: '#EC4899', icon: '🔐', logo: '/images/uwoconnectlogo.png' },
+    aiads: { color: '#3B82F6', icon: '📢', logo: '/images/aiads-logo.png' },
+    aieducation: { color: '#0284C7', icon: '🎓', logo: '/images/ai-education-logo.png' },
     yugamc: { color: '#F59E0B', icon: '🏭' },
     aicashflow: { color: '#10B981', icon: '💵' },
-    aiads: { color: '#3B82F6', icon: '📢' },
     custom: { color: '#94A3B8', icon: '🔗' },
   };
 
@@ -127,6 +130,7 @@ export const MarketingCampaignsTab = () => {
           app_store_url: p.iosUrl || '',
           color: meta.color,
           icon: meta.icon,
+          logo: meta.logo,
         };
       });
     }
@@ -144,6 +148,7 @@ export const MarketingCampaignsTab = () => {
           iosUrl: v.app_store_url || v.iosUrl || '',
           color: meta.color,
           icon: meta.icon,
+          logo: meta.logo || v.logo,
         };
       } else {
         if (v.play_store_url && !map[k].androidUrl) {
@@ -1368,7 +1373,11 @@ export const MarketingCampaignsTab = () => {
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          {prodInfo.icon || '🚀'} {link.product_name || prodInfo.name}
+                          {prodInfo.logo ? (
+                            <img src={prodInfo.logo} alt="" style={{ width: '13px', height: '13px', objectFit: 'contain' }} />
+                          ) : (
+                            prodInfo.icon || '🚀'
+                          )} {link.product_name || prodInfo.name}
                         </span>
                       </td>
 
@@ -1814,7 +1823,11 @@ export const MarketingCampaignsTab = () => {
                           transition: 'all 0.15s ease',
                         }}
                       >
-                        <span style={{ fontSize: '18px' }}>{v.icon || '🚀'}</span>
+                        {v.logo ? (
+                          <img src={v.logo} alt="" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
+                        ) : (
+                          <span style={{ fontSize: '18px' }}>{v.icon || '🚀'}</span>
+                        )}
                         <span>{v.name}</span>
                       </button>
                     ))}
@@ -2151,7 +2164,11 @@ export const MarketingCampaignsTab = () => {
                             userSelect: 'none',
                           }}
                         >
-                          <span>{v.icon}</span>
+                          {v.logo ? (
+                            <img src={v.logo} alt="" style={{ width: '15px', height: '15px', objectFit: 'contain' }} />
+                          ) : (
+                            <span>{v.icon}</span>
+                          )}
                           <span>{v.name}</span>
                         </div>
                       );

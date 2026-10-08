@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../config/api';
 import {
@@ -29,6 +29,44 @@ ChartJS.register(
   Filler
 );
 
+const PLATFORM_OPTIONS = [
+  { value: 'all', label: 'All Ecosystem Platforms (Unified)', icon: '🌐', logo: '/images/uwo-logo.png' },
+  {
+    group: '🤖 AI & Consumer Platforms',
+    items: [
+      { value: 'aisa', label: 'AISA AI Suite (aisa)', logo: '/images/aisa-logo.png' },
+      { value: 'ailegal', label: 'AI Legal Advisory (ailegal)', logo: '/images/ailegallogo.png' },
+      { value: 'aimall', label: 'AI Mall Marketplace (aimall)', logo: '/images/aimall-logo.webp' },
+      { value: 'aiads', label: 'AI Ads Studio (aiads)', logo: '/images/aiads-logo.png' },
+      { value: 'aieducation', label: 'AI Education Campus (aieducation)', logo: '/images/ai-education-logo.png' },
+    ]
+  },
+  {
+    group: '⚡ Consciousness & Energy',
+    items: [
+      { value: 'efvframework', label: 'EFV Alignment Platform (efvframework)', logo: '/images/efv-logo.png' },
+    ]
+  },
+  {
+    group: '🌐 Enterprise & Infrastructure',
+    items: [
+      { value: 'uwo', label: 'UWO Main Platform (uwo)', logo: '/images/uwo-logo.png' },
+      { value: 'uwoconnect', label: 'UWO Connect Networking (uwoconnect)', logo: '/images/uwoconnectlogo.png' },
+      { value: 'yugamc', label: 'YUG AMC Real Estate AI (yugamc)', icon: '🏗️' },
+      { value: 'unified-dashboard', label: 'Unified Admin Control (unified-dashboard)', logo: '/images/uwo-logo.png' },
+    ]
+  }
+];
+
+const findPlatformOption = (val) => {
+  if (val === 'all') return PLATFORM_OPTIONS[0];
+  for (let i = 1; i < PLATFORM_OPTIONS.length; i++) {
+    const item = PLATFORM_OPTIONS[i].items?.find(it => it.value === val);
+    if (item) return item;
+  }
+  return { value: val, label: val, icon: '📦' };
+};
+
 export const UnifiedAnalytics = () => {
   const { authFetch } = useAuth();
   const [activeSubTab, setActiveSubTab] = useState('overview');
@@ -39,6 +77,20 @@ export const UnifiedAnalytics = () => {
   const [feedback, setFeedback] = useState(null);
   const [showSnippetModal, setShowSnippetModal] = useState(false);
   const [copiedApp, setCopiedApp] = useState(null);
+  const [isPlatformMenuOpen, setIsPlatformMenuOpen] = useState(false);
+  const platformDropdownRef = useRef(null);
+
+  const currentPlatform = findPlatformOption(appCode);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (platformDropdownRef.current && !platformDropdownRef.current.contains(e.target)) {
+        setIsPlatformMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Sub-tab data states
   const [overviewData, setOverviewData] = useState(null);
@@ -297,41 +349,137 @@ export const UnifiedAnalytics = () => {
       {/* Categorized Filter & Action Toolbar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '24px', background: 'rgba(30, 41, 59, 0.6)', padding: '14px 18px', borderRadius: '12px', border: '1px solid #334155' }}>
         <div style={{ display: 'flex', gap: '14px', alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* Categorized App Selector */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          {/* Categorized App Selector with Official Project Logos */}
+          <div ref={platformDropdownRef} style={{ display: 'flex', flexDirection: 'column', gap: '4px', position: 'relative' }}>
             <label style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: '600' }}>Platform Filter</label>
-            <select
-              value={appCode}
-              onChange={(e) => setAppCode(e.target.value)}
+            <button
+              type="button"
+              onClick={() => setIsPlatformMenuOpen(!isPlatformMenuOpen)}
               className="filter-select"
               style={{
                 background: '#0f172a',
                 color: '#f8fafc',
-                border: '1px solid #475569',
-                padding: '8px 14px',
+                border: isPlatformMenuOpen ? '1px solid #6366f1' : '1px solid #475569',
+                padding: '7px 14px',
                 borderRadius: '8px',
                 cursor: 'pointer',
                 fontWeight: '600',
                 fontSize: '13px',
-                outline: 'none'
+                outline: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '10px',
+                minWidth: '290px',
+                boxShadow: isPlatformMenuOpen ? '0 0 0 2px rgba(99, 102, 241, 0.25)' : 'none',
+                transition: 'all 0.15s ease'
               }}
             >
-              <option value="all">🌐 All Ecosystem Platforms (Unified)</option>
-              <optgroup label="🤖 AI & Consumer Platforms">
-                <option value="aisa">✨ AISA AI Suite (aisa)</option>
-                <option value="ailegal">⚖️ AI Legal Advisory (ailegal)</option>
-                <option value="aimall">🛒 AI Mall Marketplace (aimall)</option>
-              </optgroup>
-              <optgroup label="⚡ Consciousness & Energy">
-                <option value="efvframework">🧘 EFV Alignment Platform (efvframework)</option>
-              </optgroup>
-              <optgroup label="🌐 Enterprise & Infrastructure">
-                <option value="uwo">📦 UWO Main Platform (uwo)</option>
-                <option value="uwoconnect">🔗 UWO Connect Networking (uwoconnect)</option>
-                <option value="yugamc">🏗️ YUG AMC Real Estate AI (yugamc)</option>
-                <option value="unified-dashboard">📊 Unified Admin Control (unified-dashboard)</option>
-              </optgroup>
-            </select>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                {currentPlatform?.logo ? (
+                  <img src={currentPlatform.logo} alt="" style={{ width: '18px', height: '18px', objectFit: 'contain', flexShrink: 0 }} />
+                ) : (
+                  <span style={{ fontSize: '15px', lineHeight: 1 }}>{currentPlatform?.icon || '🌐'}</span>
+                )}
+                <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                  {currentPlatform?.label || 'All Ecosystem Platforms (Unified)'}
+                </span>
+              </div>
+              <span style={{ fontSize: '10px', color: '#94a3b8', transform: isPlatformMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }}>
+                ▼
+              </span>
+            </button>
+
+            {/* Custom Dropdown Menu with Official Logos */}
+            {isPlatformMenuOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  marginTop: '6px',
+                  background: '#0f172a',
+                  border: '1px solid #334155',
+                  borderRadius: '10px',
+                  boxShadow: '0 12px 28px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+                  width: '320px',
+                  maxHeight: '380px',
+                  overflowY: 'auto',
+                  zIndex: 999,
+                  padding: '6px'
+                }}
+              >
+                {/* All Option */}
+                <div
+                  onClick={() => { setAppCode('all'); setIsPlatformMenuOpen(false); }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    fontWeight: appCode === 'all' ? '700' : '500',
+                    color: appCode === 'all' ? '#60a5fa' : '#f8fafc',
+                    background: appCode === 'all' ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
+                    transition: 'background 0.1s ease',
+                    marginBottom: '4px'
+                  }}
+                  onMouseEnter={(e) => { if (appCode !== 'all') e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'; }}
+                  onMouseLeave={(e) => { if (appCode !== 'all') e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '16px', lineHeight: 1 }}>🌐</span>
+                    <span>All Ecosystem Platforms (Unified)</span>
+                  </div>
+                  {appCode === 'all' && <span style={{ color: '#3b82f6', fontWeight: '800' }}>✓</span>}
+                </div>
+
+                {/* Groups */}
+                {PLATFORM_OPTIONS.slice(1).map((grp, gIdx) => (
+                  <div key={gIdx} style={{ marginTop: '8px', paddingTop: '6px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                    <div style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      {grp.group}
+                    </div>
+                    {grp.items.map((item) => {
+                      const isItemActive = appCode === item.value;
+                      return (
+                        <div
+                          key={item.value}
+                          onClick={() => { setAppCode(item.value); setIsPlatformMenuOpen(false); }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '13px',
+                            fontWeight: isItemActive ? '700' : '500',
+                            color: isItemActive ? '#60a5fa' : '#f8fafc',
+                            background: isItemActive ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
+                            transition: 'background 0.1s ease'
+                          }}
+                          onMouseEnter={(e) => { if (!isItemActive) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'; }}
+                          onMouseLeave={(e) => { if (!isItemActive) e.currentTarget.style.background = 'transparent'; }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {item.logo ? (
+                              <img src={item.logo} alt="" style={{ width: '18px', height: '18px', objectFit: 'contain', flexShrink: 0 }} />
+                            ) : (
+                              <span style={{ fontSize: '15px', lineHeight: 1 }}>{item.icon || '📦'}</span>
+                            )}
+                            <span>{item.label}</span>
+                          </div>
+                          {isItemActive && <span style={{ color: '#3b82f6', fontWeight: '800' }}>✓</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Date Range Selector */}
@@ -985,17 +1133,22 @@ export const UnifiedAnalytics = () => {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               {[
-                { name: 'AISA Web App', site: 'aisa' },
-                { name: 'AI Mall Web App', site: 'aimall' },
-                { name: 'EFV Web App', site: 'efvframework' },
-                { name: 'UWO Web App', site: 'uwo' },
-                { name: 'UWConnect', site: 'uwoconnect' },
-                { name: 'AI Legal Web App', site: 'ailegal' },
+                { name: 'AISA Web App', site: 'aisa', logo: '/images/aisa-logo.png' },
+                { name: 'AI Mall Web App', site: 'aimall', logo: '/images/aimall-logo.webp' },
+                { name: 'EFV Web App', site: 'efvframework', logo: '/images/efv-logo.png' },
+                { name: 'UWO Web App', site: 'uwo', logo: '/images/uwo-logo.png' },
+                { name: 'UWO Connect', site: 'uwoconnect', logo: '/images/uwoconnectlogo.png' },
+                { name: 'AI Legal Web App', site: 'ailegal', logo: '/images/ailegallogo.png' },
                 { name: 'YUG AMC Web App', site: 'yugamc' },
               ].map((item) => (
                 <div key={item.site} style={{ background: '#0f172a', padding: '12px', borderRadius: '8px', border: '1px solid #334155' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '13px', fontWeight: '600', color: '#818cf8' }}>{item.name}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {item.logo && (
+                        <img src={item.logo} alt="" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
+                      )}
+                      <span style={{ fontSize: '13px', fontWeight: '600', color: '#818cf8' }}>{item.name}</span>
+                    </div>
                     <button
                       onClick={() => copySnippet(item.name, item.site)}
                       style={{ background: '#6366f1', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: '500' }}

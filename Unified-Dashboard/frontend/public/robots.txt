@@ -1,0 +1,7 @@
+# ==============================================================================
+# robots.txt for https://admin.uwo24.com (Unified Service Admin Portal)
+# Block all search engine indexing of private admin consoles
+# ==============================================================================
+
+User-agent: *
+Disallow: /

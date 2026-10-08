@@ -18,7 +18,9 @@ export const Login = () => {
     <div className="login-container">
       <div className="login-card">
         <div className="login-header">
-          <div className="login-brand-icon">⚡</div>
+          <div className="login-brand-icon" style={{ padding: '8px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+            <img src="/images/uwo-logo.png" alt="UWO Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          </div>
           <h2>Unified Platform Admin</h2>
           <p>Sign in with your master admin account</p>
         </div>

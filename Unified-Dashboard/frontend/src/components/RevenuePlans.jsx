@@ -2,6 +2,19 @@ import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ActiveSubscriptions } from './ActiveSubscriptions';
 
+const getProjectLogo = (code) => {
+  const c = (code || '').toLowerCase();
+  if (c.includes('ailegal') || c === 'legal') return '/images/ailegallogo.png';
+  if (c.includes('aisa')) return '/images/aisa-logo.png';
+  if (c.includes('efv')) return '/images/efv-logo.png';
+  if (c.includes('aimall')) return '/images/aimall-logo.webp';
+  if (c.includes('connect')) return '/images/uwoconnectlogo.png';
+  if (c.includes('aiads') || c.includes('ads')) return '/images/aiads-logo.png';
+  if (c.includes('education')) return '/images/ai-education-logo.png';
+  if (c === 'uwo' || c.includes('uwo_web')) return '/images/uwo-logo.png';
+  return null;
+};
+
 export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
   const { authFetch } = useAuth();
 
@@ -790,6 +803,9 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {getProjectLogo(prod.product_code) && (
+                            <img src={getProjectLogo(prod.product_code)} alt="" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
+                          )}
                           <span style={{ fontWeight: '700', color: '#f8fafc', fontSize: '14px' }}>{prod.name}</span>
                           <span style={{
                             fontSize: '11px',
@@ -1096,7 +1112,12 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
                         {tx.external_transaction_id}
                       </td>
                       <td style={{ padding: '12px 14px' }}>
-                        <span style={{ fontWeight: '700', color: '#f8fafc' }}>{tx.product_code?.toUpperCase()}</span>
+                        <span style={{ fontWeight: '700', color: '#f8fafc', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          {getProjectLogo(tx.product_code) && (
+                            <img src={getProjectLogo(tx.product_code)} alt="" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
+                          )}
+                          {tx.product_code?.toUpperCase()}
+                        </span>
                         <span style={{ marginLeft: '6px', fontSize: '11px', color: '#94a3b8' }}>({tx.platform} · {tx.provider})</span>
                       </td>
                       <td style={{ padding: '12px 14px', color: '#cbd5e1' }}>
@@ -1330,14 +1351,49 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
                     reconData.map((r, i) => (
                       <tr key={i} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)', fontSize: '13px' }}>
                         <td style={{ padding: '14px 14px', fontWeight: '700', color: '#f8fafc' }}>
-                          {r.product_code === 'aisa' ? '🤖 AISA Assistant' :
-                           r.product_code === 'efvframework' ? '⚡ EFV Framework' :
-                           r.product_code === 'ailegal' ? '⚖️ AI Legal' :
-                           r.product_code === 'aimall' ? '🛍️ AI Mall' :
-                           r.product_code === 'uwo' ? '🌐 UWO Web' :
-                           r.product_code === 'uwoconnect' ? '🔗 UWO Connect' :
-                           r.product_code === 'aiads' ? '📢 AI Ads' :
-                           '📦 Other Applications'}
+                          {r.product_code === 'aisa' ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                              <img src="/images/aisa-logo.png" alt="AISA" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
+                              AISA Assistant
+                            </span>
+                          ) : (r.product_code === 'efvframework' || r.product_code === 'efv') ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                              <img src="/images/efv-logo.png" alt="EFV" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
+                              EFV Framework
+                            </span>
+                          ) : r.product_code === 'ailegal' ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                              <img src="/images/ailegallogo.png" alt="AI Legal" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
+                              AI Legal
+                            </span>
+                          ) : r.product_code === 'aimall' ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                              <img src="/images/aimall-logo.webp" alt="AI Mall" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
+                              AI Mall
+                            </span>
+                          ) : r.product_code === 'uwo' ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                              <img src="/images/uwo-logo.png" alt="UWO" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
+                              UWO Web
+                            </span>
+                          ) : r.product_code === 'uwoconnect' ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                              <img src="/images/uwoconnectlogo.png" alt="UWO Connect" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
+                              UWO Connect
+                            </span>
+                          ) : r.product_code === 'aiads' ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                              <img src="/images/aiads-logo.png" alt="AI Ads" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
+                              AI Ads
+                            </span>
+                          ) : r.product_code === 'aieducation' ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                              <img src="/images/ai-education-logo.png" alt="AI Education" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
+                              AI Education
+                            </span>
+                          ) : (
+                            '📦 Other Applications'
+                          )}
                         </td>
                         <td style={{ padding: '14px 14px' }}>
                           <span style={{

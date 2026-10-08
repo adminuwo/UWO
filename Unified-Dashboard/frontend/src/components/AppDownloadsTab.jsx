@@ -310,7 +310,19 @@ export const AppDownloadsTab = () => {
                 textTransform: 'uppercase'
               }}
             >
-              {app === 'all' ? 'All Applications' : app === 'ailegal' ? '⚖️ AI Legal' : '🤖 AISA Assistant'}
+              {app === 'all' ? (
+                'All Applications'
+              ) : app === 'ailegal' ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <img src="/images/ailegallogo.png" alt="AI Legal" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
+                  AI Legal
+                </span>
+              ) : (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <img src="/images/aisa-logo.png" alt="AISA" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
+                  AISA Assistant
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -426,7 +438,7 @@ export const AppDownloadsTab = () => {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '24px' }}>⚖️</span>
+                <img src="/images/ailegallogo.png" alt="AI Legal" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
                 <div>
                   <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: '#f8fafc' }}>AI Legal</h4>
                   <span style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>CODE: AILEGAL</span>
@@ -485,7 +497,7 @@ export const AppDownloadsTab = () => {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '24px' }}>🤖</span>
+                <img src="/images/aisa-logo.png" alt="AISA Assistant" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
                 <div>
                   <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: '#f8fafc' }}>AISA Assistant</h4>
                   <span style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>CODE: AISA</span>

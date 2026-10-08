@@ -95,11 +95,13 @@ export const Overview = () => {
   }
 
   const appTenants = [
-    { code: 'ailegal', name: 'AI Legal', icon: '⚖️' },
-    { code: 'aisa', name: 'AISA Assistant', icon: '🤖' },
-    { code: 'aiads', name: 'AI Ads Generator', icon: '📢' },
-    { code: 'uwoconnect', name: 'UWO Connect', icon: '🔗' },
-    { code: 'efvframework', name: 'EFV Framework', icon: '🚀' },
+    { code: 'ailegal', name: 'AI Legal', icon: '/images/ailegallogo.png', isImage: true },
+    { code: 'aisa', name: 'AISA Assistant', icon: '/images/aisa-logo.png', isImage: true },
+    { code: 'aiads', name: 'AI Ads Generator', icon: '/images/aiads-logo.png', isImage: true },
+    { code: 'uwoconnect', name: 'UWO Connect', icon: '/images/uwoconnectlogo.png', isImage: true },
+    { code: 'efvframework', name: 'EFV Framework', icon: '/images/efv-logo.png', isImage: true },
+    { code: 'aimall', name: 'AI Mall', icon: '/images/aimall-logo.webp', isImage: true },
+    { code: 'aieducation', name: 'AI Education', icon: '/images/ai-education-logo.png', isImage: true },
   ];
 
   return (
@@ -124,7 +126,11 @@ export const Overview = () => {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '18px' }}>{app.icon}</span>
+                {app.isImage ? (
+                  <img src={app.icon} alt={app.name} style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
+                ) : (
+                  <span style={{ fontSize: '18px' }}>{app.icon}</span>
+                )}
                 <span style={{ fontSize: '13px', fontWeight: '700', color: '#f8fafc' }}>{app.name}</span>
               </div>
               <span style={{ fontSize: '10px', fontWeight: '800', color: '#34d399', backgroundColor: 'rgba(52, 211, 153, 0.15)', padding: '2px 8px', borderRadius: '10px' }}>

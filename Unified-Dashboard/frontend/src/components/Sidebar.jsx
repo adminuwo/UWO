@@ -22,7 +22,9 @@ export const Sidebar = ({ currentTab, setTab }) => {
   return (
     <aside className="sidebar">
       <div className="brand">
-        <div className="brand-icon">⚡</div>
+        <div className="brand-icon" style={{ padding: '6px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+          <img src="/images/uwo-logo.png" alt="UWO" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        </div>
         <div className="brand-text">
           <h1>Unified Platform</h1>
           <span>Central Shared Backend</span>

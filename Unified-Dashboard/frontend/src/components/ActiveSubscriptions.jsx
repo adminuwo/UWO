@@ -3,8 +3,8 @@ import { useAuth } from '../context/AuthContext';
 
 const CANONICAL_PRODUCTS = [
   { product_code: 'all', name: 'All Products', icon: '💎', active_count: 0, total_count: 0, mrr: 0, arr: 0, renewal_rate: 0, primary_platform: 'Multi-Gateway' },
-  { product_code: 'ailegal', name: 'AI Legal', icon: '⚖️', active_count: 0, total_count: 0, mrr: 0, arr: 0, renewal_rate: 0, primary_platform: 'Apple StoreKit 2', description: 'AI Legal Advocate Suite & Professional Practice Management' },
-  { product_code: 'aisa', name: 'AISA Assistant', icon: '🤖', active_count: 0, total_count: 0, mrr: 0, arr: 0, renewal_rate: 0, primary_platform: 'Razorpay Web', description: 'AISA Executive Virtual AI Assistant & Productivity Tools' }
+  { product_code: 'ailegal', name: 'AI Legal', icon: '/images/ailegallogo.png', isLogo: true, active_count: 0, total_count: 0, mrr: 0, arr: 0, renewal_rate: 0, primary_platform: 'Apple StoreKit 2', description: 'AI Legal Advocate Suite & Professional Practice Management' },
+  { product_code: 'aisa', name: 'AISA Assistant', icon: '/images/aisa-logo.png', isLogo: true, active_count: 0, total_count: 0, mrr: 0, arr: 0, renewal_rate: 0, primary_platform: 'Razorpay Web', description: 'AISA Executive Virtual AI Assistant & Productivity Tools' }
 ];
 
 export const ActiveSubscriptions = () => {
@@ -14,6 +14,8 @@ export const ActiveSubscriptions = () => {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [syncNotice, setSyncNotice] = useState(null);
+  const [actionLoadingId, setActionLoadingId] = useState(null);
+  const [actionNotice, setActionNotice] = useState(null);
   const [viewMode, setViewMode] = useState('all'); // 'all' | 'product_cards' | 'ledger'
 
   // Filters & Search
@@ -147,6 +149,83 @@ export const ActiveSubscriptions = () => {
       setSyncNotice({ type: 'error', msg: `Sync failed: ${err.message}` });
     } finally {
       setSyncing(false);
+    }
+  };
+
+  // Toggle Auto-Renew Handler (Direct Admin Control)
+  const handleToggleAutoRenew = async (sub, e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    const subId = sub.id || sub._id;
+    const newAutoRenew = !sub.auto_renew;
+    setActionLoadingId(subId);
+    setActionNotice(null);
+    try {
+      const res = await authFetch(`/api/admin/revenue/subscriptions/${encodeURIComponent(subId)}/auto-renew`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ auto_renew: newAutoRenew })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setActionNotice({
+          type: 'success',
+          msg: `Auto-Renew successfully ${newAutoRenew ? 'ENABLED' : 'DISABLED'} for ${sub.customer_name || 'Subscriber'}.`
+        });
+        // Optimistically update subscription list locally
+        setSubscriptions(prev => prev.map(s => {
+          if ((s.id && s.id === subId) || (s._id && s._id === subId)) {
+            return { ...s, auto_renew: newAutoRenew };
+          }
+          return s;
+        }));
+        if (selectedSub && ((selectedSub.id === subId) || (selectedSub._id === subId))) {
+          setSelectedSub(prev => ({ ...prev, auto_renew: newAutoRenew }));
+        }
+        await fetchSubscriptionsData(true);
+      } else {
+        setActionNotice({
+          type: 'error',
+          msg: data.error || data.message || 'Failed to update auto-renew status.'
+        });
+      }
+    } catch (err) {
+      setActionNotice({ type: 'error', msg: `Error toggling auto-renew: ${err.message}` });
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  // Manual Renew / Extend Subscription Handler
+  const handleRenewSubscription = async (sub, days = 30) => {
+    const subId = sub.id || sub._id;
+    setActionLoadingId(subId);
+    setActionNotice(null);
+    try {
+      const res = await authFetch(`/api/admin/revenue/subscriptions/${encodeURIComponent(subId)}/renew`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ days, reason: 'Admin Manual Renewal via Unified Dashboard' })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setActionNotice({
+          type: 'success',
+          msg: `Subscription renewed for +${days} days! New expiry: ${new Date(data.subscription.expiry_date).toLocaleDateString('en-IN')}.`
+        });
+        if (selectedSub && ((selectedSub.id === subId) || (selectedSub._id === subId))) {
+          setSelectedSub(data.subscription);
+        }
+        await fetchSubscriptionsData(true);
+      } else {
+        setActionNotice({
+          type: 'error',
+          msg: data.error || data.message || 'Failed to renew subscription.'
+        });
+      }
+    } catch (err) {
+      setActionNotice({ type: 'error', msg: `Error renewing subscription: ${err.message}` });
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
@@ -448,6 +527,34 @@ export const ActiveSubscriptions = () => {
         </div>
       )}
 
+      {/* Action Notification Banner (Auto-Renew / Renew updates) */}
+      {actionNotice && (
+        <div style={{
+          padding: '14px 20px',
+          borderRadius: '12px',
+          background: actionNotice.type === 'success' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+          border: `1px solid ${actionNotice.type === 'success' ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
+          color: actionNotice.type === 'success' ? '#34d399' : '#f87171',
+          fontSize: '13px',
+          fontWeight: '600',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.25)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>{actionNotice.type === 'success' ? '✓' : '⚠️'}</span>
+            <span>{actionNotice.msg}</span>
+          </div>
+          <button
+            onClick={() => setActionNotice(null)}
+            style={{ background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px' }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* SECTION 1: PRODUCT-WISE ACTIVE SUBSCRIPTIONS MATRIX (CARDS) */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -742,7 +849,11 @@ export const ActiveSubscriptions = () => {
                     boxShadow: isSelected ? '0 4px 14px rgba(37, 99, 235, 0.4)' : 'none'
                   }}
                 >
-                  <span>{p.icon}</span>
+                  {p.isLogo ? (
+                    <img src={p.icon} alt="" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
+                  ) : (
+                    <span>{p.icon}</span>
+                  )}
                   <span>{p.name}</span>
                   <span style={{
                     background: isSelected ? 'rgba(255,255,255,0.25)' : (p.active_count > 0 ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255,255,255,0.08)'),
@@ -915,7 +1026,11 @@ export const ActiveSubscriptions = () => {
           gap: '10px'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '18px' }}>{activeProductInfo.icon}</span>
+            {activeProductInfo.isLogo ? (
+              <img src={activeProductInfo.icon} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+            ) : (
+              <span style={{ fontSize: '18px' }}>{activeProductInfo.icon}</span>
+            )}
             <span style={{ fontWeight: '800', color: '#f8fafc', fontSize: '15px' }}>
               {activeProductInfo.name} Subscribers Ledger
             </span>
@@ -1006,9 +1121,30 @@ export const ActiveSubscriptions = () => {
                 subscriptions.map((s) => {
                   const pCode = (s.product_code || '').toLowerCase();
                   const isLegal = pCode === 'ailegal';
-                  const isEfv = pCode === 'efvframework';
+                  const isEfv = pCode === 'efvframework' || pCode === 'efv';
                   const isAisa = pCode === 'aisa';
-                  const productIcon = isLegal ? '⚖️' : (isEfv ? '⚡' : (isAisa ? '🤖' : '📦'));
+                  const isAiAds = pCode === 'aiads';
+                  const isUwoConnect = pCode === 'uwoconnect';
+                  const isAiMall = pCode === 'aimall';
+                  const isAiEducation = pCode === 'aieducation';
+                  const isUwo = pCode === 'uwo';
+                  const productIcon = isLegal ? (
+                    <img src="/images/ailegallogo.png" alt="AI Legal" style={{ width: '16px', height: '16px', objectFit: 'contain', verticalAlign: 'middle' }} />
+                  ) : isAisa ? (
+                    <img src="/images/aisa-logo.png" alt="AISA" style={{ width: '16px', height: '16px', objectFit: 'contain', verticalAlign: 'middle' }} />
+                  ) : isEfv ? (
+                    <img src="/images/efv-logo.png" alt="EFV" style={{ width: '16px', height: '16px', objectFit: 'contain', verticalAlign: 'middle' }} />
+                  ) : isAiAds ? (
+                    <img src="/images/aiads-logo.png" alt="AI Ads" style={{ width: '16px', height: '16px', objectFit: 'contain', verticalAlign: 'middle' }} />
+                  ) : isUwoConnect ? (
+                    <img src="/images/uwoconnectlogo.png" alt="UWO Connect" style={{ width: '16px', height: '16px', objectFit: 'contain', verticalAlign: 'middle' }} />
+                  ) : isAiMall ? (
+                    <img src="/images/aimall-logo.webp" alt="AI Mall" style={{ width: '16px', height: '16px', objectFit: 'contain', verticalAlign: 'middle' }} />
+                  ) : isAiEducation ? (
+                    <img src="/images/ai-education-logo.png" alt="AI Education" style={{ width: '16px', height: '16px', objectFit: 'contain', verticalAlign: 'middle' }} />
+                  ) : isUwo ? (
+                    <img src="/images/uwo-logo.png" alt="UWO" style={{ width: '16px', height: '16px', objectFit: 'contain', verticalAlign: 'middle' }} />
+                  ) : '📦';
                   const initials = (s.customer_name || 'U')
                     .split(' ')
                     .map(n => n[0])
@@ -1121,18 +1257,46 @@ export const ActiveSubscriptions = () => {
                         )}
                       </td>
 
-                      {/* Auto Renew */}
+                      {/* Auto Renew (Interactive Admin Toggle) */}
                       <td style={{ padding: '14px 16px' }}>
-                        <span style={{
-                          fontSize: '11px',
-                          fontWeight: '700',
-                          padding: '2px 8px',
-                          borderRadius: '12px',
-                          background: s.auto_renew ? 'rgba(16, 185, 129, 0.15)' : 'rgba(148, 163, 184, 0.1)',
-                          color: s.auto_renew ? '#34d399' : '#94a3b8'
-                        }}>
-                          {s.auto_renew ? '✓ Enabled' : '✕ Off'}
-                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => handleToggleAutoRenew(s, e)}
+                          disabled={actionLoadingId === (s.id || s._id)}
+                          title={`Click to turn Auto-Renew ${s.auto_renew ? 'OFF' : 'ON'}`}
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: '700',
+                            padding: '4px 10px',
+                            borderRadius: '14px',
+                            background: s.auto_renew ? 'rgba(16, 185, 129, 0.16)' : 'rgba(148, 163, 184, 0.12)',
+                            color: s.auto_renew ? '#34d399' : '#94a3b8',
+                            border: `1px solid ${s.auto_renew ? 'rgba(16, 185, 129, 0.4)' : 'rgba(148, 163, 184, 0.25)'}`,
+                            cursor: actionLoadingId === (s.id || s._id) ? 'wait' : 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            transition: 'all 0.15s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'scale(1.05)';
+                            e.currentTarget.style.boxShadow = s.auto_renew ? '0 0 10px rgba(52, 211, 153, 0.3)' : '0 0 10px rgba(148, 163, 184, 0.2)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'scale(1)';
+                            e.currentTarget.style.boxShadow = 'none';
+                          }}
+                        >
+                          {actionLoadingId === (s.id || s._id) ? (
+                            <span>⏳ Saving...</span>
+                          ) : (
+                            <>
+                              <span>{s.auto_renew ? '✓' : '✕'}</span>
+                              <span>{s.auto_renew ? 'Enabled' : 'Off'}</span>
+                              <span style={{ fontSize: '10px', opacity: 0.65, marginLeft: '2px' }}>⇄</span>
+                            </>
+                          )}
+                        </button>
                       </td>
 
                       {/* Actions */}
@@ -1326,6 +1490,115 @@ export const ActiveSubscriptions = () => {
                 <div style={{ fontSize: '13px', fontWeight: '600', color: '#cbd5e1', marginTop: '4px' }}>
                   {formatDate(selectedSub.expiry_date)}
                 </div>
+              </div>
+            </div>
+
+            {/* Direct Auto-Renew & Lifecycle Management Controls */}
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              borderRadius: '12px',
+              padding: '16px 18px',
+              marginBottom: '20px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '14px' }}>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '800', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>🔄</span> Auto-Renew & Subscription Lifecycle Controls
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>
+                    Control auto-renewal entitlement flag or manually extend subscriber access.
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleAutoRenew(selectedSub)}
+                    disabled={actionLoadingId === (selectedSub.id || selectedSub._id)}
+                    style={{
+                      background: selectedSub.auto_renew ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.2)',
+                      color: selectedSub.auto_renew ? '#f87171' : '#34d399',
+                      border: `1px solid ${selectedSub.auto_renew ? 'rgba(239, 68, 68, 0.4)' : 'rgba(16, 185, 129, 0.4)'}`,
+                      borderRadius: '8px',
+                      padding: '8px 14px',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      cursor: actionLoadingId === (selectedSub.id || selectedSub._id) ? 'wait' : 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <span>{selectedSub.auto_renew ? '✕ Disable Auto-Renew' : '✓ Enable Auto-Renew'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleRenewSubscription(selectedSub, 30)}
+                    disabled={actionLoadingId === (selectedSub.id || selectedSub._id)}
+                    style={{
+                      background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '8px 16px',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      cursor: actionLoadingId === (selectedSub.id || selectedSub._id) ? 'wait' : 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      boxShadow: '0 4px 12px rgba(37, 99, 235, 0.35)'
+                    }}
+                  >
+                    <span>⚡ Renew (+30 Days)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleRenewSubscription(selectedSub, 90)}
+                    disabled={actionLoadingId === (selectedSub.id || selectedSub._id)}
+                    style={{
+                      background: 'rgba(59, 130, 246, 0.15)',
+                      color: '#60a5fa',
+                      border: '1px solid rgba(59, 130, 246, 0.3)',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      cursor: actionLoadingId === (selectedSub.id || selectedSub._id) ? 'wait' : 'pointer'
+                    }}
+                  >
+                    <span>+90 Days</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Technical / Operational Diagnostics Box */}
+              <div style={{
+                background: 'rgba(15, 23, 42, 0.65)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '8px',
+                padding: '12px 14px',
+                fontSize: '11.5px',
+                lineHeight: '1.55',
+                color: '#cbd5e1'
+              }}>
+                <div style={{ fontWeight: '700', color: '#38bdf8', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>ℹ️</span> Payment & Renewal Architecture Notes:
+                </div>
+                <ul style={{ margin: '4px 0 0 0', paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <li>
+                    <strong style={{ color: '#f1f5f9' }}>Apple StoreKit 2 (iOS):</strong> Charges are processed directly by Apple via the user's Apple ID (saved card, UPI, or Apple Account funds). Our server cannot debit an Apple user's bank directly. When a renewal charge fails (e.g. card declined, limit reached), Apple places the subscription into a <strong>Billing Grace Period (up to 16 days)</strong> while Apple retries the transaction. If the subscriber cancels the subscription inside their iPhone Settings (<code style={{ color: '#93c5fd' }}>Settings &gt; Apple ID &gt; Subscriptions</code>), Apple flags it as <span style={{ color: '#94a3b8' }}>✕ Off</span>.
+                  </li>
+                  <li>
+                    <strong style={{ color: '#f1f5f9' }}>Razorpay Web Checkout:</strong> Standard checkout IDs (<code style={{ color: '#93c5fd' }}>pay_...</code>) are one-time payments. Under RBI regulations, automated recurring bank debits require an active registered <strong>e-mandate</strong> token (<code style={{ color: '#93c5fd' }}>sub_...</code>). Without an e-mandate, payments cannot auto-deduct upon plan expiration.
+                  </li>
+                  <li>
+                    <strong style={{ color: '#f1f5f9' }}>Manual Override:</strong> Clicking <span style={{ color: '#34d399' }}>Renew (+30 Days)</span> will instantly extend this subscriber's access in both the Unified DB and AISA app database.
+                  </li>
+                </ul>
               </div>
             </div>
 

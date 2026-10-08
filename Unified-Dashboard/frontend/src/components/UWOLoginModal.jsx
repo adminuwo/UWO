@@ -98,8 +98,8 @@ export const UWOLoginModal = ({ isOpen, onClose, onSuccess, appCode = "aisa", ap
           {/* Header */}
           <div className="flex items-center justify-between pb-4 border-b border-slate-800">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-xl">
-                ⚡
+              <div className="w-10 h-10 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center p-1.5">
+                <img src="/images/uwo-logo.png" alt="UWO" className="w-full h-full object-contain" />
               </div>
               <div>
                 <h3 className="text-base font-black text-white uppercase tracking-wider">

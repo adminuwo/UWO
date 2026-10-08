@@ -1,5 +1,18 @@
 import React, { useState, useEffect } from 'react';
 
+const getProjectLogo = (code) => {
+  const c = (code || '').toLowerCase();
+  if (c.includes('ailegal') || c === 'legal') return '/images/ailegallogo.png';
+  if (c.includes('aisa')) return '/images/aisa-logo.png';
+  if (c.includes('efv')) return '/images/efv-logo.png';
+  if (c.includes('aimall')) return '/images/aimall-logo.webp';
+  if (c.includes('connect')) return '/images/uwoconnectlogo.png';
+  if (c.includes('aiads') || c.includes('ads')) return '/images/aiads-logo.png';
+  if (c.includes('education')) return '/images/ai-education-logo.png';
+  if (c === 'uwo' || c.includes('uwo_web')) return '/images/uwo-logo.png';
+  return null;
+};
+
 export const UserReferralsView = ({
   summary,
   links = [],
@@ -1081,7 +1094,10 @@ export const UserReferralsView = ({
                       onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                     >
                       <td style={{ padding: '14px 16px' }}>
-                        <div style={{ fontWeight: '700', color: '#F8FAFC', fontSize: '14px' }}>
+                        <div style={{ fontWeight: '700', color: '#F8FAFC', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {getProjectLogo(prod.slug || prod.name) && (
+                            <img src={getProjectLogo(prod.slug || prod.name)} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+                          )}
                           {prod.name}
                         </div>
                         <div
