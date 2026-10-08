@@ -1,0 +1,18 @@
+# ==============================================================================
+# robots.txt for https://uwo24.com
+# ==============================================================================
+
+User-agent: *
+Allow: /
+
+# Disallow private administrative consoles, API routes, and user portals
+Disallow: /admin
+Disallow: /admin/
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /user/
+Disallow: /partner-login
+Disallow: /partner-dashboard
+
+# Canonical XML Sitemap
+Sitemap: https://uwo24.com/sitemap.xml

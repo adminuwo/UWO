@@ -4640,6 +4640,13 @@ app.post('/api/team-members', auth, checkPermission('team.create'), (req, res, n
                     return res.status(404).send('Not Found');
                 }
 
+                // 301 Permanent Redirect for legacy .html paths to authoritative canonical URLs (Except Google verification)
+                if (req.path.endsWith('.html') && !req.path.startsWith('/google')) {
+                    const cleanPath = req.path === '/index.html' ? '/' : req.path.replace(/\.html$/i, '');
+                    const queryString = req.url.includes('?') ? '?' + req.url.split('?')[1] : '';
+                    return res.redirect(301, (cleanPath || '/') + queryString);
+                }
+
                 res.sendFile(path.join(frontendDistPath, 'index.html'));
             });
         }

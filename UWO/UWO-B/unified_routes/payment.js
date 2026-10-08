@@ -79,6 +79,7 @@ router.post('/verify', async (req, res) => {
 // -----------------------------------------------------------------------------
 const Razorpay = require('razorpay');
 const { subscriptionRepository } = require('./SubscriptionRepository');
+const { subscriptionSyncService } = require('./SubscriptionSyncService');
 
 const getRazorpayInstance = () => {
   return new Razorpay({
@@ -325,6 +326,20 @@ router.post('/subscriptions/verify', async (req, res) => {
     });
   } catch (err) {
     console.error('[Razorpay Verify Subscription] Error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/payment/subscriptions/webhook
+// POST /api/payment/webhook
+// Direct Razorpay Webhook receiver for recurring subscriptions & Auto-Pay events
+router.post(['/subscriptions/webhook', '/webhook'], async (req, res) => {
+  try {
+    const sig = req.headers['x-razorpay-signature'];
+    const result = await subscriptionSyncService.handleRazorpayWebhook(req.body, sig);
+    return res.json(result);
+  } catch (err) {
+    console.error('[Razorpay Webhook Error]:', err);
     return res.status(500).json({ success: false, error: err.message });
   }
 });
