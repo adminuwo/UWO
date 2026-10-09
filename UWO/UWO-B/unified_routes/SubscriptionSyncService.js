@@ -288,6 +288,183 @@ class SubscriptionSyncService {
         });
       }
 
+      // 5. Direct Razorpay Reconciler: Auto-ingest any captured AI-Legal payments missing from DB
+      if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+        try {
+          const Razorpay = require('razorpay');
+          const rzp = new Razorpay({
+            key_id: process.env.RAZORPAY_KEY_ID,
+            key_secret: process.env.RAZORPAY_KEY_SECRET
+          });
+
+          const rzpPayments = await rzp.payments.all({ count: 50 });
+          const capturedPayments = (rzpPayments.items || []).filter(p => p.status === 'captured');
+
+          const alreadyTrackedTxIds = new Set(
+            subOps.map(op => {
+              const filter = op.updateOne?.filter;
+              if (filter?.transaction_id) return filter.transaction_id;
+              if (filter?.$or) {
+                const item = filter.$or.find(f => f.transaction_id);
+                if (item) return item.transaction_id;
+              }
+              return null;
+            }).filter(Boolean)
+          );
+
+          for (const p of capturedPayments) {
+            if (alreadyTrackedTxIds.has(p.id)) continue;
+
+            const amt = (p.amount || 0) / 100;
+            // Only consider genuine subscriber payments (₹100 or above)
+            if (amt < 100) continue;
+
+            const desc = (p.description || '').toLowerCase();
+            const notesStr = JSON.stringify(p.notes || {}).toLowerCase();
+            const isLegal = desc.includes('legal') || 
+                            desc.includes('advocate') || 
+                            notesStr.includes('legal') || 
+                            notesStr.includes('advocate') ||
+                            notesStr.includes('ailegal');
+
+            if (!isLegal) continue;
+
+            // Check if already present in unifiedDb subscriptions
+            const existsInDb = await unifiedDb.collection('subscriptions').findOne({
+              $or: [
+                { transaction_id: p.id },
+                { subscription_id: `rzp_sub_${p.id}` }
+              ]
+            });
+            if (existsInDb) {
+              alreadyTrackedTxIds.add(p.id);
+              continue;
+            }
+
+            processed++;
+            const tier = determineTier(amt);
+            const txDate = p.created_at ? new Date(p.created_at * 1000) : new Date();
+            const expiry = new Date(txDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+            const sid = `rzp_sub_${p.id}`;
+
+            // Match user from AISA users cache if registered
+            const matchedUser = Object.values(usersMap).find(u => u.email && u.email.toLowerCase() === (p.email || '').toLowerCase());
+            const custName = matchedUser?.name || formatNameFromEmail(p.email);
+            const custId = matchedUser ? Object.keys(usersMap).find(k => usersMap[k] === matchedUser) : null;
+
+            const rzpSubDoc = {
+              _id: sid,
+              subscription_id: sid,
+              source: 'razorpay_direct',
+              product_code: 'ailegal',
+              product_name: 'AI Legal',
+              customer_id: custId,
+              customer_email: p.email || 'customer@ailegal.app',
+              customer_name: custName,
+              customer_phone: p.contact || matchedUser?.phone || '',
+              workspace: 'advocate',
+              tier: tier,
+              plan_name: `Advocate ${tier.charAt(0) + tier.slice(1).toLowerCase()} Plan`,
+              billing_cycle: 'monthly',
+              billing_type: 'individual',
+              amount: amt,
+              currency: p.currency || 'INR',
+              status: 'active',
+              platform: 'web',
+              provider: 'razorpay',
+              transaction_id: p.id,
+              order_id: p.order_id || '',
+              invoice_id: p.invoice_id || '',
+              start_date: txDate,
+              expiry_date: expiry,
+              auto_renew: false,
+              created_at: txDate,
+              updated_at: new Date()
+            };
+
+            const { _id: rzpDocId, ...rzpWithoutId } = rzpSubDoc;
+            subOps.push({
+              updateOne: {
+                filter: {
+                  $or: [
+                    { _id: rzpDocId },
+                    { transaction_id: p.id },
+                    { subscription_id: sid }
+                  ]
+                },
+                update: {
+                  $set: rzpWithoutId,
+                  $setOnInsert: { _id: rzpDocId }
+                },
+                upsert: true
+              }
+            });
+            alreadyTrackedTxIds.add(p.id);
+
+            // Also record in unifiedDb revenue_transactions for accurate financial metrics
+            await unifiedDb.collection('revenue_transactions').updateOne(
+              { external_transaction_id: p.id },
+              {
+                $set: {
+                  source: 'razorpay',
+                  provider: 'razorpay',
+                  product_code: 'ailegal',
+                  platform: 'web',
+                  external_transaction_id: p.id,
+                  external_order_id: p.order_id || '',
+                  transaction_type: 'payment',
+                  gross_amount: amt,
+                  tax_amount: p.tax ? p.tax / 100 : 0,
+                  fee_amount: p.fee ? p.fee / 100 : 0,
+                  refund_amount: 0,
+                  net_amount: (p.amount - (p.fee || 0) - (p.tax || 0)) / 100,
+                  currency: p.currency || 'INR',
+                  reporting_amount: amt,
+                  reporting_currency: 'INR',
+                  exchange_rate: 1,
+                  transaction_date: txDate,
+                  country: 'IN',
+                  status: 'completed',
+                  customer_id: custId,
+                  customer_email: p.email,
+                  customer_name: custName,
+                  updated_at: new Date()
+                },
+                $setOnInsert: {
+                  _id: `rzp_tx_${p.id}`,
+                  created_at: txDate
+                }
+              },
+              { upsert: true }
+            );
+
+            // Also ensure primary AISA DB gets this payment doc so AISA app features unlock
+            if (aisaDb) {
+              await aisaDb.collection('payments').updateOne(
+                { transactionId: p.id },
+                {
+                  $setOnInsert: {
+                    userId: custId ? new ObjectId(custId) : null,
+                    planId: tier === 'PROFESSIONAL' ? 'advocate_pro' : 'advocate_basic',
+                    invoiceNumber: p.invoice_id || `INV-${p.created_at}`,
+                    amount: amt,
+                    gst: p.tax ? p.tax / 100 : Math.round(amt * 0.18 * 100) / 100,
+                    gateway: 'Razorpay',
+                    transactionId: p.id,
+                    status: 'success',
+                    createdAt: txDate,
+                    updatedAt: new Date()
+                  }
+                },
+                { upsert: true }
+              ).catch(e => console.warn('[SubscriptionSyncService] Could not write to aisaDb.payments:', e.message));
+            }
+          }
+        } catch (rzpErr) {
+          console.warn('[SubscriptionSyncService] Razorpay direct reconciliation non-blocking notice:', rzpErr.message);
+        }
+      }
+
       // Purge any accidental non-subscription products (EFV, AI Mall, UWO Web, UWO Connect)
       await unifiedDb.collection('subscriptions').deleteMany({
         product_code: { $in: ['efvframework', 'aimall', 'uwo', 'uwoconnect'] }
