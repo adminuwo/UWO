@@ -169,6 +169,43 @@ async function seedLocalTestData() {
     }
   ]);
 
+  // Seed test marketing events
+  await testUnifiedDb.collection('marketing_events').insertMany([
+    {
+      event_type: 'click',
+      app_code: 'ailegal',
+      slug: 'ai-legal9',
+      ip: '127.0.0.1',
+      target_url: 'https://ailegal.aisa24.com',
+      timestamp: now
+    },
+    {
+      event_type: 'pageview',
+      app_code: 'ailegal',
+      path: '/r/ai-legal9',
+      ip: '127.0.0.1',
+      timestamp: now
+    }
+  ]);
+
+  // Seed test users in unified_test_db
+  await testUnifiedDb.collection('users').insertMany([
+    {
+      email: 'testuser1@ailegal.app',
+      name: 'Test Advocate',
+      connected_apps: ['ailegal'],
+      created_at: now,
+      updated_at: now
+    },
+    {
+      email: 'testuser2@aisa.app',
+      name: 'Test User AISA',
+      connected_apps: ['aisa'],
+      created_at: now,
+      updated_at: now
+    }
+  ]);
+
   // Seed test chat tracking
   await testUnifiedDb.collection('chat_tracking').insertMany([
     {
@@ -369,6 +406,13 @@ async function runTests() {
     });
     assert(gpTsRes.status === 200, `Google Play Timeseries HTTP 200 (Got ${gpTsRes.status})`);
     assert(gpTsRes.data && gpTsRes.data.data && Array.isArray(gpTsRes.data.data.android) && gpTsRes.data.data.android.length >= 1, 'Google Play Android timeseries array populated');
+
+    const gpGeoRes = await request('/api/admin/analytics/google-play/geo?app_codes=all', {
+      headers: { Authorization: `Bearer ${adminToken}` }
+    });
+    assert(gpGeoRes.status === 200, `Google Play Geo HTTP 200 (Got ${gpGeoRes.status})`);
+    assert(gpGeoRes.data && gpGeoRes.data.data && Array.isArray(gpGeoRes.data.data.india_states) && gpGeoRes.data.data.india_states.length >= 1, 'Google Play Geo India States array populated');
+    assert(gpGeoRes.data && gpGeoRes.data.data && Array.isArray(gpGeoRes.data.data.countries) && gpGeoRes.data.data.countries.length >= 1, 'Google Play Geo Countries array populated');
 
     // 2.3 Central Logs Subsystem (/api/admin/logs)
     console.log('\n[2.3] Testing Central Logs Subsystem (/api/admin/logs)...');
