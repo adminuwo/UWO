@@ -29,33 +29,53 @@ export const Overview = () => {
   const [stats, setStats] = useState(null);
   const [telemetry, setTelemetry] = useState(null);
   const [playAnalytics, setPlayAnalytics] = useState(null);
+  const [revenueTrend, setRevenueTrend] = useState([]);
+  const [trendPeriod, setTrendPeriod] = useState('30d');
   const [loading, setLoading] = useState(true);
 
   const fetchStats = async () => {
-    setLoading(true);
     try {
-      const [statsRes, telemetryRes, playRes] = await Promise.all([
-        authFetch('/api/admin/stats'),
-        authFetch('/api/telemetry/overview'),
-        authFetch('/api/admin/analytics/google-play/overview?app_codes=aisa,ailegal')
-      ]);
+      // 1. Fetch main stats immediately so dashboard renders in milliseconds
+      authFetch('/api/admin/stats')
+        .then(async (res) => {
+          if (res.ok) setStats(await res.json());
+        })
+        .catch((err) => console.warn('[Overview] Stats error:', err))
+        .finally(() => setLoading(false));
 
-      if (statsRes.ok) {
-        const data = await statsRes.json();
-        setStats(data);
-      }
-      if (telemetryRes.ok) {
-        const tData = await telemetryRes.json();
-        setTelemetry(tData);
-      }
-      if (playRes.ok) {
-        const pData = await playRes.json();
-        setPlayAnalytics(pData.data);
-      }
+      // 2. Fetch AI telemetry concurrently
+      authFetch('/api/telemetry/overview')
+        .then(async (res) => {
+          if (res.ok) setTelemetry(await res.json());
+        })
+        .catch((err) => console.warn('[Overview] Telemetry error:', err));
+
+      // 3. Fetch Google Play & App Store analytics concurrently
+      authFetch('/api/admin/analytics/google-play/overview?app_codes=aisa,ailegal')
+        .then(async (res) => {
+          if (res.ok) {
+            const pData = await res.json();
+            setPlayAnalytics(pData.data);
+          }
+        })
+        .catch((err) => console.warn('[Overview] Store analytics error:', err));
     } catch (err) {
       console.error('Failed to fetch overview data:', err);
-    } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRevenueTrend = async (period = '30d') => {
+    try {
+      const res = await authFetch(`/api/admin/revenue/trend?period=${period}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json && Array.isArray(json.data)) {
+          setRevenueTrend(json.data);
+        }
+      }
+    } catch (e) {
+      console.warn('[Overview] Revenue trend error:', e);
     }
   };
 
@@ -63,17 +83,31 @@ export const Overview = () => {
     fetchStats();
   }, []);
 
+  useEffect(() => {
+    fetchRevenueTrend(trendPeriod);
+  }, [trendPeriod]);
+
+  const chartLabels = revenueTrend.length > 0
+    ? revenueTrend.map((p) => p.label || (p.date ? p.date.slice(5) : ''))
+    : ['Today'];
+
+  const chartPoints = revenueTrend.length > 0
+    ? revenueTrend.map((p) => p.gross || p.net || 0)
+    : [stats?.total_revenue || 0];
+
   const chartData = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Today'],
+    labels: chartLabels,
     datasets: [
       {
-        label: 'Revenue (₹)',
-        data: [0, 0, 0, 0, 0, 0, stats?.total_revenue || 0],
+        label: 'Gross Revenue (₹)',
+        data: chartPoints,
         borderColor: '#6366f1',
         backgroundColor: 'rgba(99, 102, 241, 0.15)',
         fill: true,
-        tension: 0.4,
+        tension: 0.35,
         pointBackgroundColor: '#8b5cf6',
+        pointRadius: revenueTrend.length > 30 ? 1 : 3,
+        pointHoverRadius: 6,
       },
     ],
   };
@@ -83,10 +117,21 @@ export const Overview = () => {
     maintainAspectRatio: false,
     plugins: {
       legend: { labels: { color: '#94a3b8' } },
+      tooltip: {
+        callbacks: {
+          label: (context) => ` Revenue: ₹${Number(context.raw || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+        }
+      }
     },
     scales: {
-      x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-      y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+      x: { ticks: { color: '#64748b', maxTicksLimit: 12 }, grid: { color: 'rgba(255,255,255,0.05)' } },
+      y: {
+        ticks: {
+          color: '#64748b',
+          callback: (val) => `₹${Number(val).toLocaleString('en-IN')}`
+        },
+        grid: { color: 'rgba(255,255,255,0.05)' }
+      },
     },
   };
 
@@ -196,10 +241,40 @@ export const Overview = () => {
       </div>
 
       <div className="card-section">
-        <div className="section-header">
-          <div className="section-title">Revenue & Subscription Activity</div>
+        <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+          <div>
+            <div className="section-title">Revenue & Subscription Activity</div>
+            <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>
+              Real-time daily transaction volume & billing across all connected platforms
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            {[
+              { id: '7d', label: '7D' },
+              { id: '30d', label: '30D' },
+              { id: '90d', label: '90D' }
+            ].map((p) => (
+              <button
+                key={p.id}
+                onClick={() => setTrendPeriod(p.id)}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  border: trendPeriod === p.id ? '1px solid #6366f1' : '1px solid #334155',
+                  background: trendPeriod === p.id ? 'rgba(99, 102, 241, 0.2)' : 'rgba(15, 23, 42, 0.6)',
+                  color: trendPeriod === p.id ? '#a5b4fc' : '#94a3b8',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
         </div>
-        <div style={{ height: '280px' }}>
+        <div style={{ height: '280px', marginTop: '12px' }}>
           <Line data={chartData} options={chartOptions} />
         </div>
       </div>

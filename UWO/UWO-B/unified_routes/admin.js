@@ -801,7 +801,13 @@ function normalizeAppCode(code) {
   return 'ailegal';
 }
 
+let liveDownloadsCache = null;
+let liveDownloadsCacheTime = 0;
+
 async function getLiveDownloadsData(db) {
+  if (liveDownloadsCache && (Date.now() - liveDownloadsCacheTime < 45000)) {
+    return liveDownloadsCache;
+  }
   const now = new Date();
   const getDayStrings = (d) => {
     const utc = d.toISOString().split('T')[0];
@@ -888,7 +894,10 @@ async function getLiveDownloadsData(db) {
   downloadsList.forEach(processRecord);
 
   const totalCount = seenEvents.size;
-  return { appTotals, dailyByApp, latestEvent, todayStr, todayIst: todayStrings.ist, totalCount };
+  const result = { appTotals, dailyByApp, latestEvent, todayStr, todayIst: todayStrings.ist, totalCount };
+  liveDownloadsCache = result;
+  liveDownloadsCacheTime = Date.now();
+  return result;
 }
 
 // GET /api/admin/analytics/google-play/overview
@@ -942,12 +951,15 @@ router.get(['/analytics/google-play/overview', '/google-play/overview'], verifyA
       }
     ];
 
-    const results = await db.collection('play_install_metrics').aggregate(pipeline).toArray().catch(() => []);
+    const [results, [liveData, fbData]] = await Promise.all([
+      db.collection('play_install_metrics').aggregate(pipeline).toArray().catch(() => []),
+      Promise.all([
+        getLiveDownloadsData(db),
+        firebaseAnalytics.getFirebaseTelemetry().catch(() => null)
+      ])
+    ]);
     const histByApp = {};
     results.forEach(r => { if (r._id) histByApp[r._id] = r; });
-
-    const liveData = await getLiveDownloadsData(db);
-    const fbData = await firebaseAnalytics.getFirebaseTelemetry().catch(() => null);
     const appTotals = liveData.appTotals;
     const latestEvent = liveData.latestEvent;
     const todayStr = liveData.todayStr;
