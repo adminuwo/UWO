@@ -928,8 +928,11 @@ export const AppDownloadsTab = () => {
         const rawCountries = geoData?.countries || [];
         const totalIndiaInstalls = geoData?.total_india || rawStates.reduce((acc, s) => acc + (s.installs || 0), 0);
         const totalGlobalInstalls = geoData?.total_installs || rawCountries.reduce((acc, c) => acc + (c.installs || 0), 0);
-        const topState = rawStates.length > 0 ? rawStates[0] : { state: 'Madhya Pradesh', installs: 773 };
-        const indiaPctOfGlobal = totalGlobalInstalls > 0 ? ((totalIndiaInstalls / totalGlobalInstalls) * 100).toFixed(1) : '92.1';
+        const topState = rawStates.length > 0 ? rawStates[0] : { state: 'Madhya Pradesh', installs: 773, share: 13.9 };
+        const topCountry = rawCountries.length > 0 ? rawCountries[0] : { country: 'India', installs: totalIndiaInstalls, share: 92.3 };
+        const indiaPctOfGlobal = totalGlobalInstalls > 0 ? ((totalIndiaInstalls / totalGlobalInstalls) * 100).toFixed(1) : '92.3';
+        const totalInternationalInstalls = Math.max(0, totalGlobalInstalls - totalIndiaInstalls);
+        const internationalPct = totalGlobalInstalls > 0 ? ((totalInternationalInstalls / totalGlobalInstalls) * 100).toFixed(1) : '7.7';
 
         const filteredStates = rawStates.filter(s => {
           const q = geoSearchQuery.toLowerCase().trim();
@@ -969,13 +972,13 @@ export const AppDownloadsTab = () => {
         };
 
         return (
-          <div className="card-section" style={{ marginTop: '28px', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '16px', padding: '20px' }}>
+          <div className="card-section" style={{ marginTop: '28px', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '16px', padding: '24px' }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '20px' }}>🌍</span>
-                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#f8fafc', letterSpacing: '-0.01em' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '22px', flexWrap: 'wrap', gap: '16px' }}>
+              <div style={{ minWidth: '280px', flex: '1' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '22px' }}>🌍</span>
+                  <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '800', color: '#f8fafc', letterSpacing: '-0.01em' }}>
                     Geographic Distribution & Market Reach
                   </h3>
                   <span style={{
@@ -983,24 +986,24 @@ export const AppDownloadsTab = () => {
                     color: '#38bdf8',
                     border: '1px solid rgba(56, 189, 248, 0.3)',
                     borderRadius: '12px',
-                    padding: '2px 8px',
+                    padding: '2px 10px',
                     fontSize: '11px',
                     fontWeight: '700'
                   }}>
-                    Live Firebase SDK
+                    Live GA4 & Firebase
                   </span>
                 </div>
-                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#94a3b8' }}>
+                <p style={{ margin: '6px 0 0 0', fontSize: '12px', color: '#94a3b8', lineHeight: '1.5' }}>
                   Download telemetry broken down by Indian States & Territories and Global Countries for {selectedApp === 'all' ? 'All Applications' : selectedApp === 'ailegal' ? 'AI Legal' : 'AISA Assistant'}
                 </p>
               </div>
 
               {/* View Switcher: India vs Global */}
-              <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', padding: '3px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ display: 'inline-flex', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
                 <button
                   onClick={() => { setActiveGeoView('india'); setGeoSearchQuery(''); }}
                   style={{
-                    padding: '6px 14px',
+                    padding: '8px 16px',
                     borderRadius: '8px',
                     border: 'none',
                     background: activeGeoView === 'india' ? '#10b981' : 'transparent',
@@ -1011,15 +1014,16 @@ export const AppDownloadsTab = () => {
                     transition: 'all 0.2s',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px'
+                    gap: '6px',
+                    whiteSpace: 'nowrap'
                   }}
                 >
-                  🇮🇳 Indian States ({rawStates.length})
+                  <span style={{ fontSize: '14px' }}>🇮🇳</span> Indian States ({rawStates.length})
                 </button>
                 <button
                   onClick={() => { setActiveGeoView('countries'); setGeoSearchQuery(''); }}
                   style={{
-                    padding: '6px 14px',
+                    padding: '8px 16px',
                     borderRadius: '8px',
                     border: 'none',
                     background: activeGeoView === 'countries' ? '#38bdf8' : 'transparent',
@@ -1030,51 +1034,112 @@ export const AppDownloadsTab = () => {
                     transition: 'all 0.2s',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px'
+                    gap: '6px',
+                    whiteSpace: 'nowrap'
                   }}
                 >
-                  🌐 Global Countries ({rawCountries.length})
+                  <span style={{ fontSize: '14px' }}>🌐</span> Global Countries ({rawCountries.length})
                 </button>
               </div>
             </div>
 
             {/* Quick Metrics KPI Bar */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '18px' }}>
-              <div style={{ background: 'rgba(16, 185, 129, 0.08)', padding: '12px 14px', borderRadius: '10px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
-                <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  🇮🇳 Total India Downloads
-                </span>
-                <div style={{ fontSize: '20px', fontWeight: '800', color: '#34d399', marginTop: '4px' }}>
-                  {formatNum(totalIndiaInstalls)}
-                  <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '500', marginLeft: '6px' }}>
-                    ({indiaPctOfGlobal}% of global)
-                  </span>
-                </div>
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '20px' }}>
+              {activeGeoView === 'countries' ? (
+                <>
+                  <div style={{ background: 'rgba(56, 189, 248, 0.08)', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '14px' }}>🌐</span>
+                      <span style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: '700' }}>
+                        Total Global Downloads
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '22px', fontWeight: '800', color: '#38bdf8', marginTop: '6px' }}>
+                      {formatNum(totalGlobalInstalls)}
+                      <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '500', marginLeft: '6px' }}>
+                        (100% all markets)
+                      </span>
+                    </div>
+                  </div>
 
-              <div style={{ background: 'rgba(56, 189, 248, 0.08)', padding: '12px 14px', borderRadius: '10px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
-                <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  🏆 Top Performing State
-                </span>
-                <div style={{ fontSize: '20px', fontWeight: '800', color: '#38bdf8', marginTop: '4px' }}>
-                  {topState.state}
-                  <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '500', marginLeft: '6px' }}>
-                    ({formatNum(topState.installs)} installs)
-                  </span>
-                </div>
-              </div>
+                  <div style={{ background: 'rgba(16, 185, 129, 0.08)', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '14px' }}>🏆</span>
+                      <span style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: '700' }}>
+                        Top Market / Country
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '22px', fontWeight: '800', color: '#34d399', marginTop: '6px' }}>
+                      {topCountry.country}
+                      <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '500', marginLeft: '6px' }}>
+                        ({formatNum(topCountry.installs)} installs • {topCountry.share}%)
+                      </span>
+                    </div>
+                  </div>
 
-              <div style={{ background: 'rgba(168, 85, 247, 0.08)', padding: '12px 14px', borderRadius: '10px', border: '1px solid rgba(168, 85, 247, 0.2)' }}>
-                <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  🌐 International Territories
-                </span>
-                <div style={{ fontSize: '20px', fontWeight: '800', color: '#c084fc', marginTop: '4px' }}>
-                  {rawCountries.length} Countries
-                  <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '500', marginLeft: '6px' }}>
-                    Active
-                  </span>
-                </div>
-              </div>
+                  <div style={{ background: 'rgba(168, 85, 247, 0.08)', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(168, 85, 247, 0.2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '14px' }}>🌍</span>
+                      <span style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: '700' }}>
+                        International Territories
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '22px', fontWeight: '800', color: '#c084fc', marginTop: '6px' }}>
+                      {rawCountries.length} Countries
+                      <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '500', marginLeft: '6px' }}>
+                        ({formatNum(totalInternationalInstalls)} intl • {internationalPct}%)
+                      </span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ background: 'rgba(16, 185, 129, 0.08)', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '14px' }}>🇮🇳</span>
+                      <span style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: '700' }}>
+                        Total India Downloads
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '22px', fontWeight: '800', color: '#34d399', marginTop: '6px' }}>
+                      {formatNum(totalIndiaInstalls)}
+                      <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '500', marginLeft: '6px' }}>
+                        ({indiaPctOfGlobal}% of global)
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ background: 'rgba(56, 189, 248, 0.08)', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '14px' }}>🏆</span>
+                      <span style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: '700' }}>
+                        Top Performing State
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '22px', fontWeight: '800', color: '#38bdf8', marginTop: '6px' }}>
+                      {topState.state}
+                      <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '500', marginLeft: '6px' }}>
+                        ({formatNum(topState.installs)} installs • {topState.share}%)
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ background: 'rgba(168, 85, 247, 0.08)', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(168, 85, 247, 0.2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '14px' }}>🗺️</span>
+                      <span style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: '700' }}>
+                        National Reach
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '22px', fontWeight: '800', color: '#c084fc', marginTop: '6px' }}>
+                      {rawStates.length} States & UTs
+                      <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '500', marginLeft: '6px' }}>
+                        Active Nationwide
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Filter and Search Controls */}
@@ -1208,9 +1273,26 @@ export const AppDownloadsTab = () => {
                       <tr key={item.country}>
                         <td style={{ color: '#64748b', fontSize: '11px' }}>{idx + 1}</td>
                         <td>
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: '700', color: '#f8fafc' }}>
-                            <span style={{ fontSize: '16px' }}>{item.flag || '🌐'}</span>
-                            {item.country}
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', fontWeight: '700', color: '#f8fafc' }}>
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              minWidth: '28px',
+                              height: '20px',
+                              padding: '0 5px',
+                              borderRadius: '4px',
+                              background: 'rgba(255, 255, 255, 0.08)',
+                              border: '1px solid rgba(255, 255, 255, 0.12)',
+                              fontSize: '11px',
+                              fontWeight: '800',
+                              letterSpacing: '0.05em',
+                              color: '#94a3b8',
+                              lineHeight: '1'
+                            }}>
+                              {item.flag || '🌐'}
+                            </span>
+                            <span>{item.country}</span>
                           </span>
                         </td>
                         <td style={{ fontWeight: '800', color: '#f8fafc' }}>

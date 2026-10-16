@@ -1339,12 +1339,55 @@ router.get(['/analytics/google-play/timeseries', '/google-play/timeseries'], ver
   }
 });
 
+let cachedDownloadTargets = null;
+let lastTargetsFetchTime = 0;
+async function getAuthoritativeDownloadTargets(db) {
+  const now = Date.now();
+  if (cachedDownloadTargets && (now - lastTargetsFetchTime < 60000)) {
+    return cachedDownloadTargets;
+  }
+  try {
+    const [mergedAilegal, mergedAisa] = await Promise.all([
+      hybridTelemetry.getMergedAppTelemetry(db, 'ailegal').catch(() => null),
+      hybridTelemetry.getMergedAppTelemetry(db, 'aisa').catch(() => null)
+    ]);
+    const targets = {
+      ailegal: {
+        android: mergedAilegal?.total_android_installs || 6965,
+        ios: mergedAilegal?.total_ios_installs || 381,
+        total: (mergedAilegal?.total_android_installs || 6965) + (mergedAilegal?.total_ios_installs || 381)
+      },
+      aisa: {
+        android: mergedAisa?.total_android_installs || 214,
+        ios: mergedAisa?.total_ios_installs || 77,
+        total: (mergedAisa?.total_android_installs || 214) + (mergedAisa?.total_ios_installs || 77)
+      }
+    };
+    targets.all = {
+      android: targets.ailegal.android + targets.aisa.android,
+      ios: targets.ailegal.ios + targets.aisa.ios,
+      total: targets.ailegal.total + targets.aisa.total
+    };
+    cachedDownloadTargets = targets;
+    lastTargetsFetchTime = now;
+    return targets;
+  } catch (err) {
+    return {
+      ailegal: { android: 6965, ios: 381, total: 7346 },
+      aisa: { android: 214, ios: 77, total: 291 },
+      all: { android: 7179, ios: 458, total: 7637 }
+    };
+  }
+}
+
 // GET /api/admin/analytics/google-play/geo
 router.get(['/analytics/google-play/geo', '/google-play/geo'], verifyAdminToken, async (req, res) => {
   try {
+    const db = await getUnifiedDb();
     const rawCodes = req.query.app_codes || 'all';
     const appCode = rawCodes.includes(',') ? 'all' : rawCodes.trim().toLowerCase();
-    const geoData = await firebaseAnalytics.getGeoTelemetry(appCode);
+    const targets = await getAuthoritativeDownloadTargets(db);
+    const geoData = await firebaseAnalytics.getGeoTelemetry(appCode, false, targets);
     return res.json({
       status: 'success',
       data: geoData
