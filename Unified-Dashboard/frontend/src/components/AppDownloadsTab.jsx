@@ -862,7 +862,6 @@ export const AppDownloadsTab = () => {
                 <th>Official Store & Firebase Downloads</th>
                 <th>Live Device First-Open Pings</th>
                 <th>Active Devices (Latest)</th>
-                <th>Uninstalls / Redownloads</th>
                 <th>Distribution Share</th>
               </tr>
             </thead>
@@ -877,12 +876,6 @@ export const AppDownloadsTab = () => {
                 <td style={{ fontWeight: '700', color: '#f8fafc' }}>{formatNum(numAndroid)}</td>
                 <td style={{ color: '#34d399', fontWeight: '600' }}>{formatNum(liveAndroidPings)} pings</td>
                 <td style={{ color: '#38bdf8', fontWeight: '600' }}>{formatNum(combined.active_device_installs_latest || 0)}</td>
-                <td style={{ color: '#f87171' }}>
-                  <strong>{formatNum(combined.net_lost_devices ?? (isLoaded ? 0 : '...'))}</strong> net lost
-                  <div style={{ fontSize: '10px', color: '#64748b' }}>
-                    {formatNum(combined.daily_user_uninstalls ?? (isLoaded ? 0 : '...'))} raw events
-                  </div>
-                </td>
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ width: '100px', height: '6px', borderRadius: '3px', backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
@@ -905,7 +898,6 @@ export const AppDownloadsTab = () => {
                 <td style={{ fontWeight: '700', color: '#38bdf8' }}>{formatNum(numIos)}</td>
                 <td style={{ color: '#34d399', fontWeight: '600' }}>{formatNum(liveIosPings)} pings</td>
                 <td style={{ color: '#38bdf8', fontWeight: '600' }}>{formatNum(liveIosPings)} (1st time)</td>
-                <td style={{ color: '#94a3b8' }}>{combined.ios_redownloads || 0} redownloads</td>
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ width: '100px', height: '6px', borderRadius: '3px', backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
