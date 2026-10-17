@@ -87,6 +87,7 @@ export const AppDownloadsTab = () => {
   const [activeGeoView, setActiveGeoView] = useState('india'); // 'india' | 'countries'
   const [geoSearchQuery, setGeoSearchQuery] = useState('');
   const [geoZoneFilter, setGeoZoneFilter] = useState('all');
+  const [showChurnColumn, setShowChurnColumn] = useState(false);
 
   const fetchAnalytics = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -844,8 +845,34 @@ export const AppDownloadsTab = () => {
 
       {/* Platform Distribution Table */}
       <div className="card-section" style={{ marginTop: '24px' }}>
-        <div className="section-header">
+        <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
           <div className="section-title">Platform Breakdown</div>
+          <button
+            onClick={() => setShowChurnColumn(!showChurnColumn)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '5px 12px',
+              borderRadius: '8px',
+              fontSize: '11px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              border: showChurnColumn ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)',
+              backgroundColor: showChurnColumn ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+              color: showChurnColumn ? '#34d399' : '#94a3b8',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <span style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              backgroundColor: showChurnColumn ? '#10b981' : '#64748b',
+              boxShadow: showChurnColumn ? '0 0 6px #10b981' : 'none'
+            }} />
+            {showChurnColumn ? '✓ Hide Uninstalls & Redownloads' : '👁️ Show Uninstalls & Redownloads'}
+          </button>
         </div>
 
         {loading ? (
@@ -862,6 +889,7 @@ export const AppDownloadsTab = () => {
                 <th>Official Store & Firebase Downloads</th>
                 <th>Live Device First-Open Pings</th>
                 <th>Active Devices (Latest)</th>
+                {showChurnColumn && <th>Uninstalls / Redownloads</th>}
                 <th>Distribution Share</th>
               </tr>
             </thead>
@@ -876,6 +904,14 @@ export const AppDownloadsTab = () => {
                 <td style={{ fontWeight: '700', color: '#f8fafc' }}>{formatNum(numAndroid)}</td>
                 <td style={{ color: '#34d399', fontWeight: '600' }}>{formatNum(liveAndroidPings)} pings</td>
                 <td style={{ color: '#38bdf8', fontWeight: '600' }}>{formatNum(combined.active_device_installs_latest || 0)}</td>
+                {showChurnColumn && (
+                  <td style={{ color: '#f87171' }}>
+                    <strong>{formatNum(combined.net_lost_devices ?? (isLoaded ? 0 : '...'))}</strong> net lost
+                    <div style={{ fontSize: '10px', color: '#64748b' }}>
+                      {formatNum(combined.daily_user_uninstalls ?? (isLoaded ? 0 : '...'))} raw events
+                    </div>
+                  </td>
+                )}
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ width: '100px', height: '6px', borderRadius: '3px', backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
@@ -898,6 +934,9 @@ export const AppDownloadsTab = () => {
                 <td style={{ fontWeight: '700', color: '#38bdf8' }}>{formatNum(numIos)}</td>
                 <td style={{ color: '#34d399', fontWeight: '600' }}>{formatNum(liveIosPings)} pings</td>
                 <td style={{ color: '#38bdf8', fontWeight: '600' }}>{formatNum(liveIosPings)} (1st time)</td>
+                {showChurnColumn && (
+                  <td style={{ color: '#94a3b8' }}>{combined.ios_redownloads || 0} redownloads</td>
+                )}
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ width: '100px', height: '6px', borderRadius: '3px', backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>

@@ -1291,7 +1291,12 @@ export const MarketingCampaignsTab = () => {
                 >
                   Downloads*
                 </th>
-                <th style={{ padding: '8px 4px', fontWeight: '800', textAlign: 'center' }}>Conv.</th>
+                <th
+                  style={{ padding: '8px 4px', fontWeight: '800', textAlign: 'center' }}
+                  title="Conversion Rate: Unique Installs / Unique Reach (Max 100%)"
+                >
+                  Conv.
+                </th>
                 <th style={{ padding: '8px 4px', fontWeight: '800', textAlign: 'center' }}>Status</th>
                 <th style={{ padding: '8px 8px', fontWeight: '800', textAlign: 'right' }}>Actions</th>
               </tr>
@@ -1523,22 +1528,31 @@ export const MarketingCampaignsTab = () => {
                         </div>
                       </td>
 
-                      {/* Conversion Rate */}
+                      {/* Conversion Rate (Unique-to-Unique Standard) */}
                       <td style={{ padding: '8px 4px', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                        <span
-                          style={{
-                            fontWeight: '800',
-                            fontSize: '10.5px',
-                            padding: '2px 5px',
-                            borderRadius: '4px',
-                            backgroundColor: (link.total_downloads || 0) > 0 ? 'rgba(168, 85, 247, 0.18)' : 'rgba(100, 116, 139, 0.1)',
-                            color: (link.total_downloads || 0) > 0 ? '#C084FC' : '#64748B',
-                          }}
-                        >
-                          {link.total_clicks > 0
-                            ? `${(((link.total_downloads || 0) / link.total_clicks) * 100).toFixed(1)}%`
-                            : '0.0%'}
-                        </span>
+                        {(() => {
+                          const uReach = Number(link.unique_clicks || link.total_clicks || 0);
+                          const uDownloads = Number(link.unique_installs !== undefined ? link.unique_installs : (link.total_downloads || 0));
+                          const convPct = uReach > 0 
+                            ? Math.min(100, (uDownloads / uReach) * 100).toFixed(1)
+                            : (link.total_clicks > 0 ? Math.min(100, ((link.total_downloads || 0) / link.total_clicks) * 100).toFixed(1) : '0.0');
+                          const hasConversions = uDownloads > 0 || (link.total_downloads || 0) > 0;
+                          return (
+                            <span
+                              title={`Unique Conversion: ${uDownloads} unique installs / ${uReach} unique reach (${convPct}%)`}
+                              style={{
+                                fontWeight: '800',
+                                fontSize: '10.5px',
+                                padding: '2px 5px',
+                                borderRadius: '4px',
+                                backgroundColor: hasConversions ? 'rgba(168, 85, 247, 0.18)' : 'rgba(100, 116, 139, 0.1)',
+                                color: hasConversions ? '#C084FC' : '#64748B',
+                              }}
+                            >
+                              {convPct}%
+                            </span>
+                          );
+                        })()}
                       </td>
 
                       {/* Status */}
