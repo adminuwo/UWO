@@ -1112,11 +1112,13 @@ router.get(['/analytics/google-play/overview', '/google-play/overview'], verifyA
         store_installers: merged?.store_installers || 0
       };
 
-      const appNetLost = merged ? merged.net_lost_devices : Math.max(0, totalAndroidInstalls - currentActive);
-      const appRetentionPct = merged ? merged.retention_rate : (totalAndroidInstalls > 0 ? Number(((currentActive / totalAndroidInstalls) * 100).toFixed(1)) : 0);
+      const appActiveUsers = merged?.active_users || appFb?.active_users || currentActive;
+      const appNetLost = merged ? merged.net_lost_devices : Math.max(0, totalAndroidInstalls - appActiveUsers);
+      const appRetentionPct = merged ? merged.retention_rate : (totalAndroidInstalls > 0 ? Number(((appActiveUsers / totalAndroidInstalls) * 100).toFixed(1)) : 0);
       appInfo.net_lost_devices = appNetLost;
       appInfo.retention_rate = appRetentionPct;
       appInfo.churn_rate = Number((100 - appRetentionPct).toFixed(1));
+      appInfo.active_users = appActiveUsers;
 
       appsData.push(appInfo);
 
@@ -1128,6 +1130,7 @@ router.get(['/analytics/google-play/overview', '/google-play/overview'], verifyA
       combined.android_store_downloads += baseInstalls;
       combined.android_live_installs += liveAndroid;
       combined.active_device_installs_latest += currentActive;
+      combined.total_active_users = (combined.total_active_users || 0) + appActiveUsers;
       combined.net_lost_devices += appNetLost;
       combined.daily_user_uninstalls += (appInfo.daily_user_uninstalls || 0);
       combined.daily_device_uninstalls += (hist.daily_device_uninstalls || 0);
@@ -1153,9 +1156,10 @@ router.get(['/analytics/google-play/overview', '/google-play/overview'], verifyA
     if (appsData.length > 0) {
       combined.avg_active_devices = combined.active_device_installs_latest;
       combined.avg_daily_user_loss = Number((appsData.reduce((acc, a) => acc + a.avg_daily_user_loss, 0) / appsData.length).toFixed(2));
-      const totalBase = combined.active_device_installs_latest + combined.net_lost_devices;
+      const totalBase = (combined.total_active_users || combined.active_device_installs_latest) + combined.net_lost_devices;
+      const activeUserCount = combined.total_active_users || combined.active_device_installs_latest;
       combined.retention_rate = totalBase > 0
-        ? Number(((combined.active_device_installs_latest / totalBase) * 100).toFixed(1))
+        ? Number(((activeUserCount / totalBase) * 100).toFixed(1))
         : 0;
       combined.churn_rate = Number((100 - combined.retention_rate).toFixed(1));
     }

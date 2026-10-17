@@ -116,8 +116,6 @@ async function getMergedAppTelemetry(db, appCode) {
   }
 
   const totalAndroidInstalls = playInstallsTotal + postPlayFbInstalls;
-  const activeDevices = appFb?.active_users || playLatestActive || 0;
-
   // 5. Construct Unified Spliced Timeline
   // Google Play Console official records (dates <= playMaxDate) + Firebase leading edge (dates > playMaxDate)
   const mergedTimeline = [];
@@ -132,23 +130,34 @@ async function getMergedAppTelemetry(db, appCode) {
     });
   }
 
+  let runningActive = playLatestActive;
   for (const d of fbDates) {
     if (!playMaxDate || d > playMaxDate) {
       const dayData = fbDaily[d];
       const dayInstalls = dayData.android || dayData.installs || 0;
       const dayUninstalls = dayData.uninstalls || 0;
       runningCum += dayInstalls;
+
+      // Realistic net active devices flow: smoothly evolves from the official Google Play Console baseline
+      if (dayData.active > 0) {
+        runningActive = dayData.active;
+      } else {
+        runningActive = Math.max(0, runningActive + dayInstalls - dayUninstalls);
+      }
+
       mergedTimeline.push({
         date: d,
         daily_user_installs: dayInstalls,
         daily_user_uninstalls: dayUninstalls,
         daily_device_installs: dayInstalls,
-        installs_on_active_devices: dayData.active || activeDevices,
+        installs_on_active_devices: runningActive,
         total_user_installs: runningCum,
         source: 'firebase_sdk_ga4_live_edge'
       });
     }
   }
+
+  const activeDevices = runningActive > 0 ? runningActive : (appFb?.active_users || playLatestActive || 0);
 
   // 6. Query Apple App Store Metrics for iOS Store Downloads
   let iosRecords = [];
@@ -195,14 +204,16 @@ async function getMergedAppTelemetry(db, appCode) {
   const realtimeActive = appFb?.realtime_android ?? appFb?.realtime_active ?? 0;
   const realtimeIos = appFb?.realtime_ios ?? 0;
 
-  // Option B: Net Lost Devices / Churn Gap (Total Store Installs - Current Active Users)
-  // Eliminates reinstall bloat and reflects true retained user base
+  // Option B: User Retention (Active Users / Total Store Installs)
+  // Reflects true retained human users from Firebase SDK / GA4
+  const activeUsers = appFb?.active_users || (runningActive > 0 ? runningActive : (playLatestActive || 0));
+  const netLostUsers = Math.max(0, totalAndroidInstalls - activeUsers);
   const netLostDevices = Math.max(0, totalAndroidInstalls - activeDevices);
   const retentionRate = totalAndroidInstalls > 0
-    ? Number(((activeDevices / totalAndroidInstalls) * 100).toFixed(1))
+    ? Number(((activeUsers / totalAndroidInstalls) * 100).toFixed(1))
     : 0;
   const churnRate = Number((100 - retentionRate).toFixed(1));
-  const totalUninstalls = netLostDevices;
+  const totalUninstalls = netLostUsers;
 
   return {
     app_code: appCode,
@@ -217,7 +228,9 @@ async function getMergedAppTelemetry(db, appCode) {
     total_android_installs: totalAndroidInstalls,
     total_ios_installs: totalIosInstalls,
     active_devices: activeDevices,
-    net_lost_devices: netLostDevices,
+    active_users: activeUsers,
+    net_lost_devices: netLostUsers,
+    net_lost_hardware_devices: netLostDevices,
     retention_rate: retentionRate,
     churn_rate: churnRate,
     total_uninstalls_raw: totalUninstalls,
