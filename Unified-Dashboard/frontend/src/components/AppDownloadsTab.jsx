@@ -70,10 +70,15 @@ const DEFAULT_GEO_DATA = {
   ]
 };
 
+// Session-level persistent cache across sidebar navigation and app filters
+const APP_DOWNLOADS_CACHE = {};
+const CACHE_FRESHNESS_MS = 2 * 60 * 1000; // 2 minutes
+
 export const AppDownloadsTab = () => {
   const { authFetch } = useAuth();
-  const [analytics, setAnalytics] = useState(null);
-  const [timeseriesData, setTimeseriesData] = useState({
+  const initialCache = APP_DOWNLOADS_CACHE['all'] || null;
+  const [analytics, setAnalytics] = useState(initialCache?.analytics || null);
+  const [timeseriesData, setTimeseriesData] = useState(initialCache?.timeseriesData || {
     user_loss: { android: [], ios: [] },
     total_installs: { android: [], ios: [] },
     active_devices: { android: [], ios: [] }
@@ -81,19 +86,44 @@ export const AppDownloadsTab = () => {
   const [selectedApp, setSelectedApp] = useState('all');
   const [showAndroid, setShowAndroid] = useState(true);
   const [showIos, setShowIos] = useState(true);
-  const [loading, setLoading] = useState(true);
-  const [lastSynced, setLastSynced] = useState(null);
+  const [loading, setLoading] = useState(!initialCache);
+  const [isSwitchingApp, setIsSwitchingApp] = useState(false);
+  const [lastSynced, setLastSynced] = useState(initialCache?.lastSynced || null);
   const [autoRefreshCountdown, setAutoRefreshCountdown] = useState(300);
-  const [geoData, setGeoData] = useState(DEFAULT_GEO_DATA);
+  const [geoData, setGeoData] = useState(initialCache?.geoData || DEFAULT_GEO_DATA);
   const [activeGeoView, setActiveGeoView] = useState('india'); // 'india' | 'countries'
   const [geoSearchQuery, setGeoSearchQuery] = useState('');
   const [geoZoneFilter, setGeoZoneFilter] = useState('all');
   const [showChurnColumn, setShowChurnColumn] = useState(false);
 
-  const fetchAnalytics = async (silent = false) => {
-    if (!silent) setLoading(true);
+  const handleSelectApp = (targetApp) => {
+    if (targetApp === selectedApp) return;
+    setSelectedApp(targetApp);
+
+    // If target app is in cache, apply immediately for 0ms transition!
+    const cached = APP_DOWNLOADS_CACHE[targetApp];
+    if (cached) {
+      setAnalytics(cached.analytics);
+      if (cached.timeseriesData) setTimeseriesData(cached.timeseriesData);
+      if (cached.geoData) setGeoData(cached.geoData);
+      setIsSwitchingApp(false);
+    } else {
+      // Transition indicator while fetching fresh app data
+      setIsSwitchingApp(true);
+    }
+  };
+
+  const fetchAnalytics = async (targetApp = selectedApp, silent = false) => {
+    const cached = APP_DOWNLOADS_CACHE[targetApp];
+    const isFresh = cached && (Date.now() - cached.timestamp < CACHE_FRESHNESS_MS);
+
+    if (!isFresh && !silent) {
+      if (!cached) setLoading(true);
+      setIsSwitchingApp(true);
+    }
+
     try {
-      const appCodes = selectedApp === 'all' ? 'aisa,ailegal' : selectedApp;
+      const appCodes = targetApp === 'all' ? 'aisa,ailegal' : targetApp;
       
       const [overviewRes, lossRes, installsRes, activeRes, geoRes] = await Promise.all([
         authFetch(`/api/admin/analytics/google-play/overview?app_codes=${appCodes}`),
@@ -103,51 +133,85 @@ export const AppDownloadsTab = () => {
         authFetch(`/api/admin/analytics/google-play/geo?app_codes=${appCodes}`)
       ]);
 
+      let nextAnalytics = analytics;
+      let nextTimeseries = timeseriesData;
+      let nextGeo = geoData;
+
       if (overviewRes.ok) {
         const data = await overviewRes.json();
-        setAnalytics(data.data);
+        nextAnalytics = data.data;
+        setAnalytics(nextAnalytics);
       }
       if (lossRes.ok && installsRes.ok && activeRes.ok) {
         const lossData = await lossRes.json();
         const installsData = await installsRes.json();
         const activeData = await activeRes.json();
 
-        setTimeseriesData({
+        nextTimeseries = {
           user_loss: { android: lossData.data?.android || [], ios: lossData.data?.ios || [] },
           total_installs: { android: installsData.data?.android || [], ios: installsData.data?.ios || [] },
           active_devices: { android: activeData.data?.android || [], ios: activeData.data?.ios || [] }
-        });
+        };
+        setTimeseriesData(nextTimeseries);
       }
       if (geoRes && geoRes.ok) {
         const geoJson = await geoRes.json();
         const incoming = geoJson.data || geoJson;
         if (incoming && (incoming.india_states?.length > 0 || incoming.countries?.length > 0)) {
-          setGeoData(incoming);
+          nextGeo = incoming;
+          setGeoData(nextGeo);
         }
       }
-      setLastSynced(new Date());
+
+      const syncTime = new Date();
+      setLastSynced(syncTime);
       setAutoRefreshCountdown(300);
+
+      // Cache the result for instant subsequent tab and filter switches
+      APP_DOWNLOADS_CACHE[targetApp] = {
+        analytics: nextAnalytics,
+        timeseriesData: nextTimeseries,
+        geoData: nextGeo,
+        lastSynced: syncTime,
+        timestamp: Date.now()
+      };
     } catch (err) {
       console.error('Failed to fetch analytics:', err);
     } finally {
-      if (!silent) setLoading(false);
+      setLoading(false);
+      setIsSwitchingApp(false);
     }
   };
 
   const handleManualSyncAndRefresh = async () => {
     setLoading(true);
+    setIsSwitchingApp(true);
+    delete APP_DOWNLOADS_CACHE['all'];
+    delete APP_DOWNLOADS_CACHE['ailegal'];
+    delete APP_DOWNLOADS_CACHE['aisa'];
     try {
       await authFetch('/api/admin/unified-analytics/sync?provider=all', { method: 'POST' });
     } catch (e) {
       console.warn('Sync trigger error (proceeding with fetch):', e);
     }
-    await fetchAnalytics(false);
+    await fetchAnalytics(selectedApp, false);
   };
 
-  // Auto-refresh every 5 minutes
+  // Instant-cache-first auto-refresh
   useEffect(() => {
-    fetchAnalytics();
-    const refreshInterval = setInterval(() => fetchAnalytics(true), 5 * 60 * 1000);
+    const cached = APP_DOWNLOADS_CACHE[selectedApp];
+    if (cached) {
+      setAnalytics(cached.analytics);
+      if (cached.timeseriesData) setTimeseriesData(cached.timeseriesData);
+      if (cached.geoData) setGeoData(cached.geoData);
+      setLoading(false);
+      setIsSwitchingApp(false);
+      fetchAnalytics(selectedApp, true);
+    } else {
+      fetchAnalytics(selectedApp, false);
+    }
+
+    const refreshInterval = setInterval(() => fetchAnalytics(selectedApp, true), 5 * 60 * 1000);
     return () => clearInterval(refreshInterval);
   }, [selectedApp]);
 
@@ -193,7 +257,13 @@ export const AppDownloadsTab = () => {
   const numTotal = numAndroid + numIos;
   const totalCombinedDownloads = isLoaded ? numTotal : '...';
   const formatNum = (val) => (typeof val === 'number' ? val.toLocaleString() : (val ?? '...'));
-  const numActiveAndroid = Number(combined.active_device_installs_latest) || 0;
+  const numActiveAndroid = Number(
+    combined.total_active_users || 
+    combined.active_users || 
+    (numAndroid > (combined.net_lost_devices || 0) && combined.net_lost_devices > 0 
+      ? numAndroid - combined.net_lost_devices 
+      : combined.active_device_installs_latest)
+  ) || 0;
   const numActiveIos = Number(liveIosPings) || 0;
   const currentActiveUsers = isLoaded ? (numActiveAndroid + numActiveIos) : '...';
 
@@ -352,11 +422,11 @@ export const AppDownloadsTab = () => {
       {/* App Code Filter Bar & Platform Toggle Bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         {/* App selector */}
-        <div className="app-selector-pills">
+        <div className="app-selector-pills" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
           {['all', 'ailegal', 'aisa'].map((app) => (
             <button
               key={app}
-              onClick={() => setSelectedApp(app)}
+              onClick={() => handleSelectApp(app)}
               style={{
                 padding: '8px 16px',
                 borderRadius: '20px',
@@ -384,6 +454,23 @@ export const AppDownloadsTab = () => {
               )}
             </button>
           ))}
+          {isSwitchingApp && (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '12px',
+              color: '#34d399',
+              background: 'rgba(16, 185, 129, 0.1)',
+              padding: '4px 10px',
+              borderRadius: '12px',
+              border: '1px solid rgba(16, 185, 129, 0.25)',
+              marginLeft: '4px'
+            }}>
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10b981', boxShadow: '0 0 6px #10b981' }} />
+              Updating {selectedApp === 'all' ? 'All Applications' : (selectedApp === 'ailegal' ? 'AI Legal' : 'AISA Assistant')}...
+            </span>
+          )}
         </div>
 
         {/* Interactable Platform Legend Selector */}
@@ -434,7 +521,14 @@ export const AppDownloadsTab = () => {
         </div>
       </div>
 
-      {/* TODAY'S APP DOWNLOADS SEPARATE BREAKDOWN SECTION */}
+      {/* DYNAMIC DATA CONTENT CONTAINER WITH SMOOTH APP TRANSITION */}
+      <div style={{
+        opacity: isSwitchingApp ? 0.35 : 1,
+        filter: isSwitchingApp ? 'blur(0.5px)' : 'none',
+        transition: 'opacity 0.2s ease, filter 0.2s ease',
+        pointerEvents: isSwitchingApp ? 'none' : 'auto'
+      }}>
+        {/* TODAY'S APP DOWNLOADS SEPARATE BREAKDOWN SECTION */}
       <div style={{
         marginBottom: '28px',
         background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.75) 100%)',
@@ -484,7 +578,7 @@ export const AppDownloadsTab = () => {
 
           {/* CARD 1: AI LEGAL TODAY */}
           <div
-            onClick={() => setSelectedApp(selectedApp === 'ailegal' ? 'all' : 'ailegal')}
+            onClick={() => handleSelectApp(selectedApp === 'ailegal' ? 'all' : 'ailegal')}
             style={{
               background: selectedApp === 'ailegal' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(255, 255, 255, 0.03)',
               border: `1.5px solid ${selectedApp === 'ailegal' ? '#10b981' : 'rgba(16, 185, 129, 0.25)'}`,
@@ -543,7 +637,7 @@ export const AppDownloadsTab = () => {
 
           {/* CARD 2: AISA ASSISTANT TODAY */}
           <div
-            onClick={() => setSelectedApp(selectedApp === 'aisa' ? 'all' : 'aisa')}
+            onClick={() => handleSelectApp(selectedApp === 'aisa' ? 'all' : 'aisa')}
             style={{
               background: selectedApp === 'aisa' ? 'rgba(168, 85, 247, 0.12)' : 'rgba(255, 255, 255, 0.03)',
               border: `1.5px solid ${selectedApp === 'aisa' ? '#a855f7' : 'rgba(168, 85, 247, 0.25)'}`,
@@ -602,7 +696,7 @@ export const AppDownloadsTab = () => {
 
           {/* CARD 3: COMBINED PORTFOLIO TODAY */}
           <div
-            onClick={() => setSelectedApp('all')}
+            onClick={() => handleSelectApp('all')}
             style={{
               background: selectedApp === 'all' ? 'rgba(59, 130, 246, 0.12)' : 'rgba(255, 255, 255, 0.03)',
               border: `1.5px solid ${selectedApp === 'all' ? '#3b82f6' : 'rgba(59, 130, 246, 0.25)'}`,
@@ -715,7 +809,7 @@ export const AppDownloadsTab = () => {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
               <span style={{ color: '#94a3b8' }}>Active Users / Reach:</span>
-              <strong style={{ color: '#10b981' }}>{formatNum(combined.active_device_installs_latest)}</strong>
+              <strong style={{ color: '#10b981' }}>{formatNum(numActiveAndroid)}</strong>
             </div>
             <div style={{
               display: 'flex',
@@ -728,7 +822,7 @@ export const AppDownloadsTab = () => {
               color: '#94a3b8'
             }}>
               <span>* May include reinstalls</span>
-              <span>Current Users: <strong style={{ color: '#10b981' }}>{formatNum(combined.active_device_installs_latest)}</strong></span>
+              <span>Current Users: <strong style={{ color: '#10b981' }}>{formatNum(numActiveAndroid)}</strong></span>
             </div>
           </div>
         </div>
@@ -827,12 +921,12 @@ export const AppDownloadsTab = () => {
           <div className="metric-card" style={{ padding: '18px', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <span style={{ fontSize: '13px', color: '#94a3b8', fontWeight: '600' }}>Active Devices / Reach</span>
+                <span style={{ fontSize: '13px', color: '#94a3b8', fontWeight: '600' }}>Active Users & Devices</span>
                 <div style={{ fontSize: '24px', fontWeight: '800', color: '#f8fafc', marginTop: '4px' }}>
-                  {combined.active_device_installs_latest || 0} <span style={{ fontSize: '12px', fontWeight: '500', color: '#94a3b8' }}>Android Active</span>
+                  {formatNum(numActiveAndroid)} <span style={{ fontSize: '12px', fontWeight: '500', color: '#94a3b8' }}>Android Active Users</span>
                 </div>
                 <div style={{ fontSize: '12px', color: '#38bdf8', marginTop: '2px', fontWeight: '600' }}>
-                  📱 {combined.avg_active_devices || 0} avg devices • {liveIosPings} 1st time iOS live pings
+                  📱 {formatNum(combined.active_device_installs_latest || 0)} active devices • {liveIosPings} 1st time iOS live pings
                 </div>
               </div>
               <div className="metric-icon" style={{ fontSize: '18px' }}>📱</div>
@@ -872,7 +966,7 @@ export const AppDownloadsTab = () => {
               backgroundColor: showChurnColumn ? '#10b981' : '#64748b',
               boxShadow: showChurnColumn ? '0 0 6px #10b981' : 'none'
             }} />
-            {showChurnColumn ? '✓ Hide Uninstalls & Redownloads' : '👁️ Show Uninstalls & Redownloads'}
+            {showChurnColumn ? '✓ Hide Unregistered Users' : '👁️ Show Unregistered Users'}
           </button>
         </div>
 
@@ -890,8 +984,8 @@ export const AppDownloadsTab = () => {
                 <th>Platform / OS</th>
                 <th>Official Store & Firebase Downloads</th>
                 <th>Live Device First-Open Pings</th>
-                <th>Active Devices (Latest)</th>
-                {showChurnColumn && <th>Uninstalls / Redownloads</th>}
+                <th>Active Users (Latest)</th>
+                {showChurnColumn && <th>Unregistered Users</th>}
                 <th>Distribution Share</th>
               </tr>
             </thead>
@@ -905,7 +999,7 @@ export const AppDownloadsTab = () => {
                 </td>
                 <td style={{ fontWeight: '700', color: '#f8fafc' }}>{formatNum(numAndroid)}</td>
                 <td style={{ color: '#34d399', fontWeight: '600' }}>{formatNum(liveAndroidPings)} pings</td>
-                <td style={{ color: '#38bdf8', fontWeight: '600' }}>{formatNum(combined.active_device_installs_latest || 0)}</td>
+                <td style={{ color: '#38bdf8', fontWeight: '600' }}>{formatNum(numActiveAndroid)}</td>
                 {showChurnColumn && (
                   <td style={{ color: '#f87171' }}>
                     <strong>{formatNum(combined.net_lost_devices ?? (isLoaded ? 0 : '...'))}</strong> net lost
@@ -1367,6 +1461,7 @@ export const AppDownloadsTab = () => {
           </div>
         );
       })()}
+      </div>
     </div>
   );
 };

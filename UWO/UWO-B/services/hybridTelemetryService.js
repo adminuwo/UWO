@@ -15,7 +15,21 @@ const googlePlaySync = require('./googlePlaySyncService');
  *    superseded by official Play Store reports, with zero data gaps.
  */
 
-async function getMergedAppTelemetry(db, appCode) {
+const mergedCache = new Map();
+const MERGED_CACHE_TTL_MS = 45 * 1000; // 45 seconds cache to serve parallel endpoints in <1ms
+
+function invalidateMergedCache() {
+  mergedCache.clear();
+}
+
+async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
+  const cacheKey = String(appCode || '').toLowerCase().trim();
+  const cached = mergedCache.get(cacheKey);
+  const nowMs = Date.now();
+  if (!forceRefresh && cached && (nowMs - cached.timestamp < MERGED_CACHE_TTL_MS)) {
+    return cached.data;
+  }
+
   // 1. Fetch Google Play Console historical records from DB
   let playRecords = [];
   let playRating = null;
@@ -245,8 +259,12 @@ async function getMergedAppTelemetry(db, appCode) {
     store_installers: playPerf?.installers || 0,
     timeline: mergedTimeline
   };
+
+  mergedCache.set(cacheKey, { timestamp: nowMs, data: result });
+  return result;
 }
 
 module.exports = {
-  getMergedAppTelemetry
+  getMergedAppTelemetry,
+  invalidateMergedCache
 };

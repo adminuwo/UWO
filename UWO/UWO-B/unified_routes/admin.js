@@ -979,6 +979,8 @@ router.get(['/analytics/google-play/overview', '/google-play/overview'], verifyA
       churn_rate: 0.0,
       total_user_installs_latest: 0,
       active_device_installs_latest: 0,
+      total_active_users: 0,
+      active_users: 0,
       avg_active_devices: 0.0,
       avg_daily_user_loss: 0.0,
       android_store_downloads: 0,
@@ -1131,6 +1133,7 @@ router.get(['/analytics/google-play/overview', '/google-play/overview'], verifyA
       combined.android_live_installs += liveAndroid;
       combined.active_device_installs_latest += currentActive;
       combined.total_active_users = (combined.total_active_users || 0) + appActiveUsers;
+      combined.active_users = (combined.active_users || 0) + appActiveUsers;
       combined.net_lost_devices += appNetLost;
       combined.daily_user_uninstalls += (appInfo.daily_user_uninstalls || 0);
       combined.daily_device_uninstalls += (hist.daily_device_uninstalls || 0);
@@ -1558,8 +1561,10 @@ router.post('/unified-analytics/sync', verifyAdminToken, async (req, res) => {
       appStoreSyncResult = await appStoreSync.scanLocalAppStoreReports(db).catch(err => ({ error: err.message }));
     }
 
-    // Force refresh Firebase SDK telemetry cache
+    // Force refresh Firebase SDK telemetry cache & clear merged telemetry cache
     await firebaseAnalytics.getFirebaseTelemetry(true).catch(() => null);
+    hybridTelemetry.invalidateMergedCache();
+    cachedDownloadTargets = null;
 
     return res.json({
       success: true,
