@@ -74,7 +74,7 @@ class SubscriptionRepository {
    * @param {Date} [referenceDate=new Date()]
    * @returns {Object} Enriched subscription with dynamic status fields
    */
-  computeDynamicStatus(sub, referenceDate = new Date()) {
+  computeDynamicStatus(sub, referenceDate = new Date(), verifiedTxSet = null) {
     if (!sub) return null;
 
     const now = referenceDate instanceof Date ? referenceDate : new Date(referenceDate);
@@ -85,11 +85,16 @@ class SubscriptionRepository {
     let daysRemaining = null;
     let isGracePeriod = false;
 
-    // Resolve accurate tier: ₹499 is BASIC Plan
+    // Resolve accurate tier: ₹499 is BASIC Plan, FREE is explicitly free
     let tier = String(sub.tier || 'BASIC').toUpperCase();
-    const amountNum = Number(sub.amount || 0);
-    if (amountNum >= 400 && amountNum < 800 && tier === 'PROFESSIONAL') {
-      tier = 'BASIC';
+    const isFreeTier = tier === 'FREE' || String(sub.plan_name || '').toLowerCase().includes('free');
+    if (isFreeTier) {
+      tier = 'FREE';
+    } else {
+      const amountNum = Number(sub.amount || 0);
+      if (amountNum >= 400 && amountNum < 800 && tier === 'PROFESSIONAL') {
+        tier = 'BASIC';
+      }
     }
 
     // Explicit cancellation, failure, halted, paused, or refund
@@ -149,26 +154,84 @@ class SubscriptionRepository {
 
     const isActive = ['active', 'trialing', 'in_grace_period'].includes(computedStatus);
 
+    // =========================================================================
+    // VERIFIED PAYMENT VS MANUALLY ASSIGNED CLASSIFICATION
+    // =========================================================================
+    const txId = String(sub.transaction_id || '').trim();
+    const isFakeOrAdminTx = !txId || 
+                            txId.startsWith('txn_admin') || 
+                            txId.startsWith('pay_fake') || 
+                            txId.startsWith('pay_mock') || 
+                            txId.startsWith('manual');
+    const isDirectAdmin = sub.platform === 'admin' || 
+                          sub.provider === 'direct_invoice' || 
+                          sub.source === 'direct_invoice' ||
+                          sub.is_manual === true ||
+                          sub.manually_assigned === true;
+
+    let isVerifiedPayment = false;
+    if (verifiedTxSet) {
+      isVerifiedPayment = Boolean(txId && verifiedTxSet.has(txId));
+      if (!isVerifiedPayment && !isFreeTier && !isFakeOrAdminTx && !isDirectAdmin && txId.startsWith('APPLE-')) {
+        isVerifiedPayment = true;
+      }
+    } else {
+      isVerifiedPayment = sub.is_paid !== undefined 
+        ? sub.is_paid 
+        : (!isFreeTier && !isFakeOrAdminTx && !isDirectAdmin && (txId.startsWith('APPLE-') || txId.startsWith('pay_')));
+    }
+
+    const isPaid = isVerifiedPayment && !isFreeTier && !isFakeOrAdminTx && !isDirectAdmin && !['failed', 'cancelled', 'refunded'].includes(computedStatus);
+    const isManuallyAssigned = !isPaid;
+
+    if (isManuallyAssigned && isActive) {
+      statusLabel = isExpiringSoon ? `Expiring Soon (${daysRemaining}d) [Manual]` : 'Active (Manually Assigned)';
+    }
+
     let planName = sub.plan_name;
-    if (tier === 'BASIC' && (!planName || planName === 'Advocate Plan' || planName === 'Advocate Professional Plan')) {
+    if (isFreeTier) {
+      planName = 'Advocate Free Plan';
+    } else if (tier === 'BASIC' && (!planName || planName === 'Advocate Plan' || planName === 'Advocate Professional Plan')) {
       planName = 'Advocate Basic Plan';
+    }
+
+    // Nominal plan amount (e.g. ₹499 for basic, ₹999 for pro)
+    const rawNominalAmount = Number(sub.plan_amount || sub.amount || (tier === 'BASIC' ? 499 : (tier === 'PROFESSIONAL' ? 999 : 0)));
+    // Effective paid amount: ONLY verified paid subscriptions contribute to revenue; manual assignments are ₹0
+    const effectivePaidAmount = isPaid ? rawNominalAmount : 0;
+
+    // Normalize provider and platform
+    let resolvedProvider = sub.provider || 'razorpay';
+    let resolvedPlatform = sub.platform || 'web';
+    if (txId.startsWith('pay_')) {
+      resolvedProvider = 'razorpay';
+    } else if (txId.startsWith('APPLE-')) {
+      resolvedProvider = 'app_store';
+      resolvedPlatform = 'ios';
     }
 
     return {
       ...sub,
       id: String(sub._id),
-      tier: tier,
+      tier: isFreeTier ? 'FREE' : tier,
       plan_name: planName,
       computed_status: computedStatus,
       status_label: statusLabel,
       is_active: isActive,
+      is_paid: isPaid,
+      is_manually_assigned: isManuallyAssigned,
+      payment_status: isPaid ? 'verified_paid' : 'manually_assigned',
+      payment_verified: isPaid,
       is_expiring_soon: isExpiringSoon,
       is_grace_period: isGracePeriod,
       days_remaining: computedStatus === 'failed' ? null : daysRemaining,
       // Normalize product display name
       product_name: this.resolveProductName(sub.product_code),
-      // Clean amount
-      amount: Number(sub.amount || (tier === 'BASIC' ? 499 : 999)),
+      platform: resolvedPlatform,
+      provider: resolvedProvider,
+      // Clean amount: Verified paid revenue ONLY; manual grants yield 0
+      amount: effectivePaidAmount,
+      plan_amount: rawNominalAmount,
       currency: sub.currency || 'INR'
     };
   }
@@ -195,7 +258,7 @@ class SubscriptionRepository {
    * 
    * @param {Object} queryParams
    * @param {string} [queryParams.product] - 'all' or product_code
-   * @param {string} [queryParams.status] - 'all', 'active', 'expired', 'trialing'
+   * @param {string} [queryParams.status] - 'all', 'active', 'paid', 'manual', 'expired', 'trialing'
    * @param {string} [queryParams.platform] - 'all', 'ios', 'web', 'android'
    * @param {string} [queryParams.search] - Search string
    * @param {number} [queryParams.page=1]
@@ -244,22 +307,35 @@ class SubscriptionRepository {
       ];
     }
 
+    // Fetch verified gateway transactions cache to cross-reference payment status
+    const verifiedTxs = await db.collection('revenue_transactions').find({
+      status: { $in: ['completed', 'captured', 'paid', 'success', 'succeeded'] },
+      provider: { $in: ['razorpay', 'app_store', 'google_play', 'cashfree', 'apple_iap', 'stripe', 'razorpay_efv'] },
+      source: { $nin: ['direct_invoice', 'admin', 'manual'] },
+      external_transaction_id: { $not: /^txn_admin_/i },
+      'metadata.gateway': { $ne: 'Admin Direct Assignment' }
+    }).project({ external_transaction_id: 1 }).toArray().catch(() => []);
+    const verifiedTxSet = new Set(verifiedTxs.map(t => t.external_transaction_id).filter(Boolean));
+
     // Fetch all matching records for dynamic status evaluation
-    // Since dynamic status evaluates expiry dates, we retrieve candidates and compute in-memory
     const allCandidates = await db.collection('subscriptions')
       .find(mongoFilter)
       .sort({ created_at: -1, _id: -1 })
       .toArray();
 
-    // Apply live dynamic status computation
+    // Apply live dynamic status computation with verified transactions cross-reference
     const now = new Date();
-    let enriched = allCandidates.map(s => this.computeDynamicStatus(s, now));
+    let enriched = allCandidates.map(s => this.computeDynamicStatus(s, now, verifiedTxSet));
 
-    // 4. Status Filter (Evaluated against computed_status)
+    // 4. Status & Payment Filter (Evaluated against computed_status or payment verification status)
     const statusFilter = queryParams.status ? String(queryParams.status).toLowerCase().trim() : 'all';
     if (statusFilter && statusFilter !== 'all') {
       if (statusFilter === 'active') {
         enriched = enriched.filter(s => s.is_active);
+      } else if (statusFilter === 'paid' || statusFilter === 'verified_paid') {
+        enriched = enriched.filter(s => s.is_paid && s.is_active);
+      } else if (statusFilter === 'manual' || statusFilter === 'manually_assigned') {
+        enriched = enriched.filter(s => s.is_manually_assigned && s.is_active);
       } else if (statusFilter === 'expired') {
         enriched = enriched.filter(s => s.computed_status === 'expired');
       } else if (statusFilter === 'grace' || statusFilter === 'in_grace_period') {
@@ -271,13 +347,27 @@ class SubscriptionRepository {
       }
     }
 
+    // Direct payment_type parameter filter support
+    const paymentType = queryParams.payment_type ? String(queryParams.payment_type).toLowerCase().trim() : 'all';
+    if (paymentType === 'paid') {
+      enriched = enriched.filter(s => s.is_paid);
+    } else if (paymentType === 'manual' || paymentType === 'manually_assigned') {
+      enriched = enriched.filter(s => s.is_manually_assigned);
+    }
+
     const totalCount = enriched.length;
     const activeCount = enriched.filter(s => s.is_active).length;
+    const paidActiveCount = enriched.filter(s => s.is_active && s.is_paid).length;
+    const manualActiveCount = enriched.filter(s => s.is_active && s.is_manually_assigned).length;
+    const paidMrr = enriched.filter(s => s.is_active && s.is_paid).reduce((acc, s) => acc + (s.amount || 0), 0);
     const paginated = enriched.slice(skip, skip + limit);
 
     return {
       total: totalCount,
       total_active: activeCount,
+      paid_active_count: paidActiveCount,
+      manual_active_count: manualActiveCount,
+      total_mrr: paidMrr,
       page,
       limit,
       page_size: limit,
@@ -288,20 +378,33 @@ class SubscriptionRepository {
 
   /**
    * Calculates comprehensive metrics and breakdown by product, platform, tier
+   * Strictly counts revenue ONLY for verified paid subscriptions.
    */
   async getMetrics(filters = {}, customDb = null) {
     const db = customDb || await getUnifiedDb();
-    const query = {};
 
+    // Fetch verified gateway transactions cache to cross-reference payment status
+    const verifiedTxs = await db.collection('revenue_transactions').find({
+      status: { $in: ['completed', 'captured', 'paid', 'success', 'succeeded'] },
+      provider: { $in: ['razorpay', 'app_store', 'google_play', 'cashfree', 'apple_iap', 'stripe', 'razorpay_efv'] },
+      source: { $nin: ['direct_invoice', 'admin', 'manual'] },
+      external_transaction_id: { $not: /^txn_admin_/i },
+      'metadata.gateway': { $ne: 'Admin Direct Assignment' }
+    }).project({ external_transaction_id: 1 }).toArray().catch(() => []);
+    const verifiedTxSet = new Set(verifiedTxs.map(t => t.external_transaction_id).filter(Boolean));
+
+    const query = {};
     if (filters.product && filters.product !== 'all') {
       query.product_code = filters.product.toLowerCase().trim();
     }
 
     const docs = await db.collection('subscriptions').find(query).toArray();
     const now = new Date();
-    const enriched = docs.map(s => this.computeDynamicStatus(s, now));
+    const enriched = docs.map(s => this.computeDynamicStatus(s, now, verifiedTxSet));
 
     let totalActive = 0;
+    let paidActive = 0;
+    let manualActive = 0;
     let totalExpired = 0;
     let totalInGrace = 0;
     let totalExpiringSoon = 0;
@@ -321,6 +424,8 @@ class SubscriptionRepository {
           product_code: pCode,
           name: this.resolveProductName(pCode),
           active_count: 0,
+          paid_active_count: 0,
+          manual_active_count: 0,
           expired_count: 0,
           total_count: 0,
           mrr: 0
@@ -329,25 +434,37 @@ class SubscriptionRepository {
       productMap[pCode].total_count += 1;
 
       if (!platformMap[plat]) {
-        platformMap[plat] = { platform: plat, active_count: 0, total_count: 0, mrr: 0 };
+        platformMap[plat] = { platform: plat, active_count: 0, paid_active_count: 0, manual_active_count: 0, total_count: 0, mrr: 0 };
       }
       platformMap[plat].total_count += 1;
 
       if (!tierMap[tier]) {
-        tierMap[tier] = { tier, active_count: 0, total_count: 0, mrr: 0 };
+        tierMap[tier] = { tier, active_count: 0, paid_active_count: 0, manual_active_count: 0, total_count: 0, mrr: 0 };
       }
       tierMap[tier].total_count += 1;
 
       if (s.is_active) {
         totalActive += 1;
-        const subMrr = s.billing_cycle === 'yearly' ? Math.round(s.amount / 12) : s.amount;
-        totalMrr += subMrr;
         productMap[pCode].active_count += 1;
-        productMap[pCode].mrr += subMrr;
         platformMap[plat].active_count += 1;
-        platformMap[plat].mrr += subMrr;
         tierMap[tier].active_count += 1;
-        tierMap[tier].mrr += subMrr;
+
+        if (s.is_paid) {
+          paidActive += 1;
+          const subMrr = s.billing_cycle === 'yearly' ? Math.round(s.amount / 12) : s.amount;
+          totalMrr += subMrr;
+          productMap[pCode].paid_active_count += 1;
+          productMap[pCode].mrr += subMrr;
+          platformMap[plat].paid_active_count += 1;
+          platformMap[plat].mrr += subMrr;
+          tierMap[tier].paid_active_count += 1;
+          tierMap[tier].mrr += subMrr;
+        } else {
+          manualActive += 1;
+          productMap[pCode].manual_active_count += 1;
+          platformMap[plat].manual_active_count += 1;
+          tierMap[tier].manual_active_count += 1;
+        }
       } else {
         totalExpired += 1;
         productMap[pCode].expired_count += 1;
@@ -362,12 +479,14 @@ class SubscriptionRepository {
     return {
       total_subscriptions: enriched.length,
       total_active_subscriptions: totalActive,
+      paid_active_subscriptions: paidActive,
+      manually_assigned_subscriptions: manualActive,
       total_expired_subscriptions: totalExpired,
       total_in_grace_period: totalInGrace,
       total_expiring_soon: totalExpiringSoon,
       monthly_recurring_revenue: totalMrr,
       annual_run_rate: totalArr,
-      renewal_rate_pct: enriched.length > 0 ? Math.round((totalActive / enriched.length) * 1000) / 10 : 0,
+      renewal_rate_pct: enriched.length > 0 ? Math.round((paidActive / enriched.length) * 1000) / 10 : 0,
       by_product: Object.values(productMap),
       by_platform: Object.values(platformMap),
       by_tier: Object.values(tierMap),
@@ -377,16 +496,30 @@ class SubscriptionRepository {
 
   /**
    * Generates product summaries specifically formatted for Product Filter Pills
+   * Excludes manually assigned plans from revenue/MRR.
    */
   async getProductSummaries(customDb = null) {
     const db = customDb || await getUnifiedDb();
+
+    // Fetch verified gateway transactions cache
+    const verifiedTxs = await db.collection('revenue_transactions').find({
+      status: { $in: ['completed', 'captured', 'paid', 'success', 'succeeded'] },
+      provider: { $in: ['razorpay', 'app_store', 'google_play', 'cashfree', 'apple_iap', 'stripe', 'razorpay_efv'] },
+      source: { $nin: ['direct_invoice', 'admin', 'manual'] },
+      external_transaction_id: { $not: /^txn_admin_/i },
+      'metadata.gateway': { $ne: 'Admin Direct Assignment' }
+    }).project({ external_transaction_id: 1 }).toArray().catch(() => []);
+    const verifiedTxSet = new Set(verifiedTxs.map(t => t.external_transaction_id).filter(Boolean));
+
     const docs = await db.collection('subscriptions').find({}).toArray();
     const now = new Date();
-    const enriched = docs.map(s => this.computeDynamicStatus(s, now));
+    const enriched = docs.map(s => this.computeDynamicStatus(s, now, verifiedTxSet));
 
     const totalActive = enriched.filter(s => s.is_active).length;
+    const paidActive = enriched.filter(s => s.is_active && s.is_paid).length;
+    const manualActive = enriched.filter(s => s.is_active && s.is_manually_assigned).length;
     let totalMrr = 0;
-    enriched.filter(s => s.is_active).forEach(s => {
+    enriched.filter(s => s.is_active && s.is_paid).forEach(s => {
       totalMrr += s.billing_cycle === 'yearly' ? Math.round(s.amount / 12) : s.amount;
     });
 
@@ -402,6 +535,8 @@ class SubscriptionRepository {
         name: p.name,
         icon: p.icon,
         active_count: 0,
+        paid_active_count: 0,
+        manual_active_count: 0,
         expired_count: 0,
         total_count: 0,
         mrr: 0,
@@ -429,8 +564,13 @@ class SubscriptionRepository {
 
       if (s.is_active) {
         prodStats[code].active_count += 1;
-        const subMrr = s.billing_cycle === 'yearly' ? Math.round(s.amount / 12) : s.amount;
-        prodStats[code].mrr += subMrr;
+        if (s.is_paid) {
+          prodStats[code].paid_active_count += 1;
+          const subMrr = s.billing_cycle === 'yearly' ? Math.round(s.amount / 12) : s.amount;
+          prodStats[code].mrr += subMrr;
+        } else {
+          prodStats[code].manual_active_count += 1;
+        }
       } else {
         prodStats[code].expired_count += 1;
       }
@@ -440,7 +580,7 @@ class SubscriptionRepository {
     for (const code of Object.keys(prodStats)) {
       const item = prodStats[code];
       item.arr = item.mrr * 12;
-      item.renewal_rate = item.total_count > 0 ? Math.round((item.active_count / item.total_count) * 1000) / 10 : 0;
+      item.renewal_rate = item.total_count > 0 ? Math.round((item.paid_active_count / item.total_count) * 1000) / 10 : 0;
       item.primary_platform = item.platforms.ios >= item.platforms.web ? 'Apple StoreKit 2' : 'Razorpay Web';
     }
 
@@ -462,11 +602,13 @@ class SubscriptionRepository {
         name: 'All Products',
         icon: '💎',
         active_count: totalActive,
+        paid_active_count: paidActive,
+        manual_active_count: manualActive,
         expired_count: enriched.length - totalActive,
         total_count: enriched.length,
         mrr: totalMrr,
         arr: totalMrr * 12,
-        renewal_rate: enriched.length > 0 ? Math.round((totalActive / enriched.length) * 1000) / 10 : 0,
+        renewal_rate: enriched.length > 0 ? Math.round((paidActive / enriched.length) * 1000) / 10 : 0,
         tiers: allProductTiers,
         platforms: allPlatforms,
         primary_platform: 'Multi-Gateway (Apple & Razorpay)'
@@ -476,14 +618,15 @@ class SubscriptionRepository {
         name: p.name,
         icon: p.icon,
         active_count: 0,
+        paid_active_count: 0,
+        manual_active_count: 0,
         expired_count: 0,
         total_count: 0,
         mrr: 0,
         arr: 0,
-        renewal_rate: 0,
         tiers: {},
         platforms: { ios: 0, web: 0, android: 0 },
-        primary_platform: 'Apple StoreKit 2'
+        primary_platform: p.product_code === 'ailegal' ? 'Apple StoreKit 2' : 'Razorpay Web'
       })
     ];
   }

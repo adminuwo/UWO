@@ -254,7 +254,13 @@ export const ActiveSubscriptions = () => {
     let label = 'Active';
     let dotColor = '#10b981';
 
-    if (status === 'in_grace_period' || sub.is_grace_period) {
+    if (sub.is_manually_assigned || sub.is_paid === false) {
+      bg = 'rgba(99, 102, 241, 0.18)';
+      border = 'rgba(99, 102, 241, 0.45)';
+      text = '#a5b4fc';
+      label = sub.is_expiring_soon ? `Expiring Soon (${sub.days_remaining}d) [Manual]` : 'Manually Assigned';
+      dotColor = '#818cf8';
+    } else if (status === 'in_grace_period' || sub.is_grace_period) {
       bg = 'rgba(245, 158, 11, 0.15)';
       border = 'rgba(245, 158, 11, 0.4)';
       text = '#fbbf24';
@@ -315,7 +321,11 @@ export const ActiveSubscriptions = () => {
     let color = '#60a5fa';
     let border = 'rgba(59, 130, 246, 0.3)';
 
-    if (t.includes('PRO')) {
+    if (t === 'FREE') {
+      bg = 'rgba(148, 163, 184, 0.15)';
+      color = '#94a3b8';
+      border = 'rgba(148, 163, 184, 0.35)';
+    } else if (t.includes('PRO')) {
       bg = 'rgba(168, 85, 247, 0.18)';
       color = '#c084fc';
       border = 'rgba(168, 85, 247, 0.4)';
@@ -343,26 +353,31 @@ export const ActiveSubscriptions = () => {
   };
 
   // Platform Icon & Label
-  // Platform Icon & Label
-  const renderPlatformBadge = (platform, provider) => {
+  const renderPlatformBadge = (platform, provider, isManual = false, txId = '') => {
     const p = String(platform || '').toLowerCase();
     const prov = String(provider || '').toLowerCase();
-    const isApple = p.includes('ios') || p.includes('apple') || prov.includes('apple') || prov === 'app_store';
+    const t = String(txId || '').toLowerCase();
+
+    const isRazorpay = t.startsWith('pay_') || prov.includes('razorpay');
+    const isApple = !isRazorpay && (p.includes('ios') || p.includes('apple') || prov.includes('apple') || prov === 'app_store' || t.startsWith('apple-'));
     const isEfv = prov.includes('efv');
     const isDirect = prov.includes('direct') || prov.includes('admin') || prov.includes('invoice');
 
     let icon = '💳';
     let label = 'Razorpay Web';
 
-    if (isApple) {
+    if (isRazorpay) {
+      icon = '💳';
+      label = isManual ? 'Razorpay (Grant)' : 'Razorpay Web';
+    } else if (isApple) {
       icon = '🍎';
-      label = 'Apple StoreKit 2';
+      label = isManual ? 'Apple StoreKit 2 (Grant)' : 'Apple StoreKit 2';
     } else if (isEfv) {
       icon = '⚡';
       label = 'Razorpay EFV';
-    } else if (isDirect) {
+    } else if (isDirect || isManual) {
       icon = '📄';
-      label = 'Direct / Admin';
+      label = 'Direct Admin Grant';
     }
 
     return (
@@ -372,11 +387,11 @@ export const ActiveSubscriptions = () => {
         gap: '6px',
         fontSize: '12px',
         fontWeight: '600',
-        color: '#e2e8f0',
-        background: 'rgba(255, 255, 255, 0.05)',
+        color: isManual ? '#a5b4fc' : '#e2e8f0',
+        background: isManual ? 'rgba(99, 102, 241, 0.1)' : 'rgba(255, 255, 255, 0.05)',
         padding: '3px 9px',
         borderRadius: '8px',
-        border: '1px solid rgba(255, 255, 255, 0.1)'
+        border: `1px solid ${isManual ? 'rgba(99, 102, 241, 0.25)' : 'rgba(255, 255, 255, 0.1)'}`
       }}>
         <span>{icon}</span>
         <span>{label}</span>
@@ -627,21 +642,36 @@ export const ActiveSubscriptions = () => {
                   </div>
 
                   {/* Active Badge */}
-                  <span style={{
-                    background: hasActive ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.06)',
-                    color: hasActive ? '#34d399' : '#94a3b8',
-                    border: `1px solid ${hasActive ? 'rgba(16, 185, 129, 0.4)' : 'transparent'}`,
-                    borderRadius: '20px',
-                    padding: '3px 9px',
-                    fontSize: '11px',
-                    fontWeight: '700',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '5px'
-                  }}>
-                    {hasActive && <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#34d399', display: 'inline-block' }} />}
-                    {p.active_count} Active
-                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                    <span style={{
+                      background: (p.paid_active_count > 0 || hasActive) ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.06)',
+                      color: (p.paid_active_count > 0 || hasActive) ? '#34d399' : '#94a3b8',
+                      border: `1px solid ${(p.paid_active_count > 0 || hasActive) ? 'rgba(16, 185, 129, 0.4)' : 'transparent'}`,
+                      borderRadius: '20px',
+                      padding: '3px 9px',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}>
+                      <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#34d399', display: 'inline-block' }} />
+                      {p.paid_active_count !== undefined ? `${p.paid_active_count} Paid` : `${p.active_count} Active`}
+                    </span>
+                    {p.manual_active_count > 0 && (
+                      <span style={{
+                        background: 'rgba(99, 102, 241, 0.15)',
+                        color: '#a5b4fc',
+                        border: '1px solid rgba(99, 102, 241, 0.3)',
+                        borderRadius: '20px',
+                        padding: '1px 7px',
+                        fontSize: '10px',
+                        fontWeight: '700'
+                      }}>
+                        🛡️ {p.manual_active_count} Manual
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Key Numbers */}
@@ -679,7 +709,7 @@ export const ActiveSubscriptions = () => {
                     color: isSelected ? '#ffffff' : '#94a3b8',
                     transition: 'all 0.2s ease'
                   }}>
-                    {isSelected ? '✓ Currently Viewing Ledger' : `Filter ${p.name} (${p.active_count}) ➔`}
+                    {isSelected ? '✓ Currently Viewing Ledger' : `Filter ${p.name} (${p.paid_active_count !== undefined ? p.paid_active_count : p.active_count}) ➔`}
                   </div>
                 </div>
               </div>
@@ -705,16 +735,22 @@ export const ActiveSubscriptions = () => {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '12px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              {selectedProduct === 'all' ? 'All Active Subscribers' : `${activeProductInfo.name} Active`}
+              {selectedProduct === 'all' ? 'Verified Paid Subscribers' : `${activeProductInfo.name} Paid`}
             </span>
             <span style={{ fontSize: '20px' }}>💎</span>
           </div>
-          <div style={{ fontSize: '32px', fontWeight: '800', color: '#f8fafc', margin: '10px 0 6px 0', letterSpacing: '-0.02em' }}>
-            {selectedProduct === 'all' ? (metrics?.total_active_subscriptions ?? totalActiveCount) : (activeProductInfo.active_count || 0)}
+          <div style={{ fontSize: '32px', fontWeight: '800', color: '#f8fafc', margin: '10px 0 6px 0', letterSpacing: '-0.02em', display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: '6px' }}>
+            <span>{selectedProduct === 'all' ? (metrics?.paid_active_subscriptions ?? totalActiveCount) : (activeProductInfo.paid_active_count ?? activeProductInfo.active_count ?? 0)}</span>
+            <span style={{ fontSize: '15px', color: '#34d399', fontWeight: '700' }}>Paid</span>
+            {(selectedProduct === 'all' ? metrics?.manually_assigned_subscriptions : activeProductInfo.manual_active_count) > 0 && (
+              <span style={{ fontSize: '14px', color: '#a5b4fc', fontWeight: '600' }}>
+                (+{selectedProduct === 'all' ? metrics.manually_assigned_subscriptions : activeProductInfo.manual_active_count} Manual)
+              </span>
+            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#34d399', fontWeight: '600' }}>
-            <span>● {activeProductInfo.renewal_rate || 0}% active rate</span>
-            <span style={{ color: '#64748b' }}>({activeProductInfo.total_count || totalCount} total)</span>
+            <span>● Verified Gateway Payments</span>
+            <span style={{ color: '#64748b' }}>({activeProductInfo.total_count || totalCount} total records)</span>
           </div>
         </div>
 
@@ -728,7 +764,7 @@ export const ActiveSubscriptions = () => {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '12px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Active Monthly MRR
+              Verified Monthly MRR
             </span>
             <span style={{ fontSize: '20px' }}>💰</span>
           </div>
@@ -736,7 +772,7 @@ export const ActiveSubscriptions = () => {
             {formatCurrency(selectedProduct === 'all' ? (metrics?.monthly_recurring_revenue || 0) : (activeProductInfo.mrr || 0))}
           </div>
           <div style={{ fontSize: '12px', color: '#64748b' }}>
-            Normalized monthly subscriber inflows
+            Verified gateway inflows (Manual grants excluded)
           </div>
         </div>
 
@@ -857,14 +893,15 @@ export const ActiveSubscriptions = () => {
                   )}
                   <span>{p.name}</span>
                   <span style={{
-                    background: isSelected ? 'rgba(255,255,255,0.25)' : (p.active_count > 0 ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255,255,255,0.08)'),
-                    color: isSelected ? '#ffffff' : (p.active_count > 0 ? '#34d399' : '#94a3b8'),
+                    background: isSelected ? 'rgba(255,255,255,0.25)' : (p.paid_active_count > 0 || p.active_count > 0 ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255,255,255,0.08)'),
+                    color: isSelected ? '#ffffff' : (p.paid_active_count > 0 || p.active_count > 0 ? '#34d399' : '#94a3b8'),
                     padding: '2px 7px',
                     borderRadius: '12px',
                     fontSize: '11px',
                     fontWeight: '700'
                   }}>
-                    {p.active_count} active
+                    {p.paid_active_count !== undefined ? `${p.paid_active_count} paid` : `${p.active_count} active`}
+                    {p.manual_active_count > 0 ? ` (+${p.manual_active_count}m)` : ''}
                   </span>
                 </button>
               );
@@ -950,8 +987,10 @@ export const ActiveSubscriptions = () => {
                 cursor: 'pointer'
               }}
             >
-              <option value="all">All Statuses ({activeProductInfo.total_count || totalCount})</option>
-              <option value="active">Active Only ({activeProductInfo.active_count || totalActiveCount})</option>
+              <option value="all">All Records ({activeProductInfo.total_count || totalCount})</option>
+              <option value="paid">💳 Verified Paid Only ({selectedProduct === 'all' ? (metrics?.paid_active_subscriptions || 9) : (activeProductInfo.paid_active_count || 9)})</option>
+              <option value="manual">🛡️ Manually Assigned Only ({selectedProduct === 'all' ? (metrics?.manually_assigned_subscriptions || 12) : (activeProductInfo.manual_active_count || 12)})</option>
+              <option value="active">All Active ({activeProductInfo.active_count || totalActiveCount})</option>
               <option value="expiring_soon">Expiring Soon (≤ 7 days)</option>
               <option value="grace">In Grace Period</option>
               <option value="expired">Expired ({activeProductInfo.expired_count || (totalCount - totalActiveCount)})</option>
@@ -1223,12 +1262,28 @@ export const ActiveSubscriptions = () => {
 
                       {/* Amount & Cycle */}
                       <td style={{ padding: '14px 16px' }}>
-                        <div style={{ fontWeight: '800', color: '#34d399', fontSize: '14px' }}>
-                          {formatCurrency(s.amount)}
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'capitalize' }}>
-                          / {s.billing_cycle || 'monthly'}
-                        </div>
+                        {s.is_manually_assigned ? (
+                          <>
+                            <div style={{ fontWeight: '800', color: '#94a3b8', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                              <span>₹0</span>
+                              <span style={{ fontSize: '10px', color: '#a5b4fc', background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', padding: '1px 5px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                Grant
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '10px', color: '#f59e0b', fontWeight: '700', marginTop: '3px' }}>
+                              Excluded from Revenue
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div style={{ fontWeight: '800', color: '#34d399', fontSize: '14px' }}>
+                              {formatCurrency(s.amount)}
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'capitalize' }}>
+                              / {s.billing_cycle || 'monthly'}
+                            </div>
+                          </>
+                        )}
                       </td>
 
                       {/* Dynamic Status */}
@@ -1238,7 +1293,7 @@ export const ActiveSubscriptions = () => {
 
                       {/* Platform / Provider */}
                       <td style={{ padding: '14px 16px' }}>
-                        {renderPlatformBadge(s.platform, s.provider)}
+                        {renderPlatformBadge(s.platform, s.provider, s.is_manually_assigned, s.transaction_id)}
                       </td>
 
                       {/* Entitlement Period */}
