@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { TableScroller } from './TableScroller';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -351,7 +352,7 @@ export const AppDownloadsTab = () => {
       {/* App Code Filter Bar & Platform Toggle Bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         {/* App selector */}
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div className="app-selector-pills">
           {['all', 'ailegal', 'aisa'].map((app) => (
             <button
               key={app}
@@ -766,7 +767,7 @@ export const AppDownloadsTab = () => {
           <span style={{ fontSize: '12px', color: '#64748b' }}>📅 Multi-platform overlay</span>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '16px' }}>
           {/* Card 1: User loss / Uninstalls */}
           <div className="metric-card" style={{ padding: '18px', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -882,7 +883,8 @@ export const AppDownloadsTab = () => {
             No download events recorded.
           </div>
         ) : (
-          <table className="data-table">
+          <TableScroller minWidth={700}>
+            <table className="data-table">
             <thead>
               <tr>
                 <th>Platform / OS</th>
@@ -950,6 +952,7 @@ export const AppDownloadsTab = () => {
               </tr>
             </tbody>
           </table>
+          </TableScroller>
         )}
       </div>
 
@@ -1229,7 +1232,8 @@ export const AppDownloadsTab = () => {
                   No Indian states match "{geoSearchQuery}".
                 </div>
               ) : (
-                <table className="data-table">
+                <TableScroller minWidth={720}>
+                  <table className="data-table">
                   <thead>
                     <tr>
                       <th style={{ width: '40px' }}>#</th>
@@ -1278,6 +1282,7 @@ export const AppDownloadsTab = () => {
                     ))}
                   </tbody>
                 </table>
+                </TableScroller>
               )
             )}
 
@@ -1288,7 +1293,8 @@ export const AppDownloadsTab = () => {
                   No countries match "{geoSearchQuery}".
                 </div>
               ) : (
-                <table className="data-table">
+                <TableScroller minWidth={720}>
+                  <table className="data-table">
                   <thead>
                     <tr>
                       <th style={{ width: '40px' }}>#</th>
@@ -1355,6 +1361,7 @@ export const AppDownloadsTab = () => {
                     ))}
                   </tbody>
                 </table>
+                </TableScroller>
               )
             )}
           </div>

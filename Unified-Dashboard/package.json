@@ -1,0 +1,12 @@
+{
+  "name": "uwo-unified-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "UWO Unified Telemetry & Analytics Dashboard",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "preview": "npm --prefix frontend run preview",
+    "deploy:cloudrun": "powershell -ExecutionPolicy Bypass -File ./deploy-cloudrun.ps1"
+  }
+}

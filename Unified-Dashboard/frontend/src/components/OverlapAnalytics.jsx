@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { TableScroller } from './TableScroller';
 
 export const OverlapAnalytics = () => {
   const { authFetch } = useAuth();
@@ -185,7 +186,7 @@ export const OverlapAnalytics = () => {
         <div className="section-header">
           <div className="section-title">Cross-Application User Download Overlap Matrix</div>
         </div>
-        <div className="table-wrapper">
+        <TableScroller minWidth={600}>
           <table className="data-table">
             <thead>
               <tr>
@@ -228,7 +229,7 @@ export const OverlapAnalytics = () => {
               )}
             </tbody>
           </table>
-        </div>
+        </TableScroller>
       </div>
     </div>
   );

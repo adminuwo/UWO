@@ -100,7 +100,7 @@ export default function PartnerDashboardPage() {
             background: 'rgba(255, 255, 255, 0.03)',
             border: '1px solid rgba(214, 165, 89, 0.25)',
             borderRadius: '24px',
-            padding: '24px 30px',
+            padding: 'clamp(18px, 4vw, 24px) clamp(16px, 4vw, 30px)',
             marginBottom: '30px'
           }}
         >
@@ -417,7 +417,7 @@ export default function PartnerDashboardPage() {
             background: 'rgba(255, 255, 255, 0.03)',
             border: '1px solid rgba(255, 255, 255, 0.08)',
             borderRadius: '24px',
-            padding: '30px',
+            padding: 'clamp(18px, 4vw, 30px) clamp(14px, 3.5vw, 24px)',
             marginBottom: '35px'
           }}
         >
@@ -484,7 +484,7 @@ export default function PartnerDashboardPage() {
             background: 'rgba(255, 255, 255, 0.03)',
             border: '1px solid rgba(255, 255, 255, 0.08)',
             borderRadius: '24px',
-            padding: '30px',
+            padding: 'clamp(18px, 4vw, 30px) clamp(14px, 3.5vw, 24px)',
             marginBottom: '35px'
           }}
         >
@@ -493,8 +493,8 @@ export default function PartnerDashboardPage() {
             Product-wise Performance
           </h2>
 
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table style={{ width: '100%', minWidth: '550px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8' }}>
                   <th style={{ padding: '12px 16px', fontWeight: 700 }}>PRODUCT</th>
@@ -552,7 +552,7 @@ export default function PartnerDashboardPage() {
             background: 'rgba(255, 255, 255, 0.03)',
             border: '1px solid rgba(255, 255, 255, 0.08)',
             borderRadius: '24px',
-            padding: '30px'
+            padding: 'clamp(18px, 4vw, 30px) clamp(14px, 3.5vw, 24px)'
           }}
         >
           <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#fff', marginBottom: '20px' }}>
@@ -560,8 +560,8 @@ export default function PartnerDashboardPage() {
             Recent Activity
           </h2>
 
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table style={{ width: '100%', minWidth: '450px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8' }}>
                   <th style={{ padding: '12px 16px', fontWeight: 700 }}>DATE &amp; TIME</th>

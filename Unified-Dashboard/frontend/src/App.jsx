@@ -20,6 +20,7 @@ import { MarketingCampaignsTab } from './components/MarketingCampaignsTab';
 export function App() {
   const { token } = useAuth();
   const [currentTab, setTab] = useState('unified_analytics');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   if (!token) {
     return <Login />;
@@ -43,14 +44,35 @@ export function App() {
 
   const activeTabInfo = tabTitles[currentTab] || tabTitles.overview;
 
+  const handleTabChange = (newTab) => {
+    setTab(newTab);
+    setMobileMenuOpen(false); // Close mobile drawer when user picks a tab
+  };
+
   return (
     <div className="app-layout">
-      <Sidebar currentTab={currentTab} setTab={setTab} />
+      {/* Mobile Drawer Backdrop */}
+      {mobileMenuOpen && (
+        <div
+          className="sidebar-backdrop"
+          onClick={() => setMobileMenuOpen(false)}
+          aria-label="Close navigation menu"
+        />
+      )}
+
+      <Sidebar
+        currentTab={currentTab}
+        setTab={handleTabChange}
+        mobileOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+      />
 
       <div className="main-wrapper">
         <Header
           title={activeTabInfo.title}
           subtitle={activeTabInfo.subtitle}
+          mobileMenuOpen={mobileMenuOpen}
+          onToggleMobileMenu={() => setMobileMenuOpen(prev => !prev)}
         />
 
         <main className="main-content">

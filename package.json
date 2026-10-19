@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "dev": "powershell -ExecutionPolicy Bypass -File ./run-dev.ps1",
+    "start": "powershell -ExecutionPolicy Bypass -File ./run-dev.ps1",
     "dev:backend": "npm --prefix UWO/UWO-B start",
     "dev:frontend": "npm --prefix UWO/UWO-F run dev",
     "dev:user-dashboard": "npm --prefix user-dashboard/frontend run dev",

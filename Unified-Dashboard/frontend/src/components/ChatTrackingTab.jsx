@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { TableScroller } from './TableScroller';
 
 // Application Configurations (Distinct Apps across Web & Mobile)
 const APP_CONFIGS = {
@@ -372,7 +373,7 @@ export const ChatTrackingTab = () => {
       )}
 
       {/* Application Switcher Pills (Web & App Dedicated Tabs) */}
-      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+      <div className="chat-app-pills">
         {APPS_LIST.map((app) => {
           const isSelected = selectedApp === app.id;
           return (
@@ -770,7 +771,7 @@ export const ChatTrackingTab = () => {
                         </span>
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '12px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 260px), 1fr))', gap: '12px' }}>
                         {(user.cases || []).map((c, cIdx) => {
                           const catStyle = getCategoryColor(c.chat_type);
                           return (
@@ -1273,8 +1274,8 @@ export const ChatTrackingTab = () => {
             No chat events recorded yet for {currentConfig.name}.
           </div>
         ) : (
-          <div className="table-responsive" style={{ overflowX: 'auto' }}>
-            <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <TableScroller minWidth={600} hintText="Swipe or scroll to view model telemetry">
+            <table className="data-table" style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)', textAlign: 'left', color: '#94a3b8', fontSize: '12px' }}>
                   <th style={{ padding: '12px 14px' }}>AI Model</th>
@@ -1320,7 +1321,7 @@ export const ChatTrackingTab = () => {
                 })}
               </tbody>
             </table>
-          </div>
+          </TableScroller>
         )}
       </div>
 
@@ -1344,8 +1345,8 @@ export const ChatTrackingTab = () => {
             </div>
           </div>
 
-          <div className="table-responsive" style={{ overflowX: 'auto' }}>
-            <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <TableScroller minWidth={850} hintText="Swipe or scroll to view prompt request stream">
+            <table className="data-table" style={{ width: '100%', minWidth: '850px', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)', textAlign: 'left', color: '#94a3b8', fontSize: '12px' }}>
                   <th style={{ padding: '12px 14px' }}>User / Interaction</th>
@@ -1423,7 +1424,7 @@ export const ChatTrackingTab = () => {
                 })}
               </tbody>
             </table>
-          </div>
+          </TableScroller>
 
           {/* Session Stream Pagination Controls */}
           {totalSessionPages > 1 && (

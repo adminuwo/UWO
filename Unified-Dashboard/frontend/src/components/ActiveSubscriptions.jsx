@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { TableScroller } from './TableScroller';
 
 const CANONICAL_PRODUCTS = [
   { product_code: 'all', name: 'All Products', icon: '💎', active_count: 0, total_count: 0, mrr: 0, arr: 0, renewal_rate: 0, primary_platform: 'Multi-Gateway' },
@@ -1051,8 +1052,8 @@ export const ActiveSubscriptions = () => {
           </div>
         </div>
 
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+        <TableScroller minWidth={1050} hintText="Swipe or scroll to view all 9 columns">
+          <table className="data-table" style={{ width: '100%', minWidth: '1050px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
             <thead>
               <tr style={{
                 background: 'rgba(30, 41, 59, 0.95)',
@@ -1063,15 +1064,15 @@ export const ActiveSubscriptions = () => {
                 fontSize: '11px',
                 letterSpacing: '0.05em'
               }}>
-                <th style={{ padding: '14px 18px' }}>Subscriber & Customer</th>
-                <th style={{ padding: '14px 16px' }}>Product & Plan</th>
-                <th style={{ padding: '14px 16px' }}>Tier</th>
-                <th style={{ padding: '14px 16px' }}>Billing Amount</th>
-                <th style={{ padding: '14px 16px' }}>Dynamic Status</th>
-                <th style={{ padding: '14px 16px' }}>Platform / Provider</th>
-                <th style={{ padding: '14px 16px' }}>Entitlement Window</th>
-                <th style={{ padding: '14px 16px' }}>Auto-Renew</th>
-                <th style={{ padding: '14px 18px', textAlign: 'right' }}>Actions</th>
+                <th style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>Subscriber & Customer</th>
+                <th style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>Product & Plan</th>
+                <th style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>Tier</th>
+                <th style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>Billing Amount</th>
+                <th style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>Dynamic Status</th>
+                <th style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>Platform / Provider</th>
+                <th style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>Entitlement Window</th>
+                <th style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>Auto-Renew</th>
+                <th style={{ padding: '14px 18px', textAlign: 'right', whiteSpace: 'nowrap' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1324,7 +1325,7 @@ export const ActiveSubscriptions = () => {
               )}
             </tbody>
           </table>
-        </div>
+        </TableScroller>
 
         {/* PAGINATION BAR */}
         <div style={{

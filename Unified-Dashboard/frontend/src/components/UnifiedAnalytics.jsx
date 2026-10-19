@@ -79,8 +79,28 @@ export const UnifiedAnalytics = () => {
   const [copiedApp, setCopiedApp] = useState(null);
   const [isPlatformMenuOpen, setIsPlatformMenuOpen] = useState(false);
   const platformDropdownRef = useRef(null);
+  const ecosystemTableRef = useRef(null);
+  const [platformViewMode, setPlatformViewMode] = useState('auto'); // 'cards' | 'table' | 'auto'
+  const [isMobileScreen, setIsMobileScreen] = useState(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
 
   const currentPlatform = findPlatformOption(appCode);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileScreen(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const activePlatformView = platformViewMode === 'auto' ? (isMobileScreen ? 'cards' : 'table') : platformViewMode;
+
+  const scrollEcosystemTable = (direction) => {
+    if (ecosystemTableRef.current) {
+      const offset = direction === 'left' ? -240 : 240;
+      ecosystemTableRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -261,11 +281,33 @@ export const UnifiedAnalytics = () => {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { labels: { color: '#94a3b8' } }
+      legend: {
+        labels: {
+          color: '#94a3b8',
+          boxWidth: 12,
+          font: { size: 11 }
+        }
+      }
     },
     scales: {
-      x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-      y: { beginAtZero: true, ticks: { color: '#64748b', precision: 0 }, grid: { color: 'rgba(255,255,255,0.05)' } }
+      x: {
+        ticks: {
+          color: '#64748b',
+          maxTicksLimit: 6,
+          autoSkip: true,
+          font: { size: 10 }
+        },
+        grid: { color: 'rgba(255,255,255,0.05)' }
+      },
+      y: {
+        beginAtZero: true,
+        ticks: {
+          color: '#64748b',
+          precision: 0,
+          font: { size: 10 }
+        },
+        grid: { color: 'rgba(255,255,255,0.05)' }
+      }
     }
   };
 
@@ -273,12 +315,38 @@ export const UnifiedAnalytics = () => {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { labels: { color: '#94a3b8' } }
+      legend: {
+        labels: {
+          color: '#94a3b8',
+          boxWidth: 12,
+          font: { size: 11 }
+        }
+      }
     },
     scales: {
-      x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-      y: { type: 'linear', position: 'left', beginAtZero: true, ticks: { color: '#6366f1', precision: 0 }, grid: { color: 'rgba(255,255,255,0.05)' } },
-      y1: { type: 'linear', position: 'right', beginAtZero: true, ticks: { color: '#f59e0b' }, grid: { drawOnChartArea: false } }
+      x: {
+        ticks: {
+          color: '#64748b',
+          maxTicksLimit: 6,
+          autoSkip: true,
+          font: { size: 10 }
+        },
+        grid: { color: 'rgba(255,255,255,0.05)' }
+      },
+      y: {
+        type: 'linear',
+        position: 'left',
+        beginAtZero: true,
+        ticks: { color: '#6366f1', precision: 0, font: { size: 10 } },
+        grid: { color: 'rgba(255,255,255,0.05)' }
+      },
+      y1: {
+        type: 'linear',
+        position: 'right',
+        beginAtZero: true,
+        ticks: { color: '#f59e0b', font: { size: 10 } },
+        grid: { drawOnChartArea: false }
+      }
     }
   };
 
@@ -321,36 +389,36 @@ export const UnifiedAnalytics = () => {
       )}
 
       {/* Provider Status Cockpit Badges */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '22px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(99, 102, 241, 0.12)', padding: '6px 14px', borderRadius: '20px', border: '1px solid rgba(99, 102, 241, 0.3)', fontSize: '12px', color: '#c7d2fe' }}>
-          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#6366f1', boxShadow: '0 0 8px #6366f1' }}></span>
-          <span><strong>GA4 Web:</strong> Connected & Real-Time</span>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(99, 102, 241, 0.12)', padding: '5px 12px', borderRadius: '20px', border: '1px solid rgba(99, 102, 241, 0.3)', fontSize: '11px', color: '#c7d2fe' }}>
+          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#6366f1', boxShadow: '0 0 8px #6366f1', flexShrink: 0 }}></span>
+          <span><strong>GA4 Web:</strong> Connected</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(16, 185, 129, 0.12)', padding: '6px 14px', borderRadius: '20px', border: '1px solid rgba(16, 185, 129, 0.3)', fontSize: '12px', color: '#a7f3d0' }}>
-          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981' }}></span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(16, 185, 129, 0.12)', padding: '5px 12px', borderRadius: '20px', border: '1px solid rgba(16, 185, 129, 0.3)', fontSize: '11px', color: '#a7f3d0' }}>
+          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981', flexShrink: 0 }}></span>
           <span><strong>Google Play:</strong> Synced</span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(245, 158, 11, 0.12)', padding: '6px 14px', borderRadius: '20px', border: '1px solid rgba(245, 158, 11, 0.3)', fontSize: '12px', color: '#fde68a' }}>
-          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b', boxShadow: '0 0 8px #f59e0b' }}></span>
-          <span><strong>Cloud Monitoring:</strong> 99.9% Uptime</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(245, 158, 11, 0.12)', padding: '5px 12px', borderRadius: '20px', border: '1px solid rgba(245, 158, 11, 0.3)', fontSize: '11px', color: '#fde68a' }}>
+          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b', boxShadow: '0 0 8px #f59e0b', flexShrink: 0 }}></span>
+          <span><strong>Cloud Monitoring:</strong> 99.9%</span>
         </div>
 
         {/* Auto-refresh indicator */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(56, 189, 248, 0.08)', padding: '6px 14px', borderRadius: '20px', border: '1px solid rgba(56, 189, 248, 0.2)', fontSize: '12px', color: '#7dd3fc', marginLeft: 'auto' }}>
-          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#38bdf8', animation: 'pulse 2s infinite' }}></span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(56, 189, 248, 0.08)', padding: '5px 12px', borderRadius: '20px', border: '1px solid rgba(56, 189, 248, 0.2)', fontSize: '11px', color: '#7dd3fc' }}>
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#38bdf8', animation: 'pulse 2s infinite', flexShrink: 0 }}></span>
           <span>
-            <strong>Auto-Refresh:</strong> Every 5 min
-            {lastSynced && <span style={{ color: '#64748b', marginLeft: '8px' }}>• Last: {lastSynced.toLocaleTimeString()}</span>}
+            <strong>Auto-Refresh:</strong> 5m
+            {lastSynced && <span style={{ color: '#64748b', marginLeft: '6px' }}>• {lastSynced.toLocaleTimeString()}</span>}
           </span>
         </div>
       </div>
 
       {/* Categorized Filter & Action Toolbar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '24px', background: 'rgba(30, 41, 59, 0.6)', padding: '14px 18px', borderRadius: '12px', border: '1px solid #334155' }}>
-        <div style={{ display: 'flex', gap: '14px', alignItems: 'center', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'stretch', flexWrap: 'wrap', gap: '12px', marginBottom: '24px', background: 'rgba(30, 41, 59, 0.6)', padding: '14px', borderRadius: '12px', border: '1px solid #334155', width: '100%', boxSizing: 'border-box' }}>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', flexWrap: 'wrap', flex: '1 1 240px', minWidth: 0, width: '100%' }}>
           {/* Categorized App Selector with Official Project Logos */}
-          <div ref={platformDropdownRef} style={{ display: 'flex', flexDirection: 'column', gap: '4px', position: 'relative' }}>
+          <div ref={platformDropdownRef} style={{ display: 'flex', flexDirection: 'column', gap: '4px', position: 'relative', width: '100%', flex: '1 1 240px', minWidth: 0 }}>
             <label style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: '600' }}>Platform Filter</label>
             <button
               type="button"
@@ -360,7 +428,7 @@ export const UnifiedAnalytics = () => {
                 background: '#0f172a',
                 color: '#f8fafc',
                 border: isPlatformMenuOpen ? '1px solid #6366f1' : '1px solid #475569',
-                padding: '7px 14px',
+                padding: '8px 12px',
                 borderRadius: '8px',
                 cursor: 'pointer',
                 fontWeight: '600',
@@ -369,8 +437,8 @@ export const UnifiedAnalytics = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                gap: '10px',
-                minWidth: '290px',
+                gap: '8px',
+                width: '100%',
                 boxShadow: isPlatformMenuOpen ? '0 0 0 2px rgba(99, 102, 241, 0.25)' : 'none',
                 transition: 'all 0.15s ease'
               }}
@@ -385,7 +453,7 @@ export const UnifiedAnalytics = () => {
                   {currentPlatform?.label || 'All Ecosystem Platforms (Unified)'}
                 </span>
               </div>
-              <span style={{ fontSize: '10px', color: '#94a3b8', transform: isPlatformMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }}>
+              <span style={{ fontSize: '10px', color: '#94a3b8', transform: isPlatformMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease', flexShrink: 0 }}>
                 ▼
               </span>
             </button>
@@ -402,7 +470,9 @@ export const UnifiedAnalytics = () => {
                   border: '1px solid #334155',
                   borderRadius: '10px',
                   boxShadow: '0 12px 28px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05)',
-                  width: '320px',
+                  width: '100%',
+                  minWidth: '240px',
+                  maxWidth: 'calc(100vw - 32px)',
                   maxHeight: '380px',
                   overflowY: 'auto',
                   zIndex: 999,
@@ -466,7 +536,7 @@ export const UnifiedAnalytics = () => {
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             {item.logo ? (
-                              <img src={item.logo} alt="" style={{ width: '18px', height: '18px', objectFit: 'contain', flexShrink: 0 }} />
+                              <img src={item.logo} alt="" style={{ width: '16px', height: '16px', objectFit: 'contain', flexShrink: 0 }} />
                             ) : (
                               <span style={{ fontSize: '15px', lineHeight: 1 }}>{item.icon || '📦'}</span>
                             )}
@@ -483,14 +553,14 @@ export const UnifiedAnalytics = () => {
           </div>
 
           {/* Date Range Selector */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%', flex: '1 1 240px', minWidth: 0 }}>
             <label style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: '600' }}>Time Horizon</label>
-            <div style={{ display: 'flex', background: '#0f172a', padding: '3px', borderRadius: '8px', border: '1px solid #334155' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', background: '#0f172a', padding: '3px', borderRadius: '8px', border: '1px solid #334155', width: '100%', boxSizing: 'border-box' }}>
               {[
-                { key: '24h', label: 'Today (24h)' },
-                { key: '7d', label: '7 Days' },
-                { key: '30d', label: '30 Days' },
-                { key: '90d', label: '90 Days' }
+                { key: '24h', label: 'Today' },
+                { key: '7d', label: '7D' },
+                { key: '30d', label: '30D' },
+                { key: '90d', label: '90D' }
               ].map((r) => (
                 <button
                   key={r.key}
@@ -499,12 +569,14 @@ export const UnifiedAnalytics = () => {
                     background: dateRange === r.key ? '#6366f1' : 'transparent',
                     color: dateRange === r.key ? '#ffffff' : '#94a3b8',
                     border: 'none',
-                    padding: '6px 14px',
+                    padding: '6px 4px',
                     borderRadius: '6px',
                     cursor: 'pointer',
-                    fontSize: '12px',
+                    fontSize: '11px',
                     fontWeight: dateRange === r.key ? '700' : '500',
-                    transition: 'all 0.15s ease'
+                    transition: 'all 0.15s ease',
+                    whiteSpace: 'nowrap',
+                    textAlign: 'center'
                   }}
                 >
                   {r.label}
@@ -514,7 +586,8 @@ export const UnifiedAnalytics = () => {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
+        {/* Action Buttons */}
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', width: '100%', flex: '1 1 240px', minWidth: 0 }}>
           <button
             onClick={() => setShowSnippetModal(true)}
             className="btn-secondary"
@@ -522,18 +595,23 @@ export const UnifiedAnalytics = () => {
               background: '#0f172a',
               color: '#e2e8f0',
               border: '1px solid #475569',
-              padding: '9px 16px',
+              padding: '9px 12px',
               borderRadius: '8px',
               cursor: 'pointer',
               fontWeight: '600',
-              fontSize: '13px',
+              fontSize: '12px',
               display: 'flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: '6px',
-              transition: 'all 0.15s ease'
+              transition: 'all 0.15s ease',
+              flex: '1 1 110px',
+              minWidth: 0,
+              minHeight: '42px',
+              whiteSpace: 'nowrap'
             }}
           >
-            ⚡ Embed Tracking Code
+            ⚡ Embed Code
           </button>
 
           <button
@@ -544,47 +622,37 @@ export const UnifiedAnalytics = () => {
               background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
               color: '#fff',
               border: 'none',
-              padding: '9px 18px',
+              padding: '9px 12px',
               borderRadius: '8px',
               cursor: syncing ? 'not-allowed' : 'pointer',
               fontWeight: '600',
-              fontSize: '13px',
+              fontSize: '12px',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              boxShadow: '0 4px 14px rgba(99, 102, 241, 0.35)'
+              justifyContent: 'center',
+              gap: '6px',
+              boxShadow: '0 4px 14px rgba(99, 102, 241, 0.35)',
+              flex: '1 1 110px',
+              minWidth: 0,
+              minHeight: '42px',
+              whiteSpace: 'nowrap'
             }}
           >
-            {syncing ? '🔄 Syncing Providers...' : '🔄 Sync All Providers'}
+            {syncing ? '🔄 Syncing...' : '🔄 Sync Providers'}
           </button>
         </div>
       </div>
 
-      {/* Navigation Sub-Tabs Bar */}
-      <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #334155', paddingBottom: '12px', marginBottom: '24px', overflowX: 'auto' }}>
+      {/* Navigation Sub-Tabs Bar (Responsive 2x2 grid on mobile so all 4 options are fully visible) */}
+      <div className="subtabs-bar">
         {subTabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveSubTab(tab.id)}
-            style={{
-              background: activeSubTab === tab.id ? 'rgba(99, 102, 241, 0.18)' : 'rgba(30, 41, 59, 0.4)',
-              color: activeSubTab === tab.id ? '#a5b4fc' : '#94a3b8',
-              border: activeSubTab === tab.id ? '1px solid rgba(99, 102, 241, 0.5)' : '1px solid rgba(51, 65, 85, 0.5)',
-              padding: '9px 18px',
-              borderRadius: '10px',
-              cursor: 'pointer',
-              fontSize: '13px',
-              fontWeight: activeSubTab === tab.id ? '700' : '500',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              whiteSpace: 'nowrap',
-              transition: 'all 0.2s ease',
-              boxShadow: activeSubTab === tab.id ? '0 2px 10px rgba(99, 102, 241, 0.2)' : 'none'
-            }}
+            className={`subtab-btn ${activeSubTab === tab.id ? 'active' : ''}`}
           >
-            <span style={{ fontSize: '15px' }}>{tab.icon}</span>
-            <span>{tab.label}</span>
+            <span className="subtab-icon">{tab.icon}</span>
+            <span className="subtab-label">{tab.label}</span>
           </button>
         ))}
       </div>
@@ -592,7 +660,7 @@ export const UnifiedAnalytics = () => {
       {/* ─── TAB 1: OVERVIEW ─────────────────────────────────────────────────── */}
       {activeSubTab === 'overview' && (
         <div>
-          <div className="metrics-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+          <div className="metrics-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '14px' }}>
             <div className="metric-card" style={{ background: 'rgba(30, 41, 59, 0.7)', border: '1px solid rgba(99, 102, 241, 0.25)', borderRadius: '12px', padding: '20px' }}>
               <div className="metric-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <span style={{ fontSize: '13px', color: '#94a3b8', fontWeight: '600' }}>Total Active Users</span>
@@ -623,7 +691,7 @@ export const UnifiedAnalytics = () => {
           </div>
 
           {/* Timeline Chart */}
-          <div className="card-section" style={{ marginTop: '24px', background: 'rgba(30, 41, 59, 0.6)', border: '1px solid #334155', borderRadius: '12px', padding: '20px' }}>
+          <div className="card-section" style={{ marginTop: '24px', background: 'rgba(30, 41, 59, 0.6)', border: '1px solid #334155', borderRadius: '12px' }}>
             <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div>
                 <div className="section-title" style={{ fontSize: '16px', fontWeight: '700', color: '#f8fafc' }}>
@@ -639,7 +707,7 @@ export const UnifiedAnalytics = () => {
                 </span>
               </div>
             </div>
-            <div style={{ height: '330px' }}>
+            <div className="chart-container-responsive" style={{ height: '300px', width: '100%', position: 'relative' }}>
               {loading ? (
                 <div style={{ color: '#94a3b8', textAlign: 'center', paddingTop: '60px' }}>Loading Real-Time Analytics...</div>
               ) : (
@@ -649,7 +717,7 @@ export const UnifiedAnalytics = () => {
           </div>
 
           {/* Ecosystem Platform Distribution Section */}
-          <div className="card-section" style={{ marginTop: '24px', background: 'rgba(30, 41, 59, 0.6)', border: '1px solid #334155', borderRadius: '12px', padding: '20px' }}>
+          <div className="card-section" style={{ marginTop: '24px', background: 'rgba(30, 41, 59, 0.6)', border: '1px solid #334155', borderRadius: '12px' }}>
             <div className="section-header" style={{ marginBottom: '20px' }}>
               <div className="section-title" style={{ fontSize: '16px', fontWeight: '700', color: '#f8fafc' }}>
                 Ecosystem User Distribution & Share
@@ -659,10 +727,10 @@ export const UnifiedAnalytics = () => {
               </div>
             </div>
             
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '32px', alignItems: 'center' }}>
-              <div style={{ height: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ fontSize: '13px', color: '#94a3b8', fontWeight: '600', marginBottom: '10px' }}>Platform Share Percentage</div>
-                <div style={{ height: '250px', width: '100%', display: 'flex', justifyContent: 'center' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '20px', alignItems: 'center', width: '100%', minWidth: 0 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', minWidth: 0 }}>
+                <div style={{ fontSize: '13px', color: '#94a3b8', fontWeight: '600', marginBottom: '10px', textAlign: 'center' }}>Platform Share Percentage</div>
+                <div className="chart-container-responsive" style={{ height: '240px', width: '100%', maxWidth: '240px', margin: '0 auto', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {loading ? (
                     <div style={{ color: '#94a3b8', textAlign: 'center', paddingTop: '60px' }}>Loading...</div>
                   ) : (
@@ -670,7 +738,7 @@ export const UnifiedAnalytics = () => {
                       data={appShareChartData} 
                       options={{
                         responsive: true,
-                        maintainAspectRatio: false,
+                        maintainAspectRatio: true,
                         plugins: {
                           legend: {
                             display: false
@@ -682,9 +750,9 @@ export const UnifiedAnalytics = () => {
                 </div>
               </div>
               
-              <div style={{ height: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ fontSize: '13px', color: '#94a3b8', fontWeight: '600', marginBottom: '10px' }}>Active User Volumes</div>
-                <div style={{ height: '250px', width: '100%' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', minWidth: 0 }}>
+                <div style={{ fontSize: '13px', color: '#94a3b8', fontWeight: '600', marginBottom: '10px', textAlign: 'center' }}>Active User Volumes</div>
+                <div className="chart-container-responsive" style={{ height: '240px', width: '100%', position: 'relative' }}>
                   {loading ? (
                     <div style={{ color: '#94a3b8', textAlign: 'center', paddingTop: '60px' }}>Loading...</div>
                   ) : (
@@ -698,8 +766,18 @@ export const UnifiedAnalytics = () => {
                           legend: { display: false }
                         },
                         scales: {
-                          x: { ticks: { color: '#64748b', precision: 0 }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                          y: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+                          x: { ticks: { color: '#64748b', precision: 0, font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                          y: {
+                            ticks: {
+                              color: '#94a3b8',
+                              font: { size: 10 },
+                              callback: function(val, index) {
+                                const label = appBreakdownLabels[index] || '';
+                                return label.length > 14 ? label.slice(0, 12) + '…' : label;
+                              }
+                            },
+                            grid: { display: false }
+                          }
                         }
                       }} 
                     />
@@ -739,7 +817,7 @@ export const UnifiedAnalytics = () => {
             </div>
           </div>
 
-          {/* Connected Ecosystem Platforms Table */}
+          {/* Connected Ecosystem Platforms Section */}
           <div className="card-section" style={{ marginTop: '24px', background: 'rgba(30, 41, 59, 0.6)', border: '1px solid #334155', borderRadius: '12px', padding: '20px' }}>
             <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
               <div>
@@ -747,112 +825,303 @@ export const UnifiedAnalytics = () => {
                   Connected Ecosystem Platforms
                 </div>
                 <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>
-                  Real-time telemetry, user allocation & live sync status across all 7 platforms
+                  Real-time telemetry, user allocation & live sync status across all platforms
                 </div>
               </div>
-              <input
-                type="text"
-                placeholder="🔍 Search applications..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  background: '#0f172a',
-                  color: '#f8fafc',
-                  border: '1px solid #475569',
-                  padding: '7px 14px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  width: '220px',
-                  outline: 'none'
-                }}
-              />
+
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                {/* View Mode Switcher */}
+                <div style={{ display: 'flex', background: '#0f172a', padding: '3px', borderRadius: '8px', border: '1px solid #334155' }}>
+                  <button
+                    type="button"
+                    onClick={() => setPlatformViewMode('cards')}
+                    style={{
+                      background: activePlatformView === 'cards' ? '#6366f1' : 'transparent',
+                      color: activePlatformView === 'cards' ? '#ffffff' : '#94a3b8',
+                      border: 'none',
+                      padding: '5px 10px',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <span>📱 Cards</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPlatformViewMode('table')}
+                    style={{
+                      background: activePlatformView === 'table' ? '#6366f1' : 'transparent',
+                      color: activePlatformView === 'table' ? '#ffffff' : '#94a3b8',
+                      border: 'none',
+                      padding: '5px 10px',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <span>📊 Table</span>
+                  </button>
+                </div>
+
+                {/* Search Filter */}
+                <input
+                  type="text"
+                  placeholder="🔍 Search applications..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    background: '#0f172a',
+                    color: '#f8fafc',
+                    border: '1px solid #475569',
+                    padding: '7px 14px',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    width: '180px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
             </div>
-            <div className="table-responsive">
-              <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid #475569', color: '#94a3b8', fontSize: '12px', textAlign: 'left' }}>
-                    <th style={{ padding: '10px 12px' }}>Application</th>
-                    <th style={{ padding: '10px 12px' }}>Category</th>
-                    <th style={{ padding: '10px 12px' }}>App Code</th>
-                    <th style={{ padding: '10px 12px' }}>Registered Users</th>
-                    <th style={{ padding: '10px 12px' }}>Telemetry Status</th>
-                    <th style={{ padding: '10px 12px', textAlign: 'right' }}>Quick Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {overviewData?.app_breakdown
-                    ?.filter((app) =>
-                      !searchQuery ||
-                      app.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                      app.app_code?.toLowerCase().includes(searchQuery.toLowerCase())
-                    )
-                    ?.map((app) => {
-                      const categoryMap = {
-                        aisa: { label: 'AI Suite', color: '#8b5cf6' },
-                        ailegal: { label: 'Legal AI', color: '#6366f1' },
-                        aimall: { label: 'Marketplace', color: '#ec4899' },
-                        efvframework: { label: 'Consciousness', color: '#f59e0b' },
-                        uwo: { label: 'Web Platform', color: '#3b82f6' },
-                        uwoconnect: { label: 'Networking', color: '#10b981' },
-                        yugamc: { label: 'Real Estate AI', color: '#14b8a6' },
-                        'unified-dashboard': { label: 'Central Admin', color: '#eab308' }
-                      };
-                      const cat = categoryMap[app.app_code] || { label: 'Product', color: '#64748b' };
-                      return (
-                        <tr key={app.app_code} style={{ borderBottom: '1px solid rgba(51, 65, 85, 0.4)', fontSize: '13px' }}>
-                          <td style={{ padding: '12px' }}>
-                            <strong style={{ color: '#f8fafc' }}>{app.name}</strong>
-                          </td>
-                          <td style={{ padding: '12px' }}>
-                            <span style={{
-                              background: `${cat.color}20`,
-                              color: cat.color,
-                              border: `1px solid ${cat.color}40`,
-                              padding: '2px 8px',
-                              borderRadius: '4px',
-                              fontSize: '11px',
-                              fontWeight: '600'
-                            }}>
-                              {cat.label}
-                            </span>
-                          </td>
-                          <td style={{ padding: '12px' }}>
-                            <code style={{ background: '#0f172a', padding: '2px 6px', borderRadius: '4px', color: '#93c5fd', fontSize: '12px' }}>
-                              {app.app_code}
-                            </code>
-                          </td>
-                          <td style={{ padding: '12px', color: '#e2e8f0', fontWeight: '500' }}>
+
+            {/* ─── CARDS VIEW (Mobile-Optimized & 100% visible) ─── */}
+            {activePlatformView === 'cards' && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: '12px', marginTop: '12px' }}>
+                {overviewData?.app_breakdown
+                  ?.filter((app) =>
+                    !searchQuery ||
+                    app.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    app.app_code?.toLowerCase().includes(searchQuery.toLowerCase())
+                  )
+                  ?.map((app) => {
+                    const categoryMap = {
+                      aisa: { label: 'AI Suite', color: '#8b5cf6' },
+                      ailegal: { label: 'Legal AI', color: '#6366f1' },
+                      aimall: { label: 'Marketplace', color: '#ec4899' },
+                      efvframework: { label: 'Consciousness', color: '#f59e0b' },
+                      uwo: { label: 'Web Platform', color: '#3b82f6' },
+                      uwoconnect: { label: 'Networking', color: '#10b981' },
+                      yugamc: { label: 'Real Estate AI', color: '#14b8a6' },
+                      'unified-dashboard': { label: 'Central Admin', color: '#eab308' }
+                    };
+                    const cat = categoryMap[app.app_code] || { label: 'Product', color: '#64748b' };
+                    const platformOpt = findPlatformOption(app.app_code);
+
+                    return (
+                      <div
+                        key={app.app_code}
+                        style={{
+                          background: 'rgba(15, 23, 42, 0.85)',
+                          border: '1px solid #334155',
+                          borderRadius: '12px',
+                          padding: '16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '12px',
+                          boxShadow: '0 4px 14px rgba(0, 0, 0, 0.25)'
+                        }}
+                      >
+                        {/* Header: Logo, Name & Live Status */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            {platformOpt?.logo ? (
+                              <img src={platformOpt.logo} alt="" style={{ width: '28px', height: '28px', objectFit: 'contain', flexShrink: 0 }} />
+                            ) : (
+                              <span style={{ fontSize: '22px', lineHeight: 1 }}>{platformOpt?.icon || '📦'}</span>
+                            )}
+                            <div>
+                              <div style={{ fontWeight: '700', color: '#f8fafc', fontSize: '14px', lineHeight: 1.2 }}>{app.name}</div>
+                              <div style={{ display: 'flex', gap: '6px', marginTop: '4px', flexWrap: 'wrap' }}>
+                                <span style={{
+                                  background: `${cat.color}20`,
+                                  color: cat.color,
+                                  border: `1px solid ${cat.color}40`,
+                                  padding: '2px 7px',
+                                  borderRadius: '4px',
+                                  fontSize: '10px',
+                                  fontWeight: '600'
+                                }}>
+                                  {cat.label}
+                                </span>
+                                <code style={{ background: '#1e293b', padding: '2px 6px', borderRadius: '4px', color: '#93c5fd', fontSize: '11px' }}>
+                                  {app.app_code}
+                                </code>
+                              </div>
+                            </div>
+                          </div>
+                          <span style={{
+                            color: '#34d399',
+                            background: 'rgba(16, 185, 129, 0.1)',
+                            border: '1px solid rgba(16, 185, 129, 0.3)',
+                            padding: '3px 8px',
+                            borderRadius: '12px',
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            flexShrink: 0
+                          }}>
+                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></span>
+                            {app.status || 'Active'}
+                          </span>
+                        </div>
+
+                        {/* Registered Users Bar */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#1e293b', padding: '9px 12px', borderRadius: '8px', fontSize: '12px' }}>
+                          <span style={{ color: '#94a3b8' }}>👥 Registered Users</span>
+                          <span style={{ color: '#38bdf8', fontWeight: '800', fontSize: '14px' }}>
                             {app.users?.toLocaleString() || 0}
-                          </td>
-                          <td style={{ padding: '12px' }}>
-                            <span style={{ color: '#34d399', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
-                              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></span>
-                              {app.status}
-                            </span>
-                          </td>
-                          <td style={{ padding: '12px', textAlign: 'right' }}>
-                            <button
-                              onClick={() => copySnippet(app.name, app.app_code)}
-                              style={{
-                                background: copiedApp === app.name ? '#10b981' : '#1e293b',
-                                color: copiedApp === app.name ? '#ffffff' : '#94a3b8',
-                                border: '1px solid #334155',
-                                padding: '4px 10px',
-                                borderRadius: '6px',
-                                fontSize: '11px',
-                                cursor: 'pointer',
-                                transition: 'all 0.15s ease'
-                              }}
-                            >
-                              {copiedApp === app.name ? '✓ Copied' : '📋 Copy Tracker'}
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                </tbody>
-              </table>
-            </div>
+                          </span>
+                        </div>
+
+                        {/* Copy Tracker Button */}
+                        <button
+                          onClick={() => copySnippet(app.name, app.app_code)}
+                          style={{
+                            width: '100%',
+                            background: copiedApp === app.name ? '#10b981' : 'rgba(99, 102, 241, 0.15)',
+                            color: copiedApp === app.name ? '#ffffff' : '#a5b4fc',
+                            border: copiedApp === app.name ? '1px solid #10b981' : '1px solid rgba(99, 102, 241, 0.35)',
+                            padding: '9px 12px',
+                            borderRadius: '8px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            minHeight: '38px',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          {copiedApp === app.name ? '✓ Snippet Copied to Clipboard!' : '📋 Copy Tracking Snippet'}
+                        </button>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+
+            {/* ─── TABLE VIEW (With smooth scroller, buttons & sticky elements) ─── */}
+            {activePlatformView === 'table' && (
+              <>
+                <div className="table-scroll-hint">
+                  <span>👉 Swipe table horizontally or use buttons to view all columns</span>
+                  <div className="table-scroll-buttons">
+                    <button type="button" className="table-scroll-btn" onClick={() => scrollEcosystemTable('left')}>◀ Left</button>
+                    <button type="button" className="table-scroll-btn" onClick={() => scrollEcosystemTable('right')}>Right ▶</button>
+                  </div>
+                </div>
+
+                <div className="table-responsive" ref={ecosystemTableRef}>
+                  <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: '660px' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #475569', color: '#94a3b8', fontSize: '12px', textAlign: 'left' }}>
+                        <th style={{ padding: '10px 12px' }}>Application</th>
+                        <th style={{ padding: '10px 12px' }}>Category</th>
+                        <th style={{ padding: '10px 12px' }}>App Code</th>
+                        <th style={{ padding: '10px 12px' }}>Registered Users</th>
+                        <th style={{ padding: '10px 12px' }}>Telemetry Status</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>Quick Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {overviewData?.app_breakdown
+                        ?.filter((app) =>
+                          !searchQuery ||
+                          app.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          app.app_code?.toLowerCase().includes(searchQuery.toLowerCase())
+                        )
+                        ?.map((app) => {
+                          const categoryMap = {
+                            aisa: { label: 'AI Suite', color: '#8b5cf6' },
+                            ailegal: { label: 'Legal AI', color: '#6366f1' },
+                            aimall: { label: 'Marketplace', color: '#ec4899' },
+                            efvframework: { label: 'Consciousness', color: '#f59e0b' },
+                            uwo: { label: 'Web Platform', color: '#3b82f6' },
+                            uwoconnect: { label: 'Networking', color: '#10b981' },
+                            yugamc: { label: 'Real Estate AI', color: '#14b8a6' },
+                            'unified-dashboard': { label: 'Central Admin', color: '#eab308' }
+                          };
+                          const cat = categoryMap[app.app_code] || { label: 'Product', color: '#64748b' };
+                          const platformOpt = findPlatformOption(app.app_code);
+                          return (
+                            <tr key={app.app_code} style={{ borderBottom: '1px solid rgba(51, 65, 85, 0.4)', fontSize: '13px' }}>
+                              <td style={{ padding: '12px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  {platformOpt?.logo ? (
+                                    <img src={platformOpt.logo} alt="" style={{ width: '18px', height: '18px', objectFit: 'contain', flexShrink: 0 }} />
+                                  ) : (
+                                    <span style={{ fontSize: '16px', lineHeight: 1 }}>{platformOpt?.icon || '📦'}</span>
+                                  )}
+                                  <strong style={{ color: '#f8fafc', whiteSpace: 'nowrap' }}>{app.name}</strong>
+                                </div>
+                              </td>
+                              <td style={{ padding: '12px', whiteSpace: 'nowrap' }}>
+                                <span style={{
+                                  background: `${cat.color}20`,
+                                  color: cat.color,
+                                  border: `1px solid ${cat.color}40`,
+                                  padding: '2px 8px',
+                                  borderRadius: '4px',
+                                  fontSize: '11px',
+                                  fontWeight: '600'
+                                }}>
+                                  {cat.label}
+                                </span>
+                              </td>
+                              <td style={{ padding: '12px', whiteSpace: 'nowrap' }}>
+                                <code style={{ background: '#0f172a', padding: '2px 6px', borderRadius: '4px', color: '#93c5fd', fontSize: '12px' }}>
+                                  {app.app_code}
+                                </code>
+                              </td>
+                              <td style={{ padding: '12px', color: '#e2e8f0', fontWeight: '500', whiteSpace: 'nowrap' }}>
+                                {app.users?.toLocaleString() || 0}
+                              </td>
+                              <td style={{ padding: '12px', whiteSpace: 'nowrap' }}>
+                                <span style={{ color: '#34d399', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
+                                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></span>
+                                  {app.status}
+                                </span>
+                              </td>
+                              <td style={{ padding: '12px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                <button
+                                  onClick={() => copySnippet(app.name, app.app_code)}
+                                  style={{
+                                    background: copiedApp === app.name ? '#10b981' : '#1e293b',
+                                    color: copiedApp === app.name ? '#ffffff' : '#94a3b8',
+                                    border: '1px solid #334155',
+                                    padding: '5px 12px',
+                                    borderRadius: '6px',
+                                    fontSize: '11px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease'
+                                  }}
+                                >
+                                  {copiedApp === app.name ? '✓ Copied' : '📋 Copy Tracker'}
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
           </div>
 
         </div>
@@ -905,37 +1174,39 @@ export const UnifiedAnalytics = () => {
             <div className="section-header">
               <div className="section-title">Web Traffic Timeline (Pageviews vs Visitors)</div>
             </div>
-            <div style={{ height: '300px' }}>
+            <div className="chart-container-responsive" style={{ height: '300px', width: '100%', position: 'relative' }}>
               <Line data={webChartData} options={chartOptions} />
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px', marginTop: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '20px', marginTop: '24px' }}>
             {/* Top Pages Table */}
             <div className="card-section">
               <div className="section-header">
                 <div className="section-title">Top Visited Pages & Routes</div>
               </div>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Route</th>
-                    <th>Views</th>
-                    <th>Visitors</th>
-                    <th>Bounce</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {webData?.top_pages?.map((p, idx) => (
-                    <tr key={idx}>
-                      <td><code>{p.path}</code></td>
-                      <td>{p.views?.toLocaleString()}</td>
-                      <td>{p.unique_visitors?.toLocaleString()}</td>
-                      <td>{p.bounce_rate}%</td>
+              <div className="table-responsive">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Route</th>
+                      <th>Views</th>
+                      <th>Visitors</th>
+                      <th>Bounce</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {webData?.top_pages?.map((p, idx) => (
+                      <tr key={idx}>
+                        <td><code>{p.path}</code></td>
+                        <td>{p.views?.toLocaleString()}</td>
+                        <td>{p.unique_visitors?.toLocaleString()}</td>
+                        <td>{p.bounce_rate}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             {/* Traffic Sources */}
@@ -943,24 +1214,26 @@ export const UnifiedAnalytics = () => {
               <div className="section-header">
                 <div className="section-title">Traffic Sources & Referrers</div>
               </div>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Source / Referrer</th>
-                    <th>Users</th>
-                    <th>Share</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {webData?.traffic_sources?.map((s, idx) => (
-                    <tr key={idx}>
-                      <td><strong>{s.source}</strong></td>
-                      <td>{s.users?.toLocaleString()}</td>
-                      <td><span className="badge badge-info">{s.pct}%</span></td>
+              <div className="table-responsive">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Source / Referrer</th>
+                      <th>Users</th>
+                      <th>Share</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {webData?.traffic_sources?.map((s, idx) => (
+                      <tr key={idx}>
+                        <td><strong>{s.source}</strong></td>
+                        <td>{s.users?.toLocaleString()}</td>
+                        <td><span className="badge badge-info">{s.pct}%</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
@@ -1016,7 +1289,7 @@ export const UnifiedAnalytics = () => {
             <div className="section-header">
               <div className="section-title">GCP Cloud Run Request Volume & Latency Timeline</div>
             </div>
-            <div style={{ height: '300px' }}>
+            <div className="chart-container-responsive" style={{ height: '300px', width: '100%', position: 'relative' }}>
               <Line data={gcpChartData} options={gcpChartOptions} />
             </div>
           </div>
@@ -1025,26 +1298,28 @@ export const UnifiedAnalytics = () => {
             <div className="section-header">
               <div className="section-title">Top REST API Endpoints Performance</div>
             </div>
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>API Endpoint</th>
-                  <th>Hits</th>
-                  <th>Avg Latency</th>
-                  <th>HTTP Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {gcpData?.top_endpoints?.map((ep, idx) => (
-                  <tr key={idx}>
-                    <td><code>{ep.endpoint}</code></td>
-                    <td>{ep.hits?.toLocaleString()}</td>
-                    <td>{ep.avg_latency_ms} ms</td>
-                    <td><span className="badge badge-success">{ep.status}</span></td>
+            <div className="table-responsive">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>API Endpoint</th>
+                    <th>Hits</th>
+                    <th>Avg Latency</th>
+                    <th>HTTP Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {gcpData?.top_endpoints?.map((ep, idx) => (
+                    <tr key={idx}>
+                      <td><code>{ep.endpoint}</code></td>
+                      <td>{ep.hits?.toLocaleString()}</td>
+                      <td>{ep.avg_latency_ms} ms</td>
+                      <td><span className="badge badge-success">{ep.status}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -1094,26 +1369,28 @@ export const UnifiedAnalytics = () => {
             <div className="section-header">
               <div className="section-title">Feature / Tool Usage Breakdown</div>
             </div>
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Feature / Mode Name</th>
-                  <th>Application</th>
-                  <th>Invocations Count</th>
-                  <th>Share (%)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {activityData?.feature_usage?.map((f, idx) => (
-                  <tr key={idx}>
-                    <td><strong>{f.name}</strong></td>
-                    <td><code>{f.app_code}</code></td>
-                    <td>{f.count?.toLocaleString()}</td>
-                    <td><span className="badge badge-info">{f.pct}%</span></td>
+            <div className="table-responsive">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Feature / Mode Name</th>
+                    <th>Application</th>
+                    <th>Invocations Count</th>
+                    <th>Share (%)</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {activityData?.feature_usage?.map((f, idx) => (
+                    <tr key={idx}>
+                      <td><strong>{f.name}</strong></td>
+                      <td><code>{f.app_code}</code></td>
+                      <td>{f.count?.toLocaleString()}</td>
+                      <td><span className="badge badge-info">{f.pct}%</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
