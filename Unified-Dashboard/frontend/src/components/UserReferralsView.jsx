@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { TableScroller } from './TableScroller';
 
 const getProjectLogo = (code) => {
   const c = (code || '').toLowerCase();
@@ -729,29 +730,8 @@ export const UserReferralsView = ({
             </div>
           ) : (
             /* Table View with Smooth Scroll Controls */
-            <>
-              <div className="table-scroll-hint" style={{ padding: '8px 16px', background: 'rgba(99, 102, 241, 0.08)', borderBottom: '1px solid rgba(99, 102, 241, 0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '11px', color: '#A5B4FC', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span>👉</span> Swipe horizontally or use buttons to view all 8 columns
-                </span>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <button
-                    onClick={() => scrollTable(referralTableRef, 'left')}
-                    style={{ background: '#1E293B', border: '1px solid #334155', color: '#94A3B8', borderRadius: '4px', padding: '3px 8px', fontSize: '11px', cursor: 'pointer' }}
-                  >
-                    ◀ Left
-                  </button>
-                  <button
-                    onClick={() => scrollTable(referralTableRef, 'right')}
-                    style={{ background: '#1E293B', border: '1px solid #334155', color: '#94A3B8', borderRadius: '4px', padding: '3px 8px', fontSize: '11px', cursor: 'pointer' }}
-                  >
-                    Right ▶
-                  </button>
-                </div>
-              </div>
-
-              <div ref={referralTableRef} className="table-responsive" style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', touchAction: 'pan-x pan-y' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px', minWidth: '850px' }}>
+            <TableScroller minWidth={850} hintText="Swipe horizontally or use scroller to view all 8 columns">
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px', minWidth: '850px' }}>
                   <thead>
                     <tr style={{ background: '#1E293B', color: '#94A3B8', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.6px' }}>
                       <th style={{ padding: '12px 14px', minWidth: '150px' }}>Referrer User</th>
@@ -983,8 +963,7 @@ export const UserReferralsView = ({
                     )}
                   </tbody>
                 </table>
-              </div>
-            </>
+            </TableScroller>
           )}
         </div>
       )}
@@ -1009,8 +988,8 @@ export const UserReferralsView = ({
             </p>
           </div>
 
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+          <TableScroller minWidth={850} hintText="Swipe or scroll to view all applicant columns">
+            <table style={{ width: '100%', minWidth: '850px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
               <thead>
                 <tr style={{ background: '#1E293B', color: '#94A3B8', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.6px' }}>
                   <th style={{ padding: '12px 16px' }}>Applicant Name</th>
@@ -1133,7 +1112,7 @@ export const UserReferralsView = ({
                 )}
               </tbody>
             </table>
-          </div>
+          </TableScroller>
         </div>
       )}
 
@@ -1279,8 +1258,8 @@ export const UserReferralsView = ({
             </div>
           </div>
 
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+          <TableScroller minWidth={950} hintText="Swipe or scroll to view all project settings">
+            <table style={{ width: '100%', minWidth: '950px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
               <thead>
                 <tr style={{ background: '#1E293B', color: '#94A3B8', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.6px' }}>
                   <th style={{ padding: '12px 16px' }}>Project &amp; Slug</th>
@@ -1505,7 +1484,7 @@ export const UserReferralsView = ({
                 )}
               </tbody>
             </table>
-          </div>
+          </TableScroller>
         </div>
       )}
 

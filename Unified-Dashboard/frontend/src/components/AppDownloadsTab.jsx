@@ -1103,7 +1103,7 @@ export const AppDownloadsTab = () => {
           <div className="card-section" style={{ marginTop: '28px', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '16px', padding: '24px' }}>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '22px', flexWrap: 'wrap', gap: '16px' }}>
-              <div style={{ minWidth: '280px', flex: '1' }}>
+              <div style={{ minWidth: 'min(100%, 280px)', flex: '1' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                   <span style={{ fontSize: '22px' }}>🌍</span>
                   <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '800', color: '#f8fafc', letterSpacing: '-0.01em' }}>
@@ -1273,7 +1273,7 @@ export const AppDownloadsTab = () => {
             {/* Filter and Search Controls */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
               {/* Search Bar */}
-              <div style={{ position: 'relative', minWidth: '260px', flex: '1', maxWidth: '380px' }}>
+              <div style={{ position: 'relative', minWidth: 'min(100%, 260px)', flex: '1', maxWidth: '380px' }}>
                 <input
                   type="text"
                   placeholder={activeGeoView === 'india' ? '🔍 Search Indian state or zone...' : '🔍 Search country name...'}

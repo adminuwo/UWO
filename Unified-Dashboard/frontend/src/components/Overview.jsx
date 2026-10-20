@@ -156,7 +156,7 @@ export const Overview = () => {
         <h4 style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.1em', marginBottom: '10px' }}>
           Connected Application Tenants
         </h4>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: '10px' }}>
           {appTenants.map((app) => (
             <div
               key={app.code}
@@ -274,7 +274,7 @@ export const Overview = () => {
             ))}
           </div>
         </div>
-        <div style={{ height: '280px', marginTop: '12px' }}>
+        <div className="chart-container-responsive" style={{ height: '280px', marginTop: '12px' }}>
           <Line data={chartData} options={chartOptions} />
         </div>
       </div>

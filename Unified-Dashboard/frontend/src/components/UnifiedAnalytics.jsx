@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../config/api';
+import { TableScroller } from './TableScroller';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -79,7 +80,6 @@ export const UnifiedAnalytics = () => {
   const [copiedApp, setCopiedApp] = useState(null);
   const [isPlatformMenuOpen, setIsPlatformMenuOpen] = useState(false);
   const platformDropdownRef = useRef(null);
-  const ecosystemTableRef = useRef(null);
   const [platformViewMode, setPlatformViewMode] = useState('auto'); // 'cards' | 'table' | 'auto'
   const [isMobileScreen, setIsMobileScreen] = useState(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
 
@@ -94,13 +94,6 @@ export const UnifiedAnalytics = () => {
   }, []);
 
   const activePlatformView = platformViewMode === 'auto' ? (isMobileScreen ? 'cards' : 'table') : platformViewMode;
-
-  const scrollEcosystemTable = (direction) => {
-    if (ecosystemTableRef.current) {
-      const offset = direction === 'left' ? -240 : 240;
-      ecosystemTableRef.current.scrollBy({ left: offset, behavior: 'smooth' });
-    }
-  };
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -1016,17 +1009,8 @@ export const UnifiedAnalytics = () => {
 
             {/* ─── TABLE VIEW (With smooth scroller, buttons & sticky elements) ─── */}
             {activePlatformView === 'table' && (
-              <>
-                <div className="table-scroll-hint">
-                  <span>👉 Swipe table horizontally or use buttons to view all columns</span>
-                  <div className="table-scroll-buttons">
-                    <button type="button" className="table-scroll-btn" onClick={() => scrollEcosystemTable('left')}>◀ Left</button>
-                    <button type="button" className="table-scroll-btn" onClick={() => scrollEcosystemTable('right')}>Right ▶</button>
-                  </div>
-                </div>
-
-                <div className="table-responsive" ref={ecosystemTableRef}>
-                  <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: '660px' }}>
+              <TableScroller minWidth={680} hintText="Swipe table horizontally or use scroller to view all columns">
+                <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: '680px' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid #475569', color: '#94a3b8', fontSize: '12px', textAlign: 'left' }}>
                         <th style={{ padding: '10px 12px' }}>Application</th>
@@ -1119,8 +1103,7 @@ export const UnifiedAnalytics = () => {
                         })}
                     </tbody>
                   </table>
-                </div>
-              </>
+              </TableScroller>
             )}
           </div>
 
@@ -1185,7 +1168,7 @@ export const UnifiedAnalytics = () => {
               <div className="section-header">
                 <div className="section-title">Top Visited Pages & Routes</div>
               </div>
-              <div className="table-responsive">
+              <TableScroller minWidth={450}>
                 <table className="data-table">
                   <thead>
                     <tr>
@@ -1206,7 +1189,7 @@ export const UnifiedAnalytics = () => {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </TableScroller>
             </div>
 
             {/* Traffic Sources */}
@@ -1214,7 +1197,7 @@ export const UnifiedAnalytics = () => {
               <div className="section-header">
                 <div className="section-title">Traffic Sources & Referrers</div>
               </div>
-              <div className="table-responsive">
+              <TableScroller minWidth={400}>
                 <table className="data-table">
                   <thead>
                     <tr>
@@ -1233,7 +1216,7 @@ export const UnifiedAnalytics = () => {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </TableScroller>
             </div>
           </div>
         </div>
@@ -1298,7 +1281,7 @@ export const UnifiedAnalytics = () => {
             <div className="section-header">
               <div className="section-title">Top REST API Endpoints Performance</div>
             </div>
-            <div className="table-responsive">
+            <TableScroller minWidth={550}>
               <table className="data-table">
                 <thead>
                   <tr>
@@ -1319,7 +1302,7 @@ export const UnifiedAnalytics = () => {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TableScroller>
           </div>
         </div>
       )}
@@ -1369,7 +1352,7 @@ export const UnifiedAnalytics = () => {
             <div className="section-header">
               <div className="section-title">Feature / Tool Usage Breakdown</div>
             </div>
-            <div className="table-responsive">
+            <TableScroller minWidth={550}>
               <table className="data-table">
                 <thead>
                   <tr>
@@ -1390,7 +1373,7 @@ export const UnifiedAnalytics = () => {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TableScroller>
           </div>
         </div>
       )}

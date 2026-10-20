@@ -458,4 +458,6 @@ const codeBlockStyle = {
   marginTop: '12px',
   overflowX: 'auto',
   maxHeight: '160px',
+  whiteSpace: 'pre-wrap',
+  wordBreak: 'break-all',
 };

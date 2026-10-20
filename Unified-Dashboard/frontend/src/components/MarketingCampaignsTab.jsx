@@ -1189,7 +1189,7 @@ export const MarketingCampaignsTab = () => {
           justifyContent: 'space-between',
         }}
       >
-        <div style={{ display: 'flex', gap: '12px', flex: 1, minWidth: '280px' }}>
+        <div style={{ display: 'flex', gap: '12px', flex: 1, minWidth: 'min(100%, 260px)' }}>
           <input
             type="text"
             placeholder="🔍 Search post name, campaign or slug..."

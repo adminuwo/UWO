@@ -550,7 +550,8 @@ export const ChatTrackingTab = () => {
               padding: '10px 16px',
               color: '#f8fafc',
               fontSize: '13px',
-              minWidth: '280px',
+              minWidth: 'min(100%, 260px)',
+              width: '100%',
               boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
             }}
           />

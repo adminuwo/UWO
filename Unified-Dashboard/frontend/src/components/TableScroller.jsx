@@ -64,6 +64,9 @@ export const TableScroller = ({
     const handleResize = () => updateMetrics();
     window.addEventListener('resize', handleResize);
 
+    const timer1 = setTimeout(updateMetrics, 50);
+    const timer2 = setTimeout(updateMetrics, 200);
+
     let resizeObserver = null;
     if (typeof ResizeObserver !== 'undefined') {
       resizeObserver = new ResizeObserver(() => updateMetrics());
@@ -74,6 +77,8 @@ export const TableScroller = ({
     }
 
     return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
       window.removeEventListener('resize', handleResize);
       if (resizeObserver) resizeObserver.disconnect();
     };
@@ -86,7 +91,12 @@ export const TableScroller = ({
   const scrollByAmount = (amount) => {
     const el = containerRef.current;
     if (!el) return;
-    el.scrollBy({ left: amount, behavior: 'smooth' });
+    try {
+      el.scrollBy({ left: amount, behavior: 'smooth' });
+    } catch {
+      el.scrollLeft += amount;
+    }
+    setTimeout(updateMetrics, 120);
   };
 
   /* ─────────────────────────────────────────────────────────────
@@ -167,6 +177,9 @@ export const TableScroller = ({
    * CONTENT DRAG-TO-SCROLL (Grab and Swipe directly on table)
    * ───────────────────────────────────────────────────────────── */
   const handleContentPointerDown = (e) => {
+    // Only drag on left click or touch
+    if (e.button !== undefined && e.button !== 0) return;
+
     // Don't drag if clicking buttons, inputs, links, or dropdowns
     const targetTag = e.target.tagName.toLowerCase();
     if (['button', 'input', 'a', 'select', 'textarea', 'label'].includes(targetTag) || e.target.closest('button, a, input, label')) {

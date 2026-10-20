@@ -810,6 +810,11 @@ textarea.form-control {
   user-select: none !important;
 }
 
+.table-responsive.has-custom-scroller > table,
+.table-responsive.has-custom-scroller .data-table {
+  min-width: var(--table-min-width, 660px);
+}
+
 /* Edge overflow gradient shadow indicators */
 .table-scroll-edge-shadow {
   position: absolute;
@@ -1376,14 +1381,22 @@ textarea.form-control {
   }
 
   .section-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  .section-header input,
+  .section-header select,
+  .section-header .form-control {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .section-header .btn {
-    width: 100%;
-    justify-content: center;
+    width: 100% !important;
+    justify-content: center !important;
   }
 
   .card-section {
@@ -1404,7 +1417,7 @@ textarea.form-control {
   }
 
   .form-control {
-    font-size: 14px;
+    font-size: 16px !important; /* Prevents unwanted iOS auto-zoom on mobile focus */
   }
 
   .data-table th,
@@ -1498,6 +1511,23 @@ textarea.form-control {
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
+  }
+
+  .header-actions {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+  }
+
+  .header-actions .btn {
+    width: 100% !important;
+  }
+
+  pre, .code-box {
+    white-space: pre-wrap !important;
+    word-break: break-all !important;
+    overflow-x: auto !important;
   }
 }
 

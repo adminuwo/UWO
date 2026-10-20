@@ -74,7 +74,7 @@ export const OverlapAnalytics = () => {
       </div>
 
       {/* Visual Intersect Section */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '20px', marginTop: '24px' }}>
         {/* Visual Venn / Overlap Card */}
         <div className="card-section" style={{ minHeight: '320px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div className="section-header">

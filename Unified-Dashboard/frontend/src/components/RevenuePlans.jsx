@@ -978,7 +978,7 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
             marginBottom: '20px'
           }}>
             {/* Search Input */}
-            <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '8px', flex: 1, minWidth: '280px' }}>
+            <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '8px', flex: 1, minWidth: 'min(100%, 260px)' }}>
               <input
                 type="text"
                 placeholder="Search by Payment ID (pay_...), Customer Email, or Order ID..."
