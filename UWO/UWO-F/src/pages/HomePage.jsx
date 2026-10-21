@@ -348,10 +348,10 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ================= FLAGSHIP PROJECTS (COMPACT CAROUSEL) ================= */}
+      {/* ================= FLAGSHIP PROJECTS (EXPANDED FULL-SCREEN CAROUSEL) ================= */}
       <section className="section flagship-white" id="projects" style={{ position: 'relative' }}>
-        <div className="container">
-          <div style={{ textAlign: 'center', maxWidth: '780px', margin: '0 auto 32px auto' }}>
+        <div className="flagship-full-container">
+          <div style={{ textAlign: 'center', maxWidth: '840px', margin: '0 auto 36px auto' }}>
             <h2 className="section-title">Our Flagship Projects</h2>
             <p className="section-subtitle">
               Pioneering the future of digital commerce, enterprise intelligence, and cognitive modeling.
@@ -397,16 +397,6 @@ export default function HomePage() {
 
                   return (
                     <CardTag key={index} {...linkAttributes}>
-                      {/* Top Badges */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '10px', gap: '6px' }}>
-                        <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#475569', background: '#f1f5f9', padding: '2px 8px', borderRadius: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '175px' }}>
-                          {project.target_audience || 'Enterprise'}
-                        </span>
-                        <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '12px', whiteSpace: 'nowrap', color: '#047857', background: '#d1fae5' }}>
-                          ● Live
-                        </span>
-                      </div>
-
                       <img 
                         src={getLogoUrl(project.logo, project.name)} 
                         alt={project.name} 
@@ -438,6 +428,14 @@ export default function HomePage() {
                         {project.name}
                         {project.is_featured && <sup>&trade;</sup>}
                       </h3>
+
+                      {/* Audience Pill shifted below logo and name */}
+                      <div style={{ display: 'flex', justifyContent: 'center', width: '100%', marginBottom: '14px' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 650, color: '#475569', background: '#f1f5f9', padding: '4px 14px', borderRadius: '16px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '260px' }}>
+                          {project.target_audience || 'Enterprise'}
+                        </span>
+                      </div>
+
                       <p className="project-card-desc">{project.short_description}</p>
                       <div className="project-card-cta">
                         <span>Explore Platform</span>
@@ -493,8 +491,17 @@ export default function HomePage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
             {/* DPIIT Recognition */}
             <div style={{ background: '#F0EAD8', border: '1px solid #DDD0B8', borderRadius: '18px', padding: '28px 24px', textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
-              <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(214,165,89,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', color: '#B48E3D', fontSize: '24px' }}>
-                <i className="fa-solid fa-award"></i>
+              <div style={{ height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <img 
+                  src="/images/startup-india-logo.png" 
+                  alt="DPIIT Recognised" 
+                  style={{ maxHeight: '54px', maxWidth: '160px', objectFit: 'contain' }}
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'inline-block';
+                  }}
+                />
+                <i className="fa-solid fa-award" style={{ display: 'none', color: '#B48E3D', fontSize: '32px' }}></i>
               </div>
               <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#000', margin: '0 0 8px' }}>DPIIT Recognised</h3>
               <p style={{ fontSize: '0.9rem', color: '#64748b', lineHeight: 1.6, margin: 0 }}>
@@ -504,8 +511,17 @@ export default function HomePage() {
 
             {/* IIT Ropar TBIF */}
             <div style={{ background: '#F0EAD8', border: '1px solid #DDD0B8', borderRadius: '18px', padding: '28px 24px', textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
-              <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(214,165,89,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', color: '#B48E3D', fontSize: '24px' }}>
-                <i className="fa-solid fa-graduation-cap"></i>
+              <div style={{ height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <img 
+                  src="/images/tbif-logo.png" 
+                  alt="IIT Ropar – TBIF Incubated" 
+                  style={{ maxHeight: '54px', maxWidth: '160px', objectFit: 'contain' }}
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'inline-block';
+                  }}
+                />
+                <i className="fa-solid fa-graduation-cap" style={{ display: 'none', color: '#B48E3D', fontSize: '32px' }}></i>
               </div>
               <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#000', margin: '0 0 8px' }}>IIT Ropar &ndash; TBIF Incubated</h3>
               <p style={{ fontSize: '0.9rem', color: '#64748b', lineHeight: 1.6, margin: 0 }}>
@@ -515,18 +531,17 @@ export default function HomePage() {
 
             {/* D-U-N-S Registered */}
             <div style={{ background: '#F0EAD8', border: '1px solid #DDD0B8', borderRadius: '18px', padding: '28px 24px', textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
-              <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(214,165,89,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', padding: '6px' }}>
+              <div style={{ height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                 <img 
                   src="/images/duns-logo.png" 
                   alt="D-U-N-S® Registered" 
-                  style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }}
+                  style={{ maxHeight: '54px', maxWidth: '110px', objectFit: 'contain' }}
                   onError={(e) => {
-                    // Fallback to shield icon if image fails
                     e.currentTarget.style.display = 'none';
                     if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'inline-block';
                   }}
                 />
-                <i className="fa-solid fa-shield" style={{ display: 'none', color: '#B48E3D', fontSize: '24px' }}></i>
+                <i className="fa-solid fa-shield" style={{ display: 'none', color: '#B48E3D', fontSize: '32px' }}></i>
               </div>
               <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#000', margin: '0 0 8px' }}>D-U-N-S&reg; Registered</h3>
               <p style={{ fontSize: '0.9rem', color: '#64748b', lineHeight: 1.6, margin: 0 }}>

@@ -49,7 +49,7 @@ export const VALUE_METRICS = [
 export const CHANNELS_DATA = [
   {
     id: 'whatsapp',
-    name: 'WhatsApp Business API',
+    name: 'WhatsApp',
     tag: 'Official Meta Cloud API',
     icon: 'fa-brands fa-whatsapp',
     color: '#25D366',
@@ -74,7 +74,7 @@ export const CHANNELS_DATA = [
   },
   {
     id: 'instagram',
-    name: 'Instagram Direct',
+    name: 'Instagram',
     tag: 'Meta Graph API',
     icon: 'fa-brands fa-instagram',
     color: '#E4405F',
@@ -99,7 +99,7 @@ export const CHANNELS_DATA = [
   },
   {
     id: 'facebook',
-    name: 'Facebook Messenger',
+    name: 'Facebook',
     tag: 'Meta Business Suite',
     icon: 'fa-brands fa-facebook-messenger',
     color: '#0084FF',
@@ -123,7 +123,7 @@ export const CHANNELS_DATA = [
   },
   {
     id: 'youtube',
-    name: 'YouTube Inquiries',
+    name: 'YouTube',
     tag: 'Google Data API',
     icon: 'fa-brands fa-youtube',
     color: '#FF0000',

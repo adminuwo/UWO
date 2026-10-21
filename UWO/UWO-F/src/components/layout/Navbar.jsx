@@ -48,13 +48,14 @@ export default function Navbar({ onOpenEarnRefer, onToggleDrawer }) {
   const isAiAds = location.pathname.startsWith('/ai-ads') || location.pathname.startsWith('/projects/ai-ads');
   const isAiLegal = location.pathname.startsWith('/ai-legal');
 
-  // Any page with a white/light surface requires dark typography, zero blur text-shadow, and the dark logo
-  const isLightPage = isUwoConnect || isBlogsPage || isAiLegal || isAiAds;
-  const logoSrc = isLightPage ? '/images/uwo-logo.png' : '/images/uwo-logo-light.png';
+  // White bar navbar across the site requires dark typography and dark logo
+  const isLightPage = true;
+  const logoSrc = '/images/uwo-logo.png';
 
   const navbarClassNames = [
     'navbar',
-    isLightPage ? 'navbar-light' : 'navbar-dark',
+    'navbar-light',
+    'navbar-bar',
     isScrolled ? 'is-scrolled' : '',
     isBlogsPage ? 'navbar-blogs' : '',
     isUwoConnect ? 'navbar-uwo-connect' : '',
@@ -104,9 +105,8 @@ export default function Navbar({ onOpenEarnRefer, onToggleDrawer }) {
               <Link to="/aisa" onClick={handleOptionClick}>AISA<sup>™</sup></Link>
               <a href="https://aimall24.com/" onClick={handleOptionClick}>AI Mall<sup>™</sup></a>
               <Link to="/ai-legal" onClick={handleOptionClick}>AI LEGAL<sup>™</sup></Link>
+              <Link to="/ai-education" onClick={handleOptionClick}>AI Education Ecosystem<sup>™</sup></Link>
               <Link to="/projects/uwo-connect" onClick={handleOptionClick}>UWO Connect<sup>™</sup></Link>
-              <Link to="/ai-ads" onClick={handleOptionClick}>AI ADS<sup>™</sup></Link>
-              <Link to="/ai-education" onClick={handleOptionClick}>AI Education<sup>™</sup></Link>
               <Link to="/efv" onClick={handleOptionClick}>EFV<sup>™</sup></Link>
             </div>
           </div>

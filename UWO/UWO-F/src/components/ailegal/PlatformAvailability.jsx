@@ -74,8 +74,8 @@ export default function PlatformAvailability() {
       id: 'web',
       renderIcon: () => <WebBrowserRealIcon size={40} />,
       title: 'Web Application',
-      deviceType: 'Desktop Browser Frame',
-      desc: 'Full-featured legal intelligence suite accessible directly from Chrome, Safari, Edge, or Firefox. Optimized for multi-monitor litigation setups and high-resolution briefing.',
+      deviceType: 'Web Browser',
+      desc: 'Complete desktop legal suite for Chrome, Safari, Edge, and Firefox.',
       url: AI_LEGAL_WEB_URL,
       btnLabel: 'Open Web App',
       btnClass: 'al-btn-primary',
@@ -85,8 +85,8 @@ export default function PlatformAvailability() {
       id: 'android',
       renderIcon: () => <GooglePlayRealIcon size={36} />,
       title: 'Google Play',
-      deviceType: 'Android APK / Play Store',
-      desc: 'Native Android experience with biometric lock, instant document camera scanner, push notifications for hearing dockets, and offline reading on mobile handsets & tablets.',
+      deviceType: 'Android',
+      desc: 'Mobile case research, document scanning, and hearing docket alerts.',
       url: AI_LEGAL_ANDROID_URL,
       btnLabel: 'Google Play',
       btnClass: 'al-btn-secondary',
@@ -96,8 +96,8 @@ export default function PlatformAvailability() {
       id: 'ios',
       renderIcon: () => <AppleRealIcon size={38} />,
       title: 'Apple App Store',
-      deviceType: 'iOS & iPadOS Native',
-      desc: 'Tailored for iOS and iPadOS with Apple Pencil annotation support for exhibits, Face ID authentication, and split-screen document review inside courtroom corridors.',
+      deviceType: 'iOS & iPadOS',
+      desc: 'Native iPhone and iPad experience with Face ID and Apple Pencil review.',
       url: AI_LEGAL_IOS_URL,
       btnLabel: 'App Store',
       btnClass: 'al-btn-secondary',
@@ -126,7 +126,7 @@ export default function PlatformAvailability() {
           </h2>
 
           <p className="al-section-subtitle">
-            Seamlessly transition between desktop chamber research, courtroom tablet argument outlines, and on-the-go mobile case telemetry.
+            Seamless legal intelligence across your desktop, tablet, and mobile devices.
           </p>
         </motion.div>
 

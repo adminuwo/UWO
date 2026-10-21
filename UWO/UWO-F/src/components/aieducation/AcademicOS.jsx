@@ -2,26 +2,32 @@ import React, { useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { 
   Building2, School, GraduationCap, Users, QrCode, 
-  Calendar, Award, BookOpen, MessageSquare, DollarSign, Cpu, Zap
+  Calendar, Award, BookOpen, MessageSquare, DollarSign, Cpu, Zap, ShieldCheck
 } from 'lucide-react';
 import { fadeInUp, staggerContainer } from './motionVariants';
 
-const OS_NODES = [
-  { id: 'inst', label: 'Institution', role: 'Multi-Tenant Root', icon: Building2, color: '#00B87A', desc: 'Central governance & branch tenancy', target: 'faculty' },
-  { id: 'faculty', label: 'Faculty', role: 'Curriculum & Proxy', icon: School, color: '#16B8E8', desc: 'Timetables, roll calls & grading', target: 'students' },
-  { id: 'students', label: 'Students', role: 'Personalized Learning', icon: GraduationCap, color: '#00B87A', desc: 'Textbook RAG, quizzes & hall tickets', target: 'parents' },
-  { id: 'parents', label: 'Parents', role: 'Guardian Oversight', icon: Users, color: '#8B5CF6', desc: 'Multi-child tracking & fee receipts', target: 'inst' },
-  { id: 'admissions', label: 'Admissions', role: 'Entrance Exam Suite', icon: QrCode, color: '#00B87A', desc: 'QR hall tickets & AI auto-grading', target: 'inst' },
-  { id: 'academics', label: 'Academics', role: 'Timetable Operations', icon: Calendar, color: '#16B8E8', desc: '8-period conflict-free scheduling', target: 'faculty' },
-  { id: 'assessment', label: 'Assessment', role: 'Report Card Pipeline', icon: Award, color: '#00B87A', desc: '3-tier digital signatures & seals', target: 'parents' },
-  { id: 'learning', label: 'Learning', role: 'Class Textbook RAG', icon: BookOpen, color: '#2997FF', desc: 'Curriculum citations & adaptive streak', target: 'students' },
-  { id: 'comm', label: 'Communication', role: 'Real-Time Channels', icon: MessageSquare, color: '#16B8E8', desc: 'Threaded discussions & AI summarizer', target: 'faculty' },
-  { id: 'finance', label: 'Finance', role: 'Tally ERP 9 / Prime', icon: DollarSign, color: '#00B87A', desc: 'XML fee ledger & payroll sync', target: 'inst' }
+const STAKEHOLDER_NODES = [
+  { id: 'inst', label: 'Institution', sub: 'Governance', icon: Building2, color: '#00B87A', metric: 'Multi-Tenant Root', signal: 'Enforces timetable clash rules & audits Tally ledgers' },
+  { id: 'faculty', label: 'Faculty', sub: 'Instruction', icon: School, color: '#16B8E8', metric: '<200ms Proxy', signal: 'Automated substitute proxy & rubric grading' },
+  { id: 'students', label: 'Students', sub: 'Pedagogy', icon: GraduationCap, color: '#00B87A', metric: '100% Grounded', signal: 'Class textbook RAG citations & adaptive quizzes' },
+  { id: 'parents', label: 'Parents', sub: 'Oversight', icon: Users, color: '#8B5CF6', metric: 'Multi-Child', signal: 'Real-time attendance tracking & verified report cards' }
+];
+
+const OPERATIONAL_CHIPS = [
+  { id: 'academics', label: '8-Period Timetable', icon: Calendar, color: '#16B8E8', spec: 'Clash-Free Solver' },
+  { id: 'admissions', label: 'Admissions & Hall Tickets', icon: QrCode, color: '#00B87A', spec: 'Dynamic QR' },
+  { id: 'assessment', label: '3-Tier Exam Pipeline', icon: Award, color: '#8B5CF6', spec: 'Digital Seals' },
+  { id: 'learning', label: 'Textbook RAG Citations', icon: BookOpen, color: '#16B8E8', spec: 'NCERT / CBSE' },
+  { id: 'comm', label: 'Live Academic Channels', icon: MessageSquare, color: '#00B87A', spec: 'WebSocket Mesh' },
+  { id: 'finance', label: 'Tally ERP 9 / Prime', icon: DollarSign, color: '#8B5CF6', spec: 'XML Ledger Sync' }
 ];
 
 export default function AcademicOS() {
   const shouldReduceMotion = useReducedMotion();
-  const [selectedNode, setSelectedNode] = useState(null);
+  const [activeNodeId, setActiveNodeId] = useState('faculty');
+
+  const activeStakeholder = STAKEHOLDER_NODES.find(n => n.id === activeNodeId) || STAKEHOLDER_NODES[0];
+  const activeChip = OPERATIONAL_CHIPS.find(c => c.id === activeNodeId);
 
   return (
     <section className="aied-section" id="academic-os">
@@ -29,146 +35,185 @@ export default function AcademicOS() {
         <div className="aied-section-header">
           <span className="aied-badge">
             <Cpu size={14} />
-            Institutional Architecture
+            Unified Neural Core
           </span>
           <h2 className="aied-section-title">
-            An Operating System for <br />
-            <span className="aied-gradient-emerald">Modern Academic Institutions.</span>
+            The Academic <span className="aied-gradient-emerald">Neural Hub.</span>
           </h2>
           <p className="aied-section-subtitle">
-            AI Education functions as the central neural operating layer, binding every campus department, 
-            stakeholder role, and pedagogical process into an interconnected, real-time network.
+            A single connected operating kernel synchronizing campus governance, instructors, learners, and families in real time.
           </p>
         </div>
 
-        {/* Central Ecosystem Canvas & Connected Nodes */}
-        <div className="aied-os-diagram">
-          {/* Animated SVG Connections Overlay */}
-          <svg 
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1 }}
-          >
+        {/* Cohesive Orbital Constellation Hub (Non-Card Object) */}
+        <div className="aied-os-hub-canvas">
+          {/* Animated SVG Orbital & Vector Transmission Grid */}
+          <svg className="aied-os-hub-svg" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet">
             <defs>
-              <linearGradient id="emeraldGradientLine" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#00b87a" stopOpacity="0.6" />
+              <linearGradient id="hubBeamGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#00b87a" stopOpacity="0.8" />
                 <stop offset="100%" stopColor="#16b8e8" stopOpacity="0.2" />
               </linearGradient>
+              <radialGradient id="hubCoreGlow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="#00b87a" stopOpacity="0.3" />
+                <stop offset="100%" stopColor="#00b87a" stopOpacity="0" />
+              </radialGradient>
             </defs>
 
-            {/* Ambient decorative orbital rings with slow rotation */}
-            <circle cx="50%" cy="130" r="180" fill="none" stroke="rgba(0, 184, 122, 0.14)" strokeWidth="1" strokeDasharray="4 6" />
-            <circle cx="50%" cy="130" r="280" fill="none" stroke="rgba(22, 184, 232, 0.1)" strokeWidth="1" strokeDasharray="6 8" />
+            {/* Orbital Rings */}
+            <circle cx="500" cy="250" r="140" fill="none" stroke="rgba(0, 184, 122, 0.16)" strokeWidth="1" strokeDasharray="4 6" />
+            <circle cx="500" cy="250" r="210" fill="none" stroke="rgba(22, 184, 232, 0.12)" strokeWidth="1" strokeDasharray="6 8" />
 
-            {/* Animated signal beams from center kernel to perimeter */}
+            {/* Center Aura */}
+            <circle cx="500" cy="250" r="90" fill="url(#hubCoreGlow)" />
+
+            {/* Transmission lines to 4 primary anchors */}
+            <line x1="500" y1="250" x2="250" y2="130" stroke="rgba(0, 184, 122, 0.3)" strokeWidth="1.5" strokeDasharray="5 5" />
+            <line x1="500" y1="250" x2="750" y2="130" stroke="rgba(22, 184, 232, 0.3)" strokeWidth="1.5" strokeDasharray="5 5" />
+            <line x1="500" y1="250" x2="250" y2="370" stroke="rgba(0, 184, 122, 0.3)" strokeWidth="1.5" strokeDasharray="5 5" />
+            <line x1="500" y1="250" x2="750" y2="370" stroke="rgba(139, 92, 246, 0.3)" strokeWidth="1.5" strokeDasharray="5 5" />
+
+            {/* Traveling Data Signal Pulses */}
             {!shouldReduceMotion && (
               <>
-                <motion.line
-                  x1="50%" y1="130" x2="25%" y2="280"
-                  stroke="url(#emeraldGradientLine)"
-                  strokeWidth="1.5"
-                  strokeDasharray="6 8"
-                  initial={{ strokeDashoffset: 40 }}
-                  animate={{ strokeDashoffset: 0 }}
-                  transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+                <motion.circle
+                  r="3.5"
+                  fill="#00b87a"
+                  animate={{
+                    cx: [500, 250],
+                    cy: [250, 130],
+                    opacity: [0, 1, 0]
+                  }}
+                  transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
                 />
-                <motion.line
-                  x1="50%" y1="130" x2="75%" y2="280"
-                  stroke="url(#emeraldGradientLine)"
-                  strokeWidth="1.5"
-                  strokeDasharray="6 8"
-                  initial={{ strokeDashoffset: 40 }}
-                  animate={{ strokeDashoffset: 0 }}
-                  transition={{ duration: 4.5, repeat: Infinity, ease: 'linear' }}
+                <motion.circle
+                  r="3.5"
+                  fill="#16b8e8"
+                  animate={{
+                    cx: [500, 750],
+                    cy: [250, 130],
+                    opacity: [0, 1, 0]
+                  }}
+                  transition={{ duration: 4, delay: 0.8, repeat: Infinity, ease: 'easeInOut' }}
+                />
+                <motion.circle
+                  r="3.5"
+                  fill="#00b87a"
+                  animate={{
+                    cx: [500, 250],
+                    cy: [250, 370],
+                    opacity: [0, 1, 0]
+                  }}
+                  transition={{ duration: 3.8, delay: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                />
+                <motion.circle
+                  r="3.5"
+                  fill="#8b5cf6"
+                  animate={{
+                    cx: [500, 750],
+                    cy: [250, 370],
+                    opacity: [0, 1, 0]
+                  }}
+                  transition={{ duration: 4.2, delay: 1.8, repeat: Infinity, ease: 'easeInOut' }}
                 />
               </>
             )}
           </svg>
 
-          {/* Central AI EDUCATION Node with breathing glow & pulse ring */}
-          <motion.div 
-            className="aied-os-center"
-            initial={{ scale: 0.88, opacity: 0 }}
-            whileInView={{ scale: 1, opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
-            style={{ position: 'relative', zIndex: 3 }}
-          >
-            {/* Ambient breathing aura behind the center logo */}
-            <motion.div
-              style={{
-                position: 'absolute',
-                inset: -12,
-                borderRadius: '50%',
-                background: 'radial-gradient(circle, rgba(0, 184, 122, 0.25) 0%, transparent 70%)',
-                pointerEvents: 'none',
-                zIndex: -1
-              }}
-              animate={shouldReduceMotion ? {} : { scale: [1, 1.15, 1], opacity: [0.4, 0.8, 0.4] }}
-              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-            />
-
-            <img 
-              src="/images/ai-education-logo.jpg" 
-              alt="AI Education Logo" 
-              className="aied-os-center-logo" 
-            />
-            <div className="aied-os-center-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-              <span>AI EDUCATION<sup>™</sup></span>
+          {/* Center Kernel Object */}
+          <div className="aied-os-hub-core">
+            <div className="aied-os-hub-core-inner">
+              <img 
+                src="/images/ai-education-logo.jpg" 
+                alt="AI Education Logo" 
+                className="aied-os-center-logo" 
+              />
+              <div className="aied-os-core-title">AI EDUCATION<sup>™</sup></div>
+              <div className="aied-os-core-status">
+                <span className="aied-pulse-dot" style={{ width: 6, height: 6, borderRadius: '50%', background: '#00b87a', display: 'inline-block', boxShadow: '0 0 6px #00b87a' }}></span>
+                <span>Active Kernel v2.6</span>
+              </div>
             </div>
-            <div className="aied-os-center-sub" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-              <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#00b87a', boxShadow: '0 0 5px #00b87a' }}></span>
-              Central Operating Kernel
-            </div>
-          </motion.div>
+          </div>
 
-          {/* 10 Surrounding Connected Stakeholders & Operational Nodes */}
-          <motion.div 
-            className="aied-os-nodes-grid"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-30px' }}
-            variants={staggerContainer}
-            style={{ position: 'relative', zIndex: 2 }}
-          >
-            {OS_NODES.map((node, i) => {
-              const IconComp = node.icon;
-              const isSelected = selectedNode === node.id;
+          {/* 4 Interactive Stakeholder Anchors (Circular Orbital Badges) */}
+          <div className="aied-os-anchors-layer">
+            {STAKEHOLDER_NODES.map((node) => {
+              const Icon = node.icon;
+              const isSelected = activeNodeId === node.id;
               return (
-                <motion.div 
-                  key={node.id} 
-                  className="aied-os-node-card"
-                  variants={fadeInUp}
-                  whileHover={{ y: -4, borderColor: node.color }}
-                  onClick={() => setSelectedNode(isSelected ? null : node.id)}
+                <button
+                  key={node.id}
+                  type="button"
+                  className={`aied-os-anchor-node anchor-${node.id} ${isSelected ? 'active' : ''}`}
+                  onClick={() => setActiveNodeId(node.id)}
                   style={{
-                    cursor: 'pointer',
                     borderColor: isSelected ? node.color : undefined,
-                    boxShadow: isSelected ? `0 0 16px ${node.color}35` : undefined,
-                    transition: 'border-color 0.25s ease, box-shadow 0.25s ease'
+                    boxShadow: isSelected ? `0 0 20px ${node.color}50` : undefined
                   }}
                 >
-                  <div className="aied-os-node-icon" style={{ color: node.color, background: `${node.color}15` }}>
-                    <IconComp size={20} />
+                  <div className="aied-os-anchor-icon" style={{ color: node.color, background: `${node.color}18` }}>
+                    <Icon size={20} />
                   </div>
-                  <div className="aied-os-node-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span>{node.label}</span>
-                    {isSelected && (
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: node.color, boxShadow: `0 0 6px ${node.color}` }}></span>
-                    )}
+                  <div className="aied-os-anchor-meta">
+                    <span className="aied-os-anchor-title">{node.label}</span>
+                    <span className="aied-os-anchor-tag" style={{ color: node.color }}>{node.metric}</span>
                   </div>
-                  <div style={{ fontSize: '0.72rem', color: node.color, fontFamily: 'var(--aied-font-mono)', fontWeight: 600, marginBottom: '6px' }}>
-                    {node.role}
-                  </div>
-                  <div className="aied-os-node-desc">{node.desc}</div>
-
-                  {/* Connected Signal Target indicator */}
-                  <div style={{ marginTop: '8px', paddingTop: '6px', borderTop: '1px solid rgba(255,255,255,0.05)', fontSize: '0.66rem', color: 'var(--aied-text-subtle)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Zap size={10} style={{ color: node.color }} />
-                    <span>Signals to: <strong>{OS_NODES.find(n => n.id === node.target)?.label || 'Kernel'}</strong></span>
-                  </div>
-                </motion.div>
+                </button>
               );
             })}
-          </motion.div>
+          </div>
+
+          {/* Integrated Operational Bus Ribbon (Pill Network, NOT Cards) */}
+          <div className="aied-os-bus-ribbon">
+            <div className="aied-os-bus-title">
+              <Zap size={12} className="text-emerald-400" />
+              <span>ACTIVE SYNAPSE ENGINES:</span>
+            </div>
+            <div className="aied-os-bus-chips">
+              {OPERATIONAL_CHIPS.map((chip) => {
+                const ChipIcon = chip.icon;
+                const isSelected = activeNodeId === chip.id;
+                return (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    className={`aied-os-bus-chip ${isSelected ? 'active' : ''}`}
+                    onClick={() => setActiveNodeId(chip.id)}
+                    style={{
+                      borderColor: isSelected ? chip.color : undefined,
+                      color: isSelected ? '#ffffff' : undefined,
+                      background: isSelected ? `${chip.color}18` : undefined
+                    }}
+                  >
+                    <ChipIcon size={13} style={{ color: chip.color }} />
+                    <span className="aied-os-chip-label">{chip.label}</span>
+                    <span className="aied-os-chip-spec" style={{ color: chip.color }}>{chip.spec}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Telemetry Readout Strip (Minimalist 1-Line HUD) */}
+          <div className="aied-os-hud-strip">
+            <div className="aied-os-hud-left">
+              <span className="aied-os-hud-dot"></span>
+              <span className="aied-os-hud-tag">
+                {activeChip ? activeChip.label : activeStakeholder.label}
+              </span>
+              <span className="aied-os-hud-sep">/</span>
+              <span className="aied-os-hud-desc">
+                {activeChip ? `Active engine: ${activeChip.spec} with zero-latency synchronization` : activeStakeholder.signal}
+              </span>
+            </div>
+            <div className="aied-os-hud-right">
+              <span className="aied-badge" style={{ margin: 0, padding: '2px 8px', fontSize: '0.66rem' }}>
+                <ShieldCheck size={11} style={{ marginRight: 4, color: '#00b87a' }} />
+                100% Org-Isolated
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </section>

@@ -1,128 +1,216 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { WORKFLOW_STEPS } from '../../constants/aiLegalConstants';
-import { fadeUp, EASE_PREMIUM } from './motionVariants';
+import React, { useState, useRef } from 'react';
+import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion';
+import { Check, Scale, Layers, ChevronRight } from 'lucide-react';
+import { fadeUp } from './motionVariants';
+
+// 4 Pipeline Stages with Concise, Punchy Editorial Content
+const PIPELINE_STAGES = [
+  {
+    id: 'input',
+    number: '01',
+    phase: 'INPUT',
+    navTitle: 'Data Ingestion',
+    title: 'Multi-Modal Data Ingestion',
+    description: 'Ingest raw briefs, scanned court records, contracts, and transcripts into an isolated, secure judicial workspace.',
+    image: '/images/ailegal/pipe_input_3d.png',
+    objectName: 'Leather Legal Case Binder',
+    features: ['PDFs & Court Filings', 'Scanned OCR', 'Deposition Transcripts', 'Bilingual Ingestion']
+  },
+  {
+    id: 'understand',
+    number: '02',
+    phase: 'UNDERSTAND',
+    navTitle: 'Context Processing',
+    title: 'Contextual Legal Processing',
+    description: 'Synthesizes document facts, court authorities, and timeline chronologies into structured case intelligence.',
+    image: '/images/ailegal/pipe_understand_3d.png',
+    objectName: 'Legal Intelligence Neural Core',
+    features: ['Jurisdiction Engine', 'Timeline Chronology', 'Statute Matrix', 'Entity Graph']
+  },
+  {
+    id: 'analyze',
+    number: '03',
+    phase: 'ANALYZE',
+    navTitle: 'Precedent Synthesis',
+    title: 'Precedent & Pattern Synthesis',
+    description: 'Identifies binding precedents, contradictory testimonies, missing safeguards, and strategic vulnerabilities.',
+    image: '/images/ailegal/pipe_analyze_3d.png',
+    objectName: 'Supreme Court Law Reports & Magnifier',
+    features: ['Precedent Matching', 'Contradiction Audit', 'Risk Scoring', 'IRAC Logic']
+  },
+  {
+    id: 'assist',
+    number: '04',
+    phase: 'ASSIST',
+    navTitle: 'Actionable Outputs',
+    title: 'Actionable Legal Outputs',
+    description: 'Generates court-ready draft pleadings, research briefs, forensic evidence reports, and client updates.',
+    image: '/images/ailegal/pipe_assist_3d.png',
+    objectName: 'Court-Ready Petition & Wax Seal',
+    features: ['Court Pleadings', 'Citation Verification', 'Hearing Prep', 'Multi-Format Export']
+  }
+];
 
 export default function WorkflowSection() {
+  const containerRef = useRef(null);
   const [activeStageIdx, setActiveStageIdx] = useState(0);
 
-  // Cycling data packet that loops through stages 0 -> 1 -> 2 -> 3 with relaxed, unhurried timing
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveStageIdx((prev) => (prev + 1) % WORKFLOW_STEPS.length);
-    }, 4800);
-    return () => clearInterval(interval);
-  }, []);
+  // Track scroll progress through the 320vh container
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ['start start', 'end end']
+  });
+
+  useMotionValueEvent(scrollYProgress, 'change', (val) => {
+    let step = 0;
+    if (val >= 0.72) step = 3;
+    else if (val >= 0.46) step = 2;
+    else if (val >= 0.20) step = 1;
+    else step = 0;
+
+    setActiveStageIdx(step);
+  });
+
+  const handleStepClick = (idx) => {
+    setActiveStageIdx(idx);
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const containerTop = rect.top + scrollTop;
+      const totalScrollable = containerRef.current.offsetHeight - window.innerHeight;
+      const stepRatios = [0.08, 0.35, 0.62, 0.88];
+      const targetY = containerTop + (stepRatios[idx] || 0) * totalScrollable;
+      window.scrollTo({ top: targetY, behavior: 'smooth' });
+    }
+  };
+
+  const activeStage = PIPELINE_STAGES[activeStageIdx];
 
   return (
-    <section className="al-workflow-section" id="how-it-works">
-      <div className="ai-legal-container">
-        {/* Section Header */}
-        <motion.div
-          className="al-section-header"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.2 }}
-          variants={fadeUp}
-        >
-          <div className="al-eyebrow">
-            <i className="fa-solid fa-gears"></i>
-            <span>System Architecture</span>
+    <section className="al-workflow-section" ref={containerRef} id="how-it-works">
+      {/* Pinned Sticky Viewport: Keeps heading & active stage in view throughout the scroll */}
+      <div className="al-workflow-sticky-viewport">
+        <div className="al-workflow-container">
+          {/* Section Header: Clean, balanced */}
+          <motion.div
+            className="al-section-header al-workflow-compact-header"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+            variants={fadeUp}
+          >
+            <div className="al-eyebrow">
+              <Layers size={13} style={{ color: 'var(--al-gold)' }} />
+              <span>System Architecture</span>
+            </div>
+
+            <h2 className="al-section-title">
+              How <span className="al-gold-text">AI LEGAL™ Works</span>
+            </h2>
+
+            <p className="al-section-subtitle">
+              A continuous 4-stage pipeline transforming unstructured case records into court-ready intelligence.
+            </p>
+          </motion.div>
+
+          {/* CARD-FREE STICKY SCROLL WORKFLOW LAYOUT */}
+          <div className="al-workflow-scroll-layout">
+            {/* Left Column: Clean Pipeline Sequence */}
+            <aside className="al-workflow-sticky-sidebar">
+              <div className="al-sticky-nav-inner">
+                <span className="al-sidebar-caption">PIPELINE SEQUENCE</span>
+
+                <nav className="al-pipeline-vertical-nav" aria-label="Workflow Stages">
+                  <div className="al-vertical-rail-track" aria-hidden="true"></div>
+
+                  {PIPELINE_STAGES.map((step, idx) => {
+                    const isActive = activeStageIdx === idx;
+                    return (
+                      <button
+                        key={step.id}
+                        type="button"
+                        className={`al-pipeline-nav-item ${isActive ? 'is-active' : ''}`}
+                        onClick={() => handleStepClick(idx)}
+                        aria-current={isActive ? 'step' : undefined}
+                      >
+                        <div className="al-nav-marker">
+                          <span className="al-nav-num">{step.number}</span>
+                        </div>
+
+                        <div className="al-nav-info">
+                          <span className="al-nav-phase">{step.phase}</span>
+                          <span className="al-nav-title">{step.navTitle}</span>
+                        </div>
+
+                        <ChevronRight size={14} className="al-nav-arrow" />
+                      </button>
+                    );
+                  })}
+                </nav>
+              </div>
+            </aside>
+
+            {/* Right Column: ONLY the Active Stage (Concise, Uncluttered, Breathable) */}
+            <div className="al-workflow-stage-display">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeStage.id}
+                  className="al-stage-editorial-grid"
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -14 }}
+                  transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  {/* Left Sub-Column: Punchy Text & Chips */}
+                  <div className="al-stage-text-col">
+                    <div className="al-stage-meta-badge">
+                      <span className="al-phase-tag">PHASE {activeStage.number} // {activeStage.phase}</span>
+                    </div>
+
+                    <h3 className="al-stage-main-title">{activeStage.title}</h3>
+                    <p className="al-stage-description-body">{activeStage.description}</p>
+
+                    <div className="al-cap-chips-row">
+                      {activeStage.features.map((feat, fIdx) => (
+                        <span key={fIdx} className="al-cap-chip">
+                          <Check size={11} className="al-chip-check" />
+                          <span>{feat}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Right Sub-Column: Hero 3D Legal Object (Card-Free, Floating, Clean) */}
+                  <div className="al-stage-visual-col">
+                    <div className="al-stage-object-canvas">
+                      <div className="al-stage-object-glow" aria-hidden="true"></div>
+
+                      <motion.div
+                        className="al-pipe-object-wrapper"
+                        animate={{ y: [-6, 6, -6] }}
+                        transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
+                      >
+                        <img
+                          src={activeStage.image}
+                          alt={activeStage.objectName}
+                          className="al-pipe-object-image"
+                        />
+                      </motion.div>
+                    </div>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            </div>
           </div>
 
-          <h2 className="al-section-title">
-            How <span className="al-gold-text">AI LEGAL™ Works</span>
-          </h2>
-
-          <p className="al-section-subtitle">
-            A rigorous 4-stage pipeline that transforms unstructured case documents, statutory rules, and procedural inquiries into authoritative legal work products.
-          </p>
-        </motion.div>
-
-        {/* Global Pipeline Track with Traveling Data Packet (Relaxed 14s cycle) */}
-        <div className="al-workflow-pipeline-track" aria-hidden="true">
-          <div className="al-pipeline-line-bg"></div>
-          <motion.div
-            className="al-pipeline-packet"
-            animate={{
-              left: ['5%', '33%', '64%', '95%'],
-            }}
-            transition={{
-              duration: 14,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-          >
-            <span className="al-packet-dot"></span>
-            <span className="al-packet-glow"></span>
-          </motion.div>
+          {/* Minimal Low-Key Disclaimer Note (Clean, No Heavy Box) */}
+          <div className="al-workflow-disclaimer-note">
+            <Scale size={13} style={{ color: 'var(--al-gold)' }} />
+            <span>
+              <strong>Professional Notice:</strong> AI LEGAL provides AI workflow support and does not constitute formal legal advice. Advocates retain full editorial discretion over all court filings.
+            </span>
+          </div>
         </div>
-
-        {/* 4-Step Grid with Staggered Entrance & Active Highlighting */}
-        <motion.div
-          className="al-workflow-grid"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.15 }}
-          variants={{
-            hidden: { opacity: 0 },
-            visible: {
-              opacity: 1,
-              transition: { staggerChildren: 0.18, delayChildren: 0.15 },
-            },
-          }}
-        >
-          {WORKFLOW_STEPS.map((wf, idx) => {
-            const isStageActive = activeStageIdx === idx;
-            return (
-              <motion.div
-                className={`al-workflow-card ${isStageActive ? 'pipeline-active' : ''}`}
-                key={wf.number}
-                variants={fadeUp}
-                whileHover={{ y: -6, transition: { duration: 0.3, ease: EASE_PREMIUM } }}
-                onMouseEnter={() => setActiveStageIdx(idx)}
-              >
-                <div className="al-workflow-step-badge">STAGE {wf.number}</div>
-
-                <motion.div
-                  className="al-workflow-icon-wrap"
-                  animate={isStageActive ? { scale: [1, 1.12, 1] } : { scale: 1 }}
-                  transition={{ duration: 0.7, ease: EASE_PREMIUM }}
-                >
-                  <i className={`fa-solid ${wf.icon}`}></i>
-                </motion.div>
-
-                <div className="al-workflow-phase">{wf.phase}</div>
-                <div className="al-workflow-summary">{wf.summary}</div>
-                <p className="al-workflow-desc">{wf.description}</p>
-
-                <div className="al-workflow-tags">
-                  {wf.tags.map((t, tidx) => (
-                    <span className="al-workflow-tag" key={tidx}>
-                      {t}
-                    </span>
-                  ))}
-                </div>
-
-                {isStageActive && <div className="al-workflow-active-glow"></div>}
-              </motion.div>
-            );
-          })}
-        </motion.div>
-
-        {/* Responsible Legal Disclaimer */}
-        <motion.div
-          className="al-workflow-disclaimer-box"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.2 }}
-          variants={fadeUp}
-        >
-          <i className="fa-solid fa-scale-balanced"></i>
-          <p>
-            <strong>Professional Notice:</strong> AI LEGAL provides AI-assisted information and workflow support. It does not replace professional legal judgment or constitute legal advice. Advocates maintain full editorial discretion over all court filings.
-          </p>
-        </motion.div>
       </div>
     </section>
   );

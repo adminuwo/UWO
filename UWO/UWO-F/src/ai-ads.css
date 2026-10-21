@@ -107,17 +107,25 @@
   color: var(--aiads-purple) !important;
 }
 
-/* Common Section Container */
+/* Common Section Container - Full Screen Viewport Coverage */
 .aiads-section {
   position: relative;
-  padding: 68px 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 80px 0;
   border-bottom: 1px solid var(--aiads-border-light);
 }
 
 .aiads-container {
-  max-width: 1240px;
+  max-width: 1380px;
+  width: 100%;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 32px;
   position: relative;
   z-index: 2;
 }
@@ -243,58 +251,64 @@
 }
 
 /* ==========================================================================
-   HERO SECTION
+   HERO SECTION (FULLSCREEN COVERAGE)
    ========================================================================== */
 .aiads-hero-section {
   position: relative;
-  padding: 130px 0 80px 0;
-  min-height: 85vh;
+  min-height: 100vh;
+  min-height: 100dvh;
+  box-sizing: border-box;
+  padding: 100px 0 40px 0;
   display: flex;
   align-items: center;
+  justify-content: center;
   background: 
-    radial-gradient(circle at 15% 20%, rgba(124, 58, 237, 0.08) 0%, transparent 40%),
-    radial-gradient(circle at 85% 30%, rgba(37, 99, 235, 0.08) 0%, transparent 45%),
-    radial-gradient(circle at 50% 80%, rgba(236, 72, 153, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 15% 20%, rgba(124, 58, 237, 0.09) 0%, transparent 45%),
+    radial-gradient(circle at 85% 30%, rgba(37, 99, 235, 0.09) 0%, transparent 50%),
+    radial-gradient(circle at 50% 80%, rgba(236, 72, 153, 0.07) 0%, transparent 55%),
     linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
   overflow: hidden;
+  border-bottom: 1px solid var(--aiads-border-light);
 }
 
 .aiads-hero-content {
   display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
-  gap: 36px;
+  grid-template-columns: 1.12fr 0.88fr;
+  gap: 48px;
   align-items: center;
+  width: 100%;
 }
 
 .aiads-hero-text h1 {
-  font-size: 2.6rem;
+  font-size: clamp(2.4rem, 3.8vw, 3.4rem);
   font-weight: 900;
   line-height: 1.15;
   letter-spacing: -0.03em;
   color: var(--aiads-text-main);
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 .aiads-hero-desc {
-  font-size: 1.02rem;
+  font-size: 1.05rem;
   color: var(--aiads-text-muted);
   line-height: 1.6;
-  margin-bottom: 24px;
-  max-width: 520px;
+  margin-bottom: 28px;
+  max-width: 540px;
 }
 
 .aiads-hero-actions {
   display: flex;
-  gap: 12px;
+  gap: 14px;
+  align-items: center;
   flex-wrap: wrap;
-  margin-bottom: 28px;
+  margin-bottom: 32px;
 }
 
 .aiads-hero-stats {
   display: flex;
-  gap: 20px;
+  gap: 28px;
   flex-wrap: wrap;
-  padding-top: 18px;
+  padding-top: 22px;
   border-top: 1px solid var(--aiads-border);
 }
 
@@ -304,7 +318,7 @@
 }
 
 .aiads-stat-val {
-  font-size: 1.35rem;
+  font-size: 1.45rem;
   font-weight: 900;
   font-family: var(--aiads-font-mono);
   color: var(--aiads-purple);
@@ -321,15 +335,15 @@
 .aiads-command-center {
   position: relative;
   width: 100%;
-  min-height: 400px;
+  min-height: 480px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .aiads-core-engine-node {
-  width: 130px;
-  height: 130px;
+  width: 136px;
+  height: 136px;
   border-radius: 28px;
   background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%);
   display: flex;
@@ -337,7 +351,7 @@
   align-items: center;
   justify-content: center;
   color: #ffffff;
-  box-shadow: 0 14px 40px rgba(124, 58, 237, 0.35);
+  box-shadow: 0 16px 45px rgba(124, 58, 237, 0.38);
   position: relative;
   z-index: 5;
   text-align: center;
@@ -517,6 +531,643 @@
   transform: translateY(-1px);
 }
 
+/* ==========================================================================
+   AI ADS TELEMETRY DOCK (NON-CARD)
+   ========================================================================== */
+.aiads-telemetry-dock {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--aiads-border);
+  border-radius: 9999px;
+  padding: 6px 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  font-size: 0.76rem;
+  margin-top: 8px;
+}
+
+.aiads-dock-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.aiads-dock-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.aiads-dock-val {
+  font-weight: 800;
+  color: var(--aiads-text-main);
+  font-family: var(--aiads-font-mono);
+}
+
+.aiads-dock-lbl {
+  color: var(--aiads-text-muted);
+  font-weight: 500;
+}
+
+.aiads-dock-sep {
+  color: var(--aiads-border);
+  font-weight: 300;
+}
+
+/* ==========================================================================
+   ATOMIC SYNAPSE REACTOR VISUAL OBJECT (ZERO CARDS)
+   ========================================================================== */
+.aiads-synapse-stage {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  height: 480px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.aiads-synapse-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.aiads-core-reactor {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  border: 2px dashed rgba(124, 58, 237, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.aiads-reactor-halo {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.15) 0%, rgba(37, 99, 235, 0.08) 60%, transparent 100%);
+  filter: blur(10px);
+}
+
+.aiads-reactor-nucleus {
+  position: relative;
+  z-index: 3;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid rgba(124, 58, 237, 0.25);
+  box-shadow: 0 12px 35px rgba(124, 58, 237, 0.2), inset 0 0 15px rgba(124, 58, 237, 0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 10px;
+}
+
+.aiads-reactor-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  margin-bottom: 2px;
+}
+
+.aiads-reactor-title {
+  font-size: 0.8rem;
+  font-weight: 900;
+  color: var(--aiads-text-main);
+  letter-spacing: -0.01em;
+}
+
+.aiads-reactor-pulse {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.6rem;
+  color: #10b981;
+  font-family: var(--aiads-font-mono);
+  font-weight: 700;
+}
+
+.aiads-reactor-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 5px #10b981;
+}
+
+.aiads-synapse-orb {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  z-index: 4;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 0;
+}
+
+.aiads-synapse-orb:hover {
+  transform: translate(-50%, -50%) scale(1.12);
+}
+
+.aiads-synapse-orb.active {
+  transform: translate(-50%, -50%) scale(1.18);
+}
+
+.aiads-orb-lens {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1.5px solid var(--aiads-border);
+  background: #ffffff;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+}
+
+.aiads-synapse-orb:hover .aiads-orb-lens,
+.aiads-synapse-orb.active .aiads-orb-lens {
+  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.3);
+}
+
+.aiads-orb-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--aiads-text-main);
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--aiads-border);
+  border-radius: 9999px;
+  padding: 2px 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.aiads-synapse-hud {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  font-family: var(--aiads-font-mono);
+  color: var(--aiads-text-muted);
+  margin-top: 12px;
+}
+
+.aiads-hud-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.aiads-hud-engine {
+  font-weight: 800;
+  color: var(--aiads-text-main);
+}
+
+.aiads-hud-sep {
+  color: var(--aiads-border);
+}
+
+.aiads-hud-status {
+  color: var(--aiads-text-muted);
+}
+
+/* ==========================================================================
+   BRAND DNA SPECTROGRAM INSTRUMENT (ZERO CARDS)
+   ========================================================================== */
+.aiads-dna-instrument {
+  background: #ffffff;
+  border: 1px solid var(--aiads-border);
+  border-radius: 16px;
+  padding: 20px 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+}
+
+.aiads-dna-scanner-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--aiads-border-light);
+  padding-bottom: 16px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.aiads-scanner-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--aiads-bg-input);
+  border: 1px solid var(--aiads-border);
+  border-radius: 9999px;
+  padding: 7px 14px;
+  flex: 1;
+  min-width: 220px;
+}
+
+.aiads-scanner-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  width: 100%;
+  font-size: 0.82rem;
+  color: var(--aiads-text-main);
+  font-family: var(--aiads-font-mono);
+}
+
+.aiads-scanner-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  font-family: var(--aiads-font-mono);
+  color: #10b981;
+  font-weight: 700;
+}
+
+.aiads-dna-gauges-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.aiads-dna-gauge-tile {
+  background: var(--aiads-bg-subtle);
+  border: 1px solid var(--aiads-border-light);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.aiads-gauge-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.aiads-gauge-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--aiads-text-main);
+}
+
+.aiads-gauge-score {
+  font-size: 0.76rem;
+  font-weight: 800;
+  font-family: var(--aiads-font-mono);
+}
+
+.aiads-gauge-track {
+  height: 5px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.aiads-gauge-fill {
+  height: 100%;
+  border-radius: 9999px;
+}
+
+.aiads-dna-footer-strip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--aiads-border-light);
+  padding-top: 14px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.aiads-dna-chips-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.aiads-dna-chip-head {
+  font-size: 0.66rem;
+  font-family: var(--aiads-font-mono);
+  color: var(--aiads-text-subtle);
+  font-weight: 700;
+}
+
+.aiads-dna-trait-pill {
+  font-size: 0.7rem;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background: #ffffff;
+  border: 1px solid var(--aiads-border);
+  color: var(--aiads-text-main);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+/* ==========================================================================
+   LINEAR PIPELINE CONVEYOR (ZERO CARDS)
+   ========================================================================== */
+.aiads-pipeline-conveyor-stage {
+  background: #ffffff;
+  border: 1px solid var(--aiads-border);
+  border-radius: 16px;
+  padding: 20px 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+}
+
+.aiads-pipeline-ctrl-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--aiads-border-light);
+  padding-bottom: 12px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.aiads-pipeline-stage-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.76rem;
+  font-family: var(--aiads-font-mono);
+}
+
+.aiads-pipeline-stage-num {
+  color: var(--aiads-text-subtle);
+  font-weight: 700;
+}
+
+.aiads-pipeline-stage-title {
+  font-weight: 800;
+}
+
+.aiads-pipeline-ctrl-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.aiads-pipeline-icon-btn {
+  background: var(--aiads-bg-subtle);
+  border: 1px solid var(--aiads-border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  color: var(--aiads-text-main);
+  font-size: 0.7rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.aiads-pipeline-icon-btn:hover {
+  background: #ffffff;
+  border-color: var(--aiads-purple);
+}
+
+.aiads-conveyor-track-wrap {
+  position: relative;
+  margin-bottom: 20px;
+  padding: 10px 0;
+}
+
+.aiads-conveyor-track-line {
+  position: absolute;
+  top: 26px;
+  left: 3%;
+  right: 3%;
+  height: 2px;
+  background: var(--aiads-border);
+  z-index: 1;
+}
+
+.aiads-conveyor-track-progress {
+  position: absolute;
+  top: 26px;
+  left: 3%;
+  height: 2px;
+  background: linear-gradient(90deg, #7c3aed, #2563eb, #10b981);
+  box-shadow: 0 0 8px rgba(124, 58, 237, 0.4);
+  z-index: 2;
+}
+
+.aiads-conveyor-milestones {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.aiads-conveyor-node {
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  text-align: center;
+  padding: 0;
+}
+
+.aiads-conveyor-disc {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid var(--aiads-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: var(--aiads-text-muted);
+  transition: all 0.25s ease;
+}
+
+.aiads-conveyor-node.current .aiads-conveyor-disc {
+  box-shadow: 0 0 14px rgba(124, 58, 237, 0.4);
+}
+
+.aiads-conveyor-name {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--aiads-text-muted);
+  white-space: nowrap;
+}
+
+.aiads-conveyor-node.current .aiads-conveyor-name {
+  color: var(--aiads-text-main);
+  font-weight: 800;
+}
+
+.aiads-pipeline-hud {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--aiads-bg-subtle);
+  border: 1px solid var(--aiads-border-light);
+  border-radius: 10px;
+  padding: 12px 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.aiads-hud-stage-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.aiads-hud-icon-box {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.aiads-hud-headline {
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: var(--aiads-text-main);
+}
+
+.aiads-hud-sub {
+  font-size: 0.74rem;
+  color: var(--aiads-text-muted);
+}
+
+.aiads-hud-telemetry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aiads-hud-badge {
+  font-size: 0.68rem;
+  font-family: var(--aiads-font-mono);
+  font-weight: 700;
+  padding: 3px 8px;
+  background: #ffffff;
+  border: 1px solid var(--aiads-border);
+  border-radius: 4px;
+}
+
+/* ==========================================================================
+   MODULE SHOWCASE CONSOLE (ZERO CARDS)
+   ========================================================================== */
+.aiads-module-console-stage {
+  background: var(--aiads-bg-subtle);
+  border: 1px solid var(--aiads-border);
+  border-radius: 16px;
+  padding: 20px 24px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+}
+
+.aiads-module-console-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--aiads-border);
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.aiads-console-head-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.aiads-console-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.aiads-console-title {
+  font-size: 1.15rem;
+  font-weight: 850;
+  color: var(--aiads-text-main);
+  margin: 0;
+}
+
+.aiads-console-category {
+  font-size: 0.68rem;
+  font-family: var(--aiads-font-mono);
+  color: var(--aiads-text-muted);
+  font-weight: 600;
+}
+
+.aiads-console-summary-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid var(--aiads-border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+}
+
+.aiads-console-summary-text {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--aiads-text-main);
+}
+
+.aiads-console-features-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.aiads-console-feat-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.74rem;
+  color: var(--aiads-text-muted);
+  background: #ffffff;
+  border: 1px solid var(--aiads-border);
+  border-radius: 9999px;
+  padding: 4px 10px;
+}
+
 /* Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
   * {
@@ -525,4 +1176,1259 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ==========================================================================
+   SERP RADAR SCANNER OBJECT (ZERO CARDS)
+   ========================================================================== */
+.aiads-serp-radar-object {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  align-items: stretch;
+  background: #ffffff;
+  border: 1px solid var(--aiads-border);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+}
+
+.aiads-radar-screen {
+  position: relative;
+  width: 100%;
+  min-height: 380px;
+  background: radial-gradient(circle at 50% 50%, #0f172a 0%, #020617 100%);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.6);
+  border: 1px solid #1e293b;
+}
+
+.aiads-radar-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1px dashed rgba(37, 99, 235, 0.25);
+  pointer-events: none;
+}
+
+.aiads-radar-ring.ring-1 { width: 100px; height: 100px; }
+.aiads-radar-ring.ring-2 { width: 220px; height: 220px; }
+.aiads-radar-ring.ring-3 { width: 330px; height: 330px; border-style: solid; border-color: rgba(37, 99, 235, 0.15); }
+
+.aiads-radar-axis {
+  position: absolute;
+  background: rgba(37, 99, 235, 0.15);
+  pointer-events: none;
+}
+.aiads-radar-axis.axis-x { top: 50%; left: 0; right: 0; height: 1px; }
+.aiads-radar-axis.axis-y { left: 50%; top: 0; bottom: 0; width: 1px; }
+
+.aiads-radar-sweep {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 220px;
+  height: 220px;
+  transform-origin: 0 0;
+  background: conic-gradient(from 0deg, rgba(37, 99, 235, 0.4) 0deg, transparent 60deg);
+  border-radius: 50%;
+  animation: radarRotate 6s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes radarRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.aiads-radar-blip {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  z-index: 5;
+}
+
+.aiads-blip-pulse {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(37, 99, 235, 0.3);
+  animation: blipPing 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes blipPing {
+  0% { transform: scale(0.6); opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.aiads-blip-core {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 10px #38bdf8;
+  position: relative;
+  z-index: 2;
+  transition: transform 0.2s ease;
+}
+
+.aiads-radar-blip.active .aiads-blip-core {
+  background: #10b981;
+  box-shadow: 0 0 14px #10b981;
+  transform: scale(1.4);
+}
+
+.aiads-blip-tag {
+  font-size: 0.64rem;
+  font-weight: 700;
+  color: #94a3b8;
+  white-space: nowrap;
+  background: rgba(15, 23, 42, 0.85);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.aiads-radar-blip.active .aiads-blip-tag {
+  color: #ffffff;
+  border-color: #10b981;
+}
+
+.aiads-radar-hud-tag {
+  position: absolute;
+  bottom: 12px;
+  left: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.65rem;
+  color: #64748b;
+  font-family: var(--aiads-font-mono);
+  background: rgba(2, 6, 23, 0.8);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.aiads-radar-telemetry {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 10px 0;
+}
+
+.aiads-telemetry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--aiads-border-light);
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+}
+
+.aiads-telemetry-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--aiads-text-subtle);
+  font-family: var(--aiads-font-mono);
+}
+
+.aiads-intent-badge {
+  font-size: 0.66rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
+}
+
+.aiads-telemetry-query {
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: var(--aiads-text-main);
+  margin: 0 0 16px 0;
+  line-height: 1.25;
+}
+
+.aiads-telemetry-gauges {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  background: var(--aiads-bg-subtle);
+  border: 1px solid var(--aiads-border-light);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+}
+
+.aiads-gauge-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.aiads-gauge-label {
+  font-size: 0.66rem;
+  color: var(--aiads-text-muted);
+}
+
+.aiads-gauge-val {
+  font-size: 1.05rem;
+  font-weight: 800;
+  font-family: var(--aiads-font-mono);
+}
+
+.aiads-mini-bar-track {
+  width: 50px;
+  height: 5px;
+  background: #e2e8f0;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.aiads-mini-bar-fill {
+  height: 100%;
+  background: #10b981;
+  border-radius: 9999px;
+}
+
+.aiads-editorial-structure {
+  background: #ffffff;
+  border: 1px solid var(--aiads-border);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.aiads-editorial-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #7c3aed;
+  font-family: var(--aiads-font-mono);
+  margin-bottom: 10px;
+}
+
+.aiads-structure-pills {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.aiads-structure-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--aiads-bg-subtle);
+  border: 1px solid var(--aiads-border-light);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  color: var(--aiads-text-main);
+  font-weight: 600;
+}
+
+.chip-prefix {
+  color: #2563eb;
+  font-weight: 800;
+  font-family: var(--aiads-font-mono);
+  font-size: 0.7rem;
+}
+
+/* ==========================================================================
+   FLIGHT PLAN TRAJECTORY RIBBON (ZERO CARDS)
+   ========================================================================== */
+.aiads-flightplan-object {
+  background: #ffffff;
+  border: 1px solid var(--aiads-border);
+  border-radius: 20px;
+  padding: 24px 28px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+}
+
+.aiads-flightplan-rail {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 10px 0;
+}
+
+.aiads-rail-line {
+  position: absolute;
+  top: 24px;
+  left: 6%;
+  right: 6%;
+  height: 2px;
+  background: var(--aiads-border);
+  z-index: 1;
+}
+
+.aiads-rail-progress {
+  height: 100%;
+  background: linear-gradient(90deg, #f97316, #7c3aed, #2563eb);
+  transition: width 0.3s ease;
+}
+
+.aiads-flightplan-node {
+  position: relative;
+  z-index: 2;
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.aiads-node-ring {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid var(--aiads-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+}
+
+.aiads-node-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--aiads-border);
+  transition: all 0.25s ease;
+}
+
+.aiads-flightplan-node.active .aiads-node-ring {
+  border-color: var(--node-color);
+  box-shadow: 0 0 14px var(--node-color);
+}
+
+.aiads-flightplan-node.active .aiads-node-dot,
+.aiads-flightplan-node.reached .aiads-node-dot {
+  background: var(--node-color);
+}
+
+.aiads-node-week {
+  font-size: 0.72rem;
+  font-weight: 800;
+  font-family: var(--aiads-font-mono);
+  color: var(--aiads-text-main);
+}
+
+.aiads-node-badge {
+  font-size: 0.64rem;
+  color: var(--aiads-text-muted);
+  background: var(--aiads-bg-subtle);
+  padding: 2px 6px;
+  border-radius: 9999px;
+  border: 1px solid var(--aiads-border);
+}
+
+.aiads-flightplan-cockpit {
+  background: var(--aiads-bg-subtle);
+  border: 1px solid var(--aiads-border-light);
+  border-radius: 14px;
+  padding: 18px 20px;
+}
+
+.aiads-cockpit-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--aiads-border);
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.aiads-cockpit-label {
+  font-size: 0.66rem;
+  font-family: var(--aiads-font-mono);
+  color: var(--aiads-text-subtle);
+  font-weight: 700;
+}
+
+.aiads-cockpit-title {
+  font-size: 1.15rem;
+  font-weight: 850;
+  margin: 2px 0 0 0;
+}
+
+.aiads-cockpit-status-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 9999px;
+}
+
+.aiads-cockpit-deliverables {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.aiads-cockpit-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1px solid var(--aiads-border);
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 0.76rem;
+  color: var(--aiads-text-main);
+  font-weight: 600;
+}
+
+.aiads-cockpit-channels {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.aiads-channel-label {
+  font-size: 0.68rem;
+  font-family: var(--aiads-font-mono);
+  font-weight: 700;
+  color: var(--aiads-text-muted);
+}
+
+.aiads-channel-meter {
+  flex: 1;
+  display: flex;
+  height: 22px;
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 0.64rem;
+  font-weight: 700;
+  color: #ffffff;
+  min-width: 220px;
+}
+
+.meter-seg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: width 0.3s ease;
+}
+
+.seg-meta { background: #2563eb; }
+.seg-linkedin { background: #0077b5; }
+.seg-google { background: #10b981; }
+.seg-email { background: #7c3aed; }
+
+/* ==========================================================================
+   CREATIVE STUDIO VIEWPORT STAGE (ZERO CARDS)
+   ========================================================================== */
+.aiads-studio-stage {
+  background: var(--aiads-bg-subtle);
+  border: 1px solid var(--aiads-border);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+}
+
+.aiads-studio-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--aiads-border);
+  padding-bottom: 14px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.aiads-ratio-pills {
+  display: flex;
+  gap: 8px;
+}
+
+.aiads-ratio-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  border: 1px solid var(--aiads-border);
+  background: #ffffff;
+  font-size: 0.76rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.aiads-ratio-btn.active {
+  border-color: #7c3aed;
+  background: rgba(124, 58, 237, 0.08);
+  color: #7c3aed;
+  font-weight: 700;
+}
+
+.ratio-badge {
+  font-family: var(--aiads-font-mono);
+  font-weight: 800;
+}
+
+.aiads-canvas-specs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  color: var(--aiads-text-muted);
+  font-family: var(--aiads-font-mono);
+}
+
+.spec-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+}
+
+.aiads-viewport-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 0;
+  min-height: 480px;
+}
+
+.aiads-viewport-canvas {
+  width: 100%;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+  padding: 28px;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+
+.aiads-canvas-crosshairs .crosshair {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-color: rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+}
+.ch-tl { top: 10px; left: 10px; border-top: 1.5px solid; border-left: 1.5px solid; }
+.ch-tr { top: 10px; right: 10px; border-top: 1.5px solid; border-right: 1.5px solid; }
+.ch-bl { bottom: 10px; left: 10px; border-bottom: 1.5px solid; border-left: 1.5px solid; }
+.ch-br { bottom: 10px; right: 10px; border-bottom: 1.5px solid; border-right: 1.5px solid; }
+
+.aiads-canvas-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.aiads-canvas-pill {
+  font-size: 0.68rem;
+  font-weight: 800;
+  font-family: var(--aiads-font-mono);
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.aiads-canvas-tag {
+  font-size: 0.65rem;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.aiads-canvas-kicker {
+  font-size: 0.65rem;
+  font-family: var(--aiads-font-mono);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  opacity: 0.85;
+}
+
+.aiads-canvas-heading {
+  font-size: 1.4rem;
+  font-weight: 900;
+  line-height: 1.25;
+  margin: 4px 0 8px 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.aiads-canvas-sub {
+  font-size: 0.82rem;
+  opacity: 0.95;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.aiads-canvas-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.aiads-canvas-cta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 0.74rem;
+  font-weight: 800;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.aiads-canvas-verified {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.68rem;
+  opacity: 0.85;
+}
+
+/* ==========================================================================
+   STORAGE RACK CONSOLE (ZERO CARDS)
+   ========================================================================== */
+.aiads-storage-rack-object {
+  background: #ffffff;
+  border: 1px solid var(--aiads-border);
+  border-radius: 20px;
+  padding: 22px 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+}
+
+.aiads-rack-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--aiads-border-light);
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.aiads-rack-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aiads-rack-led {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 6px #10b981;
+}
+
+.aiads-rack-title {
+  font-size: 0.72rem;
+  font-family: var(--aiads-font-mono);
+  font-weight: 800;
+  color: var(--aiads-text-subtle);
+}
+
+.aiads-rack-filters {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.aiads-rack-filter-btn {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  cursor: pointer;
+  border: 1px solid var(--aiads-border);
+  background: var(--aiads-bg-subtle);
+  color: var(--aiads-text-muted);
+  transition: all 0.2s ease;
+}
+
+.aiads-rack-filter-btn.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.aiads-rack-bays {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.aiads-bay-slot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--aiads-bg-subtle);
+  border: 1px solid var(--aiads-border-light);
+  border-radius: 10px;
+  padding: 10px 16px;
+  gap: 14px;
+  transition: all 0.2s ease;
+}
+
+.aiads-bay-slot:hover {
+  background: #ffffff;
+  border-color: var(--aiads-border);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+}
+
+.aiads-bay-index {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bay-id {
+  font-size: 0.72rem;
+  font-family: var(--aiads-font-mono);
+  font-weight: 800;
+  color: var(--aiads-text-main);
+}
+
+.bay-led {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.aiads-bay-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.bay-filename {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--aiads-text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bay-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.7rem;
+  color: var(--aiads-text-muted);
+}
+
+.bay-pill {
+  background: #ffffff;
+  border: 1px solid var(--aiads-border);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.bay-target {
+  font-family: var(--aiads-font-mono);
+  color: #2563eb;
+}
+
+.aiads-bay-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bay-status-badge {
+  font-size: 0.64rem;
+  font-family: var(--aiads-font-mono);
+  font-weight: 700;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.aiads-bay-copy-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #ffffff;
+  border: 1px solid var(--aiads-border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--aiads-text-main);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.aiads-bay-copy-btn:hover {
+  border-color: #2563eb;
+  color: #2563eb;
+}
+
+/* ==========================================================================
+   PLANETARY ROTOR STAGE (FLYWHEEL OBJECT)
+   ========================================================================== */
+.aiads-flywheel-rotor-stage {
+  background: #ffffff;
+  border: 1px solid var(--aiads-border);
+  border-radius: 20px;
+  padding: 28px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+}
+
+.aiads-rotor-orbit-container {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  height: 440px;
+  margin: 0 auto 20px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.aiads-rotor-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.aiads-rotor-core {
+  position: relative;
+  z-index: 3;
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%);
+  box-shadow: 0 14px 40px rgba(124, 58, 237, 0.35);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  text-align: center;
+}
+
+.core-brand {
+  font-size: 0.84rem;
+  font-weight: 900;
+  margin-top: 4px;
+}
+
+.core-sub {
+  font-size: 0.62rem;
+  opacity: 0.85;
+  font-family: var(--aiads-font-mono);
+}
+
+.aiads-rotor-satellite {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  background: #ffffff;
+  border: 1.5px solid var(--aiads-border);
+  border-radius: 9999px;
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+  z-index: 4;
+  transition: all 0.25s ease;
+  color: var(--aiads-text-main);
+}
+
+.aiads-rotor-satellite.active,
+.aiads-rotor-satellite:hover {
+  border-color: var(--sat-color);
+  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.25);
+  transform: translate(-50%, -50%) scale(1.1);
+  color: var(--sat-color);
+  font-weight: 800;
+}
+
+.sat-label {
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.aiads-rotor-feedback-strip {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--aiads-bg-subtle);
+  border: 1px solid var(--aiads-border-light);
+  border-radius: 12px;
+  padding: 12px 18px;
+  flex-wrap: wrap;
+}
+
+.aiads-feedback-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.68rem;
+  font-family: var(--aiads-font-mono);
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.aiads-feedback-text {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--aiads-text-main);
+  margin: 0;
+  flex: 1;
+}
+
+/* ==========================================================================
+   CONVERGENCE BRIDGE OBJECT (ZERO CARDS)
+   ========================================================================== */
+.aiads-convergence-bridge-object {
+  display: grid;
+  grid-template-columns: 1fr 100px 1.2fr;
+  gap: 16px;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid var(--aiads-border);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+  margin-bottom: 20px;
+}
+
+.aiads-fragment-cluster {
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.aiads-cluster-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-family: var(--aiads-font-mono);
+  font-weight: 800;
+  color: #9f1239;
+  margin-bottom: 12px;
+}
+
+.aiads-scattered-nodes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.aiads-fractured-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.74rem;
+  color: #881337;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #fecdd3;
+}
+
+.aiads-convergence-funnel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  position: relative;
+}
+
+.aiads-funnel-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.aiads-funnel-tag {
+  font-size: 0.6rem;
+  font-family: var(--aiads-font-mono);
+  font-weight: 800;
+  color: #7c3aed;
+}
+
+.aiads-funnel-beam {
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, #e11d48, #7c3aed, #10b981);
+}
+
+.aiads-unified-target-core {
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.08);
+}
+
+.aiads-target-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  font-family: var(--aiads-font-mono);
+  font-weight: 800;
+  color: #5b21b6;
+  margin-bottom: 14px;
+}
+
+.aiads-target-specs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.aiads-target-spec-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #e9d5ff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  color: #4c1d95;
+  font-weight: 600;
+}
+
+.aiads-convergence-telemetry-dock {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.aiads-telemetry-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid var(--aiads-border);
+  border-radius: 9999px;
+  padding: 6px 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.telemetry-stat {
+  font-size: 0.84rem;
+  font-weight: 850;
+  color: #7c3aed;
+  font-family: var(--aiads-font-mono);
+}
+
+.telemetry-label {
+  font-size: 0.72rem;
+  color: var(--aiads-text-muted);
+}
+
+/* ==========================================================================
+   PERSONA COCKPIT OBJECT (ZERO CARDS)
+   ========================================================================== */
+.aiads-persona-cockpit-object {
+  background: var(--aiads-bg-subtle);
+  border: 1px solid var(--aiads-border);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+}
+
+.aiads-persona-nav {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--aiads-border);
+  padding-bottom: 14px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.aiads-persona-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1px solid var(--aiads-border);
+  border-radius: 9999px;
+  padding: 7px 16px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--aiads-text-main);
+}
+
+.aiads-persona-tab.active {
+  border-color: var(--tab-accent);
+  color: var(--tab-accent);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.persona-tab-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tab-accent);
+}
+
+.aiads-persona-console {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 20px;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid var(--aiads-border);
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.aiads-persona-header {
+  margin-bottom: 16px;
+}
+
+.aiads-persona-kicker {
+  font-size: 0.68rem;
+  font-family: var(--aiads-font-mono);
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.aiads-persona-headline {
+  font-size: 1.25rem;
+  font-weight: 850;
+  color: var(--aiads-text-main);
+  margin: 4px 0 0 0;
+  line-height: 1.3;
+}
+
+.aiads-persona-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.aiads-persona-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--aiads-bg-subtle);
+  border: 1px solid var(--aiads-border-light);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  color: #334155;
+  font-weight: 600;
+}
+
+.aiads-persona-metric-deck {
+  background: var(--aiads-bg-subtle);
+  border: 1px solid var(--aiads-border-light);
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.deck-label {
+  font-size: 0.65rem;
+  font-family: var(--aiads-font-mono);
+  font-weight: 800;
+  color: var(--aiads-text-subtle);
+  margin-bottom: 4px;
+}
+
+.deck-stat {
+  font-size: 1.8rem;
+  font-weight: 900;
+  font-family: var(--aiads-font-mono);
+  line-height: 1.1;
+  margin-bottom: 8px;
+}
+
+.deck-desc {
+  font-size: 0.76rem;
+  color: var(--aiads-text-muted);
+  line-height: 1.45;
+  margin: 0 0 16px 0;
+}
+
+.aiads-persona-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+/* Responsive queries for non-card objects */
+@media (max-width: 1024px) {
+  .aiads-serp-radar-object {
+    grid-template-columns: 1fr;
+  }
+  .aiads-convergence-bridge-object {
+    grid-template-columns: 1fr;
+  }
+  .aiads-funnel-beam {
+    width: 2px;
+    height: 30px;
+  }
+  .aiads-persona-console {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .aiads-flightplan-rail {
+    overflow-x: auto;
+  }
+  .aiads-bay-slot {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
 

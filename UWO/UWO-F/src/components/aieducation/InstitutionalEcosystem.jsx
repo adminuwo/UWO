@@ -1,54 +1,54 @@
 import React, { useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Building2, School, GraduationCap, Users, ArrowUpDown, Network, Zap } from 'lucide-react';
-import { fadeInUp, staggerContainer } from './motionVariants';
+import { Building2, School, GraduationCap, Users, ArrowRight, Zap, Network, RefreshCw } from 'lucide-react';
 
-const STAKEHOLDERS = [
+const ECO_STAKEHOLDERS = [
   {
     id: 'inst',
-    title: 'Institution & Deans',
-    role: 'Central Governance',
+    title: 'Institution',
+    role: 'Governance Root',
     icon: Building2,
     color: '#00B87A',
-    flowTo: 'Faculty & Teachers',
-    flowLabel: 'Curriculum & Rules',
-    desc: 'Broadcasts academic calendars, enforces timetable conflict resolution, audits fee ledgers with Tally, and signs final report cards.'
+    outputs: ['Policy & Rules', 'Tally Audits', '3-Tier Seals'],
+    signalsTo: 'Faculty',
+    activeFlow: 'Broadcasts academic calendars, timetables & fee governance'
   },
   {
     id: 'faculty',
-    title: 'Faculty & Teachers',
-    role: 'Instruction & Evaluation',
+    title: 'Faculty',
+    role: 'Classroom Operations',
     icon: School,
     color: '#16B8E8',
-    flowTo: 'Enrolled Students',
-    flowLabel: 'Assignments & Roll Call',
-    desc: 'Receives instant substitute proxy notifications, executes rubric-based grading, logs roll calls, and publishes curriculum assignments.'
+    outputs: ['Substitute Proxy', 'Roll Calls', 'Rubric Marks'],
+    signalsTo: 'Students',
+    activeFlow: 'Instant substitute proxy dispatch (<200ms) & exam grading'
   },
   {
     id: 'student',
-    title: 'Enrolled Students',
+    title: 'Students',
     role: 'Pedagogical Learning',
     icon: GraduationCap,
     color: '#00B87A',
-    flowTo: 'Parents & Guardians',
-    flowLabel: 'Progress & Hall Tickets',
-    desc: 'Interacts with the AI Study Buddy citing authorized textbooks, completes daily 5-question adaptive quizzes, and downloads QR hall tickets.'
+    outputs: ['Adaptive Quizzes', 'RAG Citations', 'QR Admit Card'],
+    signalsTo: 'Parents',
+    activeFlow: 'Class textbook AI citations & daily learning streak telemetry'
   },
   {
     id: 'parent',
-    title: 'Parents & Guardians',
-    role: 'Family Oversight',
+    title: 'Parents',
+    role: 'Guardian Portal',
     icon: Users,
     color: '#8B5CF6',
-    flowTo: 'Institution & Deans',
-    flowLabel: 'Fee Ledgers & Approvals',
-    desc: 'Switches seamlessly between multiple enrolled children, tracks monthly attendance statistics, monitors homework deadlines, and inspects seals.'
+    outputs: ['Multi-Child View', 'Attendance Feed', 'Fee Receipts'],
+    signalsTo: 'Institution',
+    activeFlow: 'Seamless multi-student tracking & digital fee reconciliation'
   }
 ];
 
 export default function InstitutionalEcosystem() {
   const shouldReduceMotion = useReducedMotion();
-  const [activeStakeholder, setActiveStakeholder] = useState(null);
+  const [activeId, setActiveId] = useState('inst');
+  const activeStakeholder = ECO_STAKEHOLDERS.find(s => s.id === activeId) || ECO_STAKEHOLDERS[0];
 
   return (
     <section className="aied-section" id="connected-ecosystem">
@@ -56,81 +56,99 @@ export default function InstitutionalEcosystem() {
         <div className="aied-section-header">
           <span className="aied-badge">
             <Network size={14} />
-            Holistic Campus Connectivity
+            Ecosystem Loop
           </span>
           <h2 className="aied-section-title">
-            One Academic Ecosystem. <br />
-            <span className="aied-gradient-emerald">Every Stakeholder Connected.</span>
+            The Campus <span className="aied-gradient-emerald">Synapse Loop.</span>
           </h2>
           <p className="aied-section-subtitle">
-            Eliminate silos between campus leadership, classroom instructors, enrolled pupils, and guardians. 
-            Information flows seamlessly through automated permissions, notifications, and shared ledgers.
+            Zero departmental silos. Real-time operational data circulates continuously across all four institutional stakeholders.
           </p>
         </div>
 
-        {/* 4-Stakeholder Connectivity Matrix with interactive flow states */}
-        <motion.div 
-          className="aied-trust-grid"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={staggerContainer}
-          style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', position: 'relative' }}
-        >
-          {STAKEHOLDERS.map((stk, i) => {
-            const Icon = stk.icon;
-            const isHovered = activeStakeholder === stk.id;
-            return (
-              <motion.div 
-                key={stk.id}
-                className="aied-trust-card"
-                variants={fadeInUp}
-                whileHover={{ y: -4 }}
-                onMouseEnter={() => setActiveStakeholder(stk.id)}
-                onMouseLeave={() => setActiveStakeholder(null)}
-                style={{
-                  borderColor: isHovered ? stk.color : 'var(--aied-border)',
-                  boxShadow: isHovered ? `0 0 20px ${stk.color}30` : 'none',
-                  transition: 'all 0.3s ease',
-                  position: 'relative'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <div className="aied-trust-icon" style={{ color: stk.color, background: `${stk.color}15`, marginBottom: 0 }}>
-                    <Icon size={18} />
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: stk.color, boxShadow: `0 0 6px ${stk.color}` }}></span>
-                    <span style={{ fontSize: '0.66rem', color: stk.color, fontFamily: 'var(--aied-font-mono)', fontWeight: 600 }}>
-                      0{i + 1}
-                    </span>
-                  </div>
-                </div>
+        {/* Continuous Campus Flow Ring (Object-Based Visual Circuit) */}
+        <div className="aied-eco-circuit-container">
+          {/* Top Integrated Continuous Stream Pipeline */}
+          <div className="aied-eco-loop-track">
+            {ECO_STAKEHOLDERS.map((stk, idx) => {
+              const Icon = stk.icon;
+              const isSelected = activeId === stk.id;
+              return (
+                <React.Fragment key={stk.id}>
+                  <button
+                    type="button"
+                    className={`aied-eco-node ${isSelected ? 'active' : ''}`}
+                    onClick={() => setActiveId(stk.id)}
+                    style={{
+                      borderColor: isSelected ? stk.color : undefined,
+                      boxShadow: isSelected ? `0 0 24px ${stk.color}45` : undefined
+                    }}
+                  >
+                    <div className="aied-eco-node-icon" style={{ color: stk.color, background: `${stk.color}15` }}>
+                      <Icon size={20} />
+                    </div>
+                    <div className="aied-eco-node-info">
+                      <span className="aied-eco-node-title">{stk.title}</span>
+                      <span className="aied-eco-node-role" style={{ color: stk.color }}>{stk.role}</span>
+                    </div>
+                    {isSelected && (
+                      <span className="aied-eco-active-indicator" style={{ background: stk.color, boxShadow: `0 0 8px ${stk.color}` }}></span>
+                    )}
+                  </button>
 
-                <div style={{ fontSize: '0.68rem', color: stk.color, fontFamily: 'var(--aied-font-mono)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>
-                  {stk.role}
-                </div>
+                  {idx < ECO_STAKEHOLDERS.length - 1 && (
+                    <div className="aied-eco-connector">
+                      <div className="aied-eco-connector-line">
+                        {!shouldReduceMotion && (
+                          <motion.div
+                            className="aied-eco-connector-packet"
+                            animate={{ left: ['0%', '100%'] }}
+                            transition={{ duration: 2, repeat: Infinity, ease: 'linear', delay: idx * 0.5 }}
+                          />
+                        )}
+                      </div>
+                      <ArrowRight size={12} className="aied-eco-arrow" />
+                    </div>
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
 
-                <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#ffffff', marginBottom: '6px' }}>
-                  {stk.title}
-                </h4>
+          {/* Integrated Interactive Transaction Readout Terminal (Visual HUD Console) */}
+          <div className="aied-eco-terminal">
+            <div className="aied-eco-terminal-header">
+              <div className="aied-eco-terminal-left">
+                <span className="aied-pulse-dot" style={{ width: 6, height: 6, borderRadius: '50%', background: activeStakeholder.color, display: 'inline-block', boxShadow: `0 0 6px ${activeStakeholder.color}` }}></span>
+                <span className="aied-eco-terminal-label">TRANSACTION PIPELINE:</span>
+                <span className="aied-eco-terminal-target" style={{ color: activeStakeholder.color }}>
+                  {activeStakeholder.title} ➔ {activeStakeholder.signalsTo}
+                </span>
+              </div>
+              <div className="aied-eco-terminal-pill">
+                <RefreshCw size={11} className="text-emerald-400" />
+                <span>Zero-Latency Sync</span>
+              </div>
+            </div>
 
-                <p style={{ fontSize: '0.76rem', color: 'var(--aied-text-muted)', lineHeight: 1.45, margin: '0 0 12px 0' }}>
-                  {stk.desc}
-                </p>
+            <div className="aied-eco-terminal-body">
+              <div className="aied-eco-terminal-flow">
+                <Zap size={14} style={{ color: activeStakeholder.color, flexShrink: 0 }} />
+                <span>{activeStakeholder.activeFlow}</span>
+              </div>
 
-                {/* Animated Flow Connector Arrow */}
-                <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '8px', fontSize: '0.68rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--aied-text-subtle)' }}>Data sync:</span>
-                  <span style={{ color: stk.color, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Zap size={10} />
-                    {stk.flowLabel} ➔
+              {/* Data payload badges */}
+              <div className="aied-eco-payload-tags">
+                <span className="aied-eco-payload-lbl">EMITTED PAYLOADS:</span>
+                {activeStakeholder.outputs.map((out, oIdx) => (
+                  <span key={oIdx} className="aied-eco-payload-chip" style={{ borderColor: `${activeStakeholder.color}35`, color: activeStakeholder.color }}>
+                    {out}
                   </span>
-                </div>
-              </motion.div>
-            );
-          })}
-        </motion.div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );

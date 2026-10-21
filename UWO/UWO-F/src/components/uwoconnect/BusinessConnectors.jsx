@@ -92,7 +92,7 @@ export default function BusinessConnectors() {
 
           {steps.map((step, idx) => (
             <React.Fragment key={idx}>
-              <motion.div 
+              <motion.div
                 className={`uwoc-pipe-step ${step.isCenter ? 'center-core' : ''}`}
                 whileHover={{ y: -4, transition: { duration: 0.25, ease: EASE_PREMIUM } }}
               >
@@ -129,14 +129,14 @@ export default function BusinessConnectors() {
               whileHover={{ y: -6, scale: 1.01, transition: { duration: 0.32, ease: EASE_PREMIUM } }}
             >
               <div className="uwoc-connector-top">
-                <div 
+                <div
                   className="uwoc-connector-icon-wrap"
                   style={{ backgroundColor: `${connector.color}08`, borderColor: `${connector.color}25` }}
                 >
                   {connector.imageSrc ? (
-                    <img 
-                      src={connector.imageSrc} 
-                      alt={`${connector.name} logo`} 
+                    <img
+                      src={connector.imageSrc}
+                      alt={`${connector.name} logo`}
                       className="uwoc-conn-brand-img"
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';
@@ -144,10 +144,10 @@ export default function BusinessConnectors() {
                     />
                   ) : connector.isMicrosoft ? (
                     <svg width="24" height="24" viewBox="0 0 23 23" className="uwoc-conn-brand-img" aria-label="Microsoft">
-                      <path fill="#f35325" d="M1 1h10v10H1z"/>
-                      <path fill="#81bc06" d="M12 1h10v10H12z"/>
-                      <path fill="#05a6f0" d="M12 12h10v10H12z"/>
-                      <path fill="#ffba08" d="M1 12h10v10H1z"/>
+                      <path fill="#f35325" d="M1 1h10v10H1z" />
+                      <path fill="#81bc06" d="M12 1h10v10H12z" />
+                      <path fill="#05a6f0" d="M12 12h10v10H12z" />
+                      <path fill="#ffba08" d="M1 12h10v10H1z" />
                     </svg>
                   ) : (
                     <i className={connector.icon} style={{ color: connector.color }}></i>

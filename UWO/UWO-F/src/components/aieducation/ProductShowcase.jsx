@@ -58,15 +58,14 @@ export default function ProductShowcase() {
         <div className="aied-section-header">
           <span className="aied-badge">
             <School size={14} />
-            Live Platform Showcase
+            Teaching &amp; Insights
           </span>
           <h2 className="aied-section-title">
-            Authentic Product Interfaces. <br />
-            <span className="aied-gradient-emerald">Built for Real Campus Workflows.</span>
+            Better Insights. <br />
+            <span className="aied-gradient-emerald">Better Learning.</span>
           </h2>
           <p className="aied-section-subtitle">
-            Inspect real operational interfaces from the AI Education platform — designed with high information 
-            density, instant responsiveness, and enterprise clarity.
+            Authentic operational interfaces connecting faculty instruction, student mastery, and parental oversight.
           </p>
         </div>
 

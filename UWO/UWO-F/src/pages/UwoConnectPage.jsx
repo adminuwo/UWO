@@ -1,17 +1,12 @@
 import React, { useEffect } from 'react';
 import UwoConnectHero from '../components/uwoconnect/UwoConnectHero';
-import WhatIsUwoConnect from '../components/uwoconnect/WhatIsUwoConnect';
-import OmnichannelInbox from '../components/uwoconnect/OmnichannelInbox';
-import BusinessConnectors from '../components/uwoconnect/BusinessConnectors';
-import AiAutomationWorkflow from '../components/uwoconnect/AiAutomationWorkflow';
-import FeatureEcosystem from '../components/uwoconnect/FeatureEcosystem';
-import RolesExplorer from '../components/uwoconnect/RolesExplorer';
-import UseCaseShowcase from '../components/uwoconnect/UseCaseShowcase';
-import BeforeAfterComparison from '../components/uwoconnect/BeforeAfterComparison';
-import WebMobileAccess from '../components/uwoconnect/WebMobileAccess';
-import SecurityTrustSection from '../components/uwoconnect/SecurityTrustSection';
+import ChannelEcosystem from '../components/uwoconnect/ChannelEcosystem';
+import ConnectorsSection from '../components/uwoconnect/ConnectorsSection';
+import AutomationSection from '../components/uwoconnect/AutomationSection';
+import HowItWorksSection from '../components/uwoconnect/HowItWorksSection';
+import KeyFeaturesSection from '../components/uwoconnect/KeyFeaturesSection';
 import FinalCtaSection from '../components/uwoconnect/FinalCtaSection';
-import { UWO_CONNECT_META, UWO_CONNECT_ANDROID_URL } from '../constants/uwoConnectConstants';
+import { UWO_CONNECT_META, UWO_CONNECT_WEB_URL } from '../constants/uwoConnectConstants';
 import '../uwo-connect.css';
 
 export default function UwoConnectPage() {
@@ -78,7 +73,7 @@ export default function UwoConnectPage() {
           'operatingSystem': 'Web, Android, iOS',
           'applicationCategory': 'BusinessApplication, CommunicationSoftware, CRMSoftware',
           'softwareVersion': '2.0.0',
-          'installUrl': UWO_CONNECT_ANDROID_URL,
+          'url': UWO_CONNECT_WEB_URL,
           'description': UWO_CONNECT_META.description,
           'publisher': {
             '@type': 'Organization',
@@ -102,37 +97,22 @@ export default function UwoConnectPage() {
       {/* 1. Hero Section */}
       <UwoConnectHero />
 
-      {/* 2. What is UWO Connect? */}
-      <WhatIsUwoConnect />
+      {/* 2. Multi-Channel Unified Inbox Ecosystem */}
+      <ChannelEcosystem />
 
-      {/* 4. Omnichannel Communication Inbox */}
-      <OmnichannelInbox />
+      {/* 4. Native Connectors Radar (Dev) */}
+      <ConnectorsSection />
 
-      {/* 5. Business Connectors */}
-      <BusinessConnectors />
+      {/* 5. Business Automation Workflow (Abha) */}
+      <AutomationSection />
 
-      {/* 6. AI + Automation Workflow Section */}
-      <AiAutomationWorkflow />
+      {/* 6. How It Works (4-Step Execution Pipeline) */}
+      <HowItWorksSection />
 
-      {/* 7. Feature Ecosystem */}
-      <FeatureEcosystem />
+      {/* 7. Key Features (Single-Row Carousel Slider) */}
+      <KeyFeaturesSection />
 
-      {/* 8. Roles Section */}
-      <RolesExplorer />
-
-      {/* 9. Production Use Cases */}
-      <UseCaseShowcase />
-
-      {/* 10. Before vs After Comparison */}
-      <BeforeAfterComparison />
-
-      {/* 11. Web + Mobile Access */}
-      <WebMobileAccess />
-
-      {/* 13. Security & Enterprise Trust */}
-      <SecurityTrustSection />
-
-      {/* 14. High-Converting Closing CTA */}
+      {/* 8. Final CTA */}
       <FinalCtaSection />
     </div>
   );

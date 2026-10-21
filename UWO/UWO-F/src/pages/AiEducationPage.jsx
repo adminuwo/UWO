@@ -1,25 +1,13 @@
 import React, { useEffect } from 'react';
 import AIEducationHero from '../components/aieducation/AIEducationHero';
-import PlatformOverview from '../components/aieducation/PlatformOverview';
-import AcademicOS from '../components/aieducation/AcademicOS';
-import RoleExplorer from '../components/aieducation/RoleExplorer';
-import ModuleExplorer from '../components/aieducation/ModuleExplorer';
-import AcademicWorkflow from '../components/aieducation/AcademicWorkflow';
-import TextbookAI from '../components/aieducation/TextbookAI';
-import ProductShowcase from '../components/aieducation/ProductShowcase';
-import InstitutionalEcosystem from '../components/aieducation/InstitutionalEcosystem';
-import PlatformAvailability from '../components/aieducation/PlatformAvailability';
-import TrustSection from '../components/aieducation/TrustSection';
-import FinalCTA from '../components/aieducation/FinalCTA';
+import AIEducationLearning from '../components/aieducation/AIEducationLearning';
+import AIEducationRoles from '../components/aieducation/AIEducationRoles';
+import AIEducationModules from '../components/aieducation/AIEducationModules';
+import AIEducationDevices from '../components/aieducation/AIEducationDevices';
 import { AI_EDUCATION_META } from '../constants/aiEducationConstants';
 import '../ai-education.css';
 
 export default function AiEducationPage() {
-  // Direct redirect to the live AI Education landing page
-  useEffect(() => {
-    window.location.replace('https://education.uwo24.com/landing');
-  }, []);
-
   // SEO, Document Meta Tags & JSON-LD Structured Data
   useEffect(() => {
     document.title = AI_EDUCATION_META.title;
@@ -108,41 +96,20 @@ export default function AiEducationPage() {
 
   return (
     <div className="aied-page-root">
-      {/* 01 — HERO with Interactive Product UI Recreation */}
-      <AIEducationHero onExploreClick={() => scrollToSection('platform-overview')} />
+      {/* 01 — FULLSCREEN TEXT-DRIVEN HERO SECTION */}
+      <AIEducationHero onExploreClick={() => scrollToSection('learning-section')} />
 
-      {/* 02 — PLATFORM OVERVIEW (Architecture & Microservices) */}
-      <PlatformOverview />
+      {/* 02 — LEARNING: 3D Textbook AI & Student Study Buddy */}
+      <AIEducationLearning />
 
-      {/* 03 — ACADEMIC OPERATING SYSTEM (Interconnected Layers) */}
-      <AcademicOS />
+      {/* 03 — ROLES: Real Web & App Functionality for Students, Faculty, Parents, and Admin */}
+      <AIEducationRoles />
 
-      {/* 04 — ROLE EXPLORER (11 Institutional Personas) */}
-      <RoleExplorer />
+      {/* 04 — MODULES: 6 Core Functionalities Inside the Platform */}
+      <AIEducationModules />
 
-      {/* 05 — CORE MODULES (9 Verified Engines) */}
-      <ModuleExplorer />
-
-      {/* 06 — ACADEMIC WORKFLOWS (Admissions / Timetables / Pedagogy) */}
-      <AcademicWorkflow />
-
-      {/* 07 — TEXTBOOK AI / RAG SHOWCASE (Grounded Citations) */}
-      <TextbookAI />
-
-      {/* 09 — PRODUCT UI SHOWCASE (Live Screen Renderers) */}
-      <ProductShowcase />
-
-      {/* 10 — INSTITUTIONAL ECOSYSTEM (Stakeholder Matrix) */}
-      <InstitutionalEcosystem />
-
-      {/* 11 — WEB + MOBILE (React 19 & Expo SDK 56) */}
-      <PlatformAvailability />
-
-      {/* 12 — SECURITY & GOVERNANCE (CASA Tier-2) */}
-      <TrustSection />
-
-      {/* 13 — FINAL CALL TO ACTION */}
-      <FinalCTA onExploreClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} />
+      {/* 05 — PLATFORM: Cross-Device Availability (Web, Android, iOS) */}
+      <AIEducationDevices />
     </div>
   );
 }

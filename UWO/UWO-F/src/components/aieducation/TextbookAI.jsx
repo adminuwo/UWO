@@ -107,15 +107,14 @@ export default function TextbookAI() {
         <div className="aied-section-header">
           <span className="aied-badge">
             <BookOpen size={14} />
-            Class Textbook RAG Engine
+            Personalized Learning Engine
           </span>
           <h2 className="aied-section-title">
-            Grounded Intelligence. <br />
-            <span className="aied-gradient-emerald">100% Source-Cited Answers.</span>
+            Learning, <br />
+            <span className="aied-gradient-emerald">Made Intelligent.</span>
           </h2>
           <p className="aied-section-subtitle">
-            Generic chatbots hallucinate when asked academic questions. AI Education indexes authorized 
-            class textbooks, syllabi, and lecture notes, citing exact chapters and page coordinates.
+            Zero hallucinations. Authorized textbooks vector-indexed with exact page and chapter coordinates.
           </p>
         </div>
 
@@ -123,20 +122,15 @@ export default function TextbookAI() {
         <div className="aied-rag-showcase">
           {/* Left: Interactive Retrieval Process & Query Selector */}
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-              <span className="aied-badge" style={{ margin: 0, padding: '3px 8px', fontSize: '0.72rem' }}>
-                Curriculum Ingestion Pipeline
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <span className="aied-badge" style={{ margin: 0, padding: '2px 8px', fontSize: '0.68rem' }}>
+                Isolated Vector Ingestion
               </span>
             </div>
 
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ffffff', marginBottom: '8px' }}>
-              From Uploaded Textbook to Precise Citation
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#ffffff', marginBottom: '14px' }}>
+              Pedagogical Vector Retrieval
             </h3>
-
-            <p style={{ color: 'var(--aied-text-muted)', fontSize: '0.84rem', lineHeight: 1.5, marginBottom: '16px' }}>
-              When an institution uploads approved course textbooks (NCERT, State Board, University Law Handbooks), 
-              the system creates an isolated vector namespace. Student queries are anchored exclusively within this material.
-            </p>
 
             {/* Interactive Sample Prompt Switcher */}
             <div style={{ marginBottom: '16px' }}>

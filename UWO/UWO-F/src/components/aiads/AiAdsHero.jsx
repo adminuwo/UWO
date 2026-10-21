@@ -2,22 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { 
   Sparkles, ArrowRight, ExternalLink, Dna, Search, 
-  Compass, FileText, Palette, Globe, Layers, BarChart3, Zap, CheckCircle2 
+  Compass, FileText, Palette, Globe, Zap, CheckCircle2 
 } from 'lucide-react';
-import { AI_ADS_META, AI_ADS_TELEMETRY } from '../../constants/aiAdsConstants';
-import { fadeInUp, staggerContainer, CountUpNumber } from '../aieducation/motionVariants';
+import { AI_ADS_META } from '../../constants/aiAdsConstants';
+import { fadeInUp, staggerContainer } from '../aieducation/motionVariants';
 
-const ORBIT_CARDS = [
-  { id: 'dna', label: 'Brand DNA Engine', icon: Dna, color: '#7c3aed', top: '8%', left: '15%', delay: 0 },
-  { id: 'seo', label: 'SEO Intelligence', icon: Search, color: '#2563eb', top: '12%', right: '12%', delay: 0.2 },
-  { id: 'strategy', label: '30-Day Strategy', icon: Compass, color: '#f97316', bottom: '28%', left: '8%', delay: 0.4 },
-  { id: 'content', label: 'Editorial Studio', icon: FileText, color: '#06b6d4', bottom: '10%', left: '38%', delay: 0.6 },
-  { id: 'creative', label: 'Creative Studio', icon: Palette, color: '#10b981', bottom: '26%', right: '10%', delay: 0.8 },
-  { id: 'website', label: 'AI Web Builder', icon: Globe, color: '#f59e0b', top: '50%', right: '4%', delay: 1.0 }
+const SYNAPSE_NODES = [
+  { id: 'dna', label: 'Brand DNA', icon: Dna, color: '#7c3aed', angle: 30, r: 190 },
+  { id: 'seo', label: 'SEO Engine', icon: Search, color: '#2563eb', angle: 90, r: 185 },
+  { id: 'strategy', label: 'Strategy', icon: Compass, color: '#f97316', angle: 150, r: 195 },
+  { id: 'content', label: 'Editorial', icon: FileText, color: '#06b6d4', angle: 210, r: 190 },
+  { id: 'creative', label: 'Creative', icon: Palette, color: '#10b981', angle: 270, r: 185 },
+  { id: 'website', label: 'Web Builder', icon: Globe, color: '#f59e0b', angle: 330, r: 195 }
 ];
 
 export default function AiAdsHero({ onExploreClick }) {
   const shouldReduceMotion = useReducedMotion();
+  const [activeNodeId, setActiveNodeId] = useState('dna');
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [isFinePointer, setIsFinePointer] = useState(false);
 
@@ -37,6 +38,8 @@ export default function AiAdsHero({ onExploreClick }) {
     });
   };
 
+  const activeNode = SYNAPSE_NODES.find(n => n.id === activeNodeId) || SYNAPSE_NODES[0];
+
   return (
     <section 
       className="aiads-hero-section"
@@ -45,7 +48,7 @@ export default function AiAdsHero({ onExploreClick }) {
     >
       <div className="aiads-container">
         <div className="aiads-hero-content">
-          {/* LEFT: Headline & Value Proposition */}
+          {/* LEFT: Crisp, Punchy Value Proposition (Minimal Text) */}
           <motion.div 
             className="aiads-hero-text"
             initial="hidden"
@@ -54,19 +57,18 @@ export default function AiAdsHero({ onExploreClick }) {
           >
             <motion.div variants={fadeInUp}>
               <span className="aiads-badge">
-                <Sparkles size={14} className="text-purple-600" />
-                AI ADS™ · AUTONOMOUS MARKETING OPERATING SYSTEM
+                <Sparkles size={13} className="text-purple-600" />
+                AI ADS™ AUTONOMOUS OS
               </span>
             </motion.div>
 
             <motion.h1 variants={fadeInUp}>
-              AI-Powered Marketing <br />
-              <span className="aiads-gradient-title">Operating System.</span>
+              Autonomous Marketing. <br />
+              <span className="aiads-gradient-title">Engineered by AI.</span>
             </motion.h1>
 
             <motion.p className="aiads-hero-desc" variants={fadeInUp}>
-              From brand intelligence to strategy, content, creative and websites — 
-              one unified, intelligent marketing workspace built for high-growth enterprises.
+              Brand intelligence, creative studios, and multi-channel campaigns unified into one autonomous operating engine.
             </motion.p>
 
             <motion.div className="aiads-hero-actions" variants={fadeInUp}>
@@ -76,161 +78,180 @@ export default function AiAdsHero({ onExploreClick }) {
                 rel="noopener noreferrer" 
                 className="aiads-btn-primary"
               >
-                <span>Open AI ADS</span>
-                <ExternalLink size={16} />
+                <span>Launch Platform</span>
+                <ExternalLink size={15} />
               </a>
 
               <button
                 type="button"
                 onClick={onExploreClick}
                 className="aiads-btn-secondary"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '14px 24px',
-                  borderRadius: '12px',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: '#fff',
-                  fontWeight: 600,
-                  fontSize: '0.95rem',
-                  cursor: 'pointer',
-                  backdropFilter: 'blur(10px)',
-                  transition: 'all 0.2s ease'
-                }}
               >
-                <span>View Product Demo</span>
+                <span>Explore Architecture</span>
+                <ArrowRight size={14} />
               </button>
             </motion.div>
 
-            {/* Telemetry Strip with CountUp */}
-            <motion.div className="aiads-hero-stats" variants={fadeInUp}>
-              {AI_ADS_TELEMETRY.map((stat, idx) => (
-                <div key={idx} className="aiads-stat-item">
-                  <span className="aiads-stat-val">
-                    <CountUpNumber end={stat.value} duration={1.3} suffix={stat.suffix.split(' ')[0]} />
-                  </span>
-                  <span className="aiads-stat-lbl">{stat.label}</span>
-                </div>
-              ))}
+            {/* Hardware Telemetry Ribbon (Sleek Horizontal Dock - NOT Cards) */}
+            <motion.div className="aiads-telemetry-dock" variants={fadeInUp}>
+              <div className="aiads-dock-item">
+                <span className="aiads-dock-dot" style={{ background: '#7c3aed' }}></span>
+                <span className="aiads-dock-val">8 Engines</span>
+                <span className="aiads-dock-lbl">Active</span>
+              </div>
+              <div className="aiads-dock-sep">/</div>
+              <div className="aiads-dock-item">
+                <span className="aiads-dock-dot" style={{ background: '#10b981' }}></span>
+                <span className="aiads-dock-val">100% Fidelity</span>
+                <span className="aiads-dock-lbl">Brand DNA</span>
+              </div>
+              <div className="aiads-dock-sep">/</div>
+              <div className="aiads-dock-item">
+                <span className="aiads-dock-dot" style={{ background: '#2563eb' }}></span>
+                <span className="aiads-dock-val">Multi-Format</span>
+                <span className="aiads-dock-lbl">Sync</span>
+              </div>
             </motion.div>
           </motion.div>
 
-          {/* RIGHT: Marketing Command Center Composition */}
+          {/* RIGHT: Atomic Marketing Synapse Reactor (Visual Object - ZERO CARDS) */}
           <motion.div 
             className="aiads-hero-visual-col"
             initial={{ opacity: 0, scale: 0.94 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           >
-            <div className="aiads-command-center">
-              {/* Background Animated SVG Connector Lines */}
-              <svg 
-                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 2 }}
-              >
+            <div className="aiads-synapse-stage">
+              {/* SVG Animated Orbital Rays & Particles */}
+              <svg className="aiads-synapse-svg" viewBox="0 0 500 500">
                 <defs>
-                  <linearGradient id="orbitLineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.4" />
-                    <stop offset="50%" stopColor="#2563eb" stopOpacity="0.4" />
-                    <stop offset="100%" stopColor="#ec4899" stopOpacity="0.2" />
+                  <linearGradient id="synapseCoreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.8" />
+                    <stop offset="100%" stopColor="#2563eb" stopOpacity="0.4" />
                   </linearGradient>
+                  <radialGradient id="synapseAura" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.18" />
+                    <stop offset="60%" stopColor="#2563eb" stopOpacity="0.06" />
+                    <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+                  </radialGradient>
                 </defs>
 
-                {/* Concentric ambient orbital rings */}
-                <circle cx="50%" cy="50%" r="120" fill="none" stroke="rgba(124, 58, 237, 0.12)" strokeWidth="1" strokeDasharray="4 6" />
-                <circle cx="50%" cy="50%" r="185" fill="none" stroke="rgba(37, 99, 235, 0.08)" strokeWidth="1" strokeDasharray="6 8" />
+                {/* Aura Field */}
+                <circle cx="250" cy="250" r="230" fill="url(#synapseAura)" />
 
-                {/* Animated connecting beams */}
-                {!shouldReduceMotion && (
-                  <>
-                    <motion.circle
-                      r="3"
-                      fill="#7c3aed"
-                      animate={{
-                        cx: ['50%', '25%'],
-                        cy: ['50%', '20%'],
-                        opacity: [0, 0.8, 0]
-                      }}
-                      transition={{ duration: 4.5, repeat: Infinity, ease: 'linear' }}
-                    />
-                    <motion.circle
-                      r="3"
-                      fill="#2563eb"
-                      animate={{
-                        cx: ['50%', '82%'],
-                        cy: ['50%', '22%'],
-                        opacity: [0, 0.85, 0]
-                      }}
-                      transition={{ duration: 5, delay: 1, repeat: Infinity, ease: 'linear' }}
-                    />
-                  </>
-                )}
+                {/* Concentric Orbital Tracks */}
+                <circle cx="250" cy="250" r="120" fill="none" stroke="rgba(124, 58, 237, 0.15)" strokeWidth="1.2" strokeDasharray="4 6" />
+                <circle cx="250" cy="250" r="190" fill="none" stroke="rgba(37, 99, 235, 0.12)" strokeWidth="1.2" strokeDasharray="6 8" />
+
+                {/* Synapse Connection Rays to each Node */}
+                {SYNAPSE_NODES.map((node) => {
+                  const rad = (node.angle * Math.PI) / 180;
+                  const targetX = 250 + node.r * Math.cos(rad);
+                  const targetY = 250 + node.r * Math.sin(rad);
+                  const isSelected = activeNodeId === node.id;
+
+                  return (
+                    <g key={node.id}>
+                      <line
+                        x1="250"
+                        y1="250"
+                        x2={targetX}
+                        y2={targetY}
+                        stroke={isSelected ? node.color : 'rgba(124, 58, 237, 0.2)'}
+                        strokeWidth={isSelected ? 2 : 1}
+                        strokeDasharray={isSelected ? 'none' : '3 5'}
+                      />
+                      {!shouldReduceMotion && (
+                        <motion.circle
+                          r={isSelected ? 3.5 : 2}
+                          fill={node.color}
+                          animate={{
+                            cx: [250, targetX],
+                            cy: [250, targetY],
+                            opacity: [0, 1, 0]
+                          }}
+                          transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                        />
+                      )}
+                    </g>
+                  );
+                })}
               </svg>
 
-              {/* Central Core Engine Node */}
+              {/* Central Hologram Core Reactor (Circular Holographic Node) */}
               <motion.div 
-                className="aiads-core-engine-node"
-                animate={shouldReduceMotion ? {} : { y: [0, -6, 0] }}
-                transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+                className="aiads-core-reactor"
+                animate={shouldReduceMotion ? {} : { rotate: [0, 360] }}
+                transition={{ duration: 40, repeat: Infinity, ease: 'linear' }}
               >
+                <div className="aiads-reactor-halo"></div>
+              </motion.div>
+
+              <div className="aiads-reactor-nucleus">
                 <img 
                   src="/images/aiads-logo.png" 
                   alt="AI Ads Logo" 
-                  style={{ width: '42px', height: '42px', objectFit: 'contain', marginBottom: '4px', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))' }}
+                  className="aiads-reactor-logo"
                   onError={(e) => { e.currentTarget.style.display = 'none'; }}
                 />
-                <div style={{ fontSize: '0.86rem', fontWeight: 900, letterSpacing: '-0.01em' }}>
-                  AI ADS<sup>™</sup>
-                </div>
-                <div style={{ fontSize: '0.62rem', opacity: 0.9, fontFamily: 'var(--aiads-font-mono)' }}>
-                  Core Engine
-                </div>
-              </motion.div>
+                <span className="aiads-reactor-title">AI ADS<sup>™</sup></span>
+                <span className="aiads-reactor-pulse">
+                  <span className="aiads-reactor-dot"></span>
+                  Active Core
+                </span>
+              </div>
 
-              {/* Orbiting Satellite Cards with Independent Motion & Parallax */}
-              {ORBIT_CARDS.map((card) => {
-                const CardIcon = card.icon;
-                const parallaxX = isFinePointer && !shouldReduceMotion ? mousePos.x * 6 : 0;
-                const parallaxY = isFinePointer && !shouldReduceMotion ? mousePos.y * 6 : 0;
+              {/* 6 Circular Floating Synapse Orbs (NO CARDS - Pure Circular Glass Lenses) */}
+              {SYNAPSE_NODES.map((node) => {
+                const rad = (node.angle * Math.PI) / 180;
+                // Offset percentages from center
+                const offsetX = (node.r / 250) * 44 * Math.cos(rad);
+                const offsetY = (node.r / 250) * 44 * Math.sin(rad);
+                const Icon = node.icon;
+                const isSelected = activeNodeId === node.id;
 
                 return (
-                  <motion.div
-                    key={card.id}
-                    className="aiads-orbit-card"
+                  <button
+                    key={node.id}
+                    type="button"
+                    className={`aiads-synapse-orb ${isSelected ? 'active' : ''}`}
+                    onClick={() => setActiveNodeId(node.id)}
                     style={{
-                      top: card.top,
-                      bottom: card.bottom,
-                      left: card.left,
-                      right: card.right,
-                      borderColor: `${card.color}35`
+                      left: `calc(50% + ${offsetX}%)`,
+                      top: `calc(50% + ${offsetY}%)`,
+                      borderColor: isSelected ? node.color : undefined,
+                      boxShadow: isSelected ? `0 0 25px ${node.color}60` : undefined
                     }}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ 
-                      opacity: 1, 
-                      scale: 1,
-                      x: parallaxX,
-                      y: parallaxY
-                    }}
-                    transition={{ duration: 0.5, delay: card.delay }}
-                    whileHover={{ scale: 1.06, borderColor: card.color, boxShadow: `0 8px 24px ${card.color}30` }}
+                    title={node.label}
                   >
-                    <div style={{ 
-                      width: '26px', 
-                      height: '26px', 
-                      borderRadius: '8px', 
-                      background: `${card.color}15`, 
-                      color: card.color,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      <CardIcon size={14} />
+                    <div 
+                      className="aiads-orb-lens" 
+                      style={{ 
+                        color: node.color, 
+                        background: isSelected ? `${node.color}25` : `${node.color}12` 
+                      }}
+                    >
+                      <Icon size={18} />
                     </div>
-                    <span>{card.label}</span>
-                  </motion.div>
+                    <span 
+                      className="aiads-orb-label"
+                      style={{ 
+                        color: isSelected ? node.color : undefined 
+                      }}
+                    >
+                      {node.label}
+                    </span>
+                  </button>
                 );
               })}
+            </div>
+
+            {/* Interactive Hologram Telemetry HUD (Single 1-Line Readout) */}
+            <div className="aiads-synapse-hud">
+              <span className="aiads-hud-dot" style={{ background: activeNode.color }}></span>
+              <span className="aiads-hud-engine">SYNAPSE: {activeNode.label.toUpperCase()}</span>
+              <span className="aiads-hud-sep">·</span>
+              <span className="aiads-hud-status">Synchronized with central Brand DNA repository</span>
             </div>
           </motion.div>
         </div>

@@ -1,98 +1,59 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { 
-  UWO_CONNECT_WEB_URL,
-  UWO_CONNECT_ANDROID_URL
-} from '../../constants/uwoConnectConstants';
-import { fadeUp, btnMotion, EASE_PREMIUM } from './motionVariants';
+import { UWO_CONNECT_WEB_URL, UWO_CONNECT_ANDROID_URL } from '../../constants/uwoConnectConstants';
 
 export default function FinalCtaSection() {
-  const scrollToFeatures = () => {
-    const el = document.getElementById('features');
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const perks = [
-    'Official Meta Cloud API Partner',
-    'Zero-Code Connectors',
-    'Multi-Agent Team Collaboration',
-    'GST Tax Invoicing Built-in',
-  ];
-
   return (
-    <section className="uwoc-final-cta-section" id="cta">
+    <section className="uwoc-section uwoc-final-cta-section" id="cta">
       <div className="uwoc-cta-glow-mesh" aria-hidden="true" />
+      <div className="uwoc-cta-ambient-orbit" aria-hidden="true">
+        <div className="uwoc-cta-ring-1" />
+        <div className="uwoc-cta-ring-2" />
+      </div>
 
       <div className="uwoc-container">
         <motion.div
           className="uwoc-final-cta-box"
-          initial="hidden"
-          whileInView="visible"
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.2 }}
-          variants={fadeUp}
+          transition={{ duration: 0.55 }}
         >
           <div className="uwoc-eyebrow">
-            <span className="uwoc-eyebrow-dot" />
-            <i className="fa-solid fa-rocket"></i>
-            <span>GET STARTED TODAY</span>
+            <span className="uwoc-pill-dot" />
+            <span>Discover The Full Platform</span>
           </div>
 
           <h2 className="uwoc-final-title">
-            Ready to Connect <br />
-            <span className="uwoc-gradient-emerald">Your Business?</span>
+            Ready To Scale? <br />
+            <span className="uwoc-highlight">Start With UWO Connect.</span>
           </h2>
 
           <p className="uwoc-final-subtitle">
-            Bring conversations, customers, teams and automation into one intelligent workspace. Start responding faster, closing more deals, and scaling operations today.
+            Unify your customer communication channels, automate repetitive tasks with AI, and scale your sales pipeline with zero friction.
           </p>
 
           <div className="uwoc-final-actions">
-            <motion.a
+            <a
               href={UWO_CONNECT_WEB_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="uwoc-btn uwoc-btn-emerald uwoc-btn-lg"
-              whileHover={btnMotion.hover}
-              whileTap={btnMotion.tap}
+              className="uwoc-btn-primary uwoc-btn-lg"
             >
-              <span>Start Free Now</span>
-              <i className="fa-solid fa-arrow-right"></i>
-            </motion.a>
+              <i className="fa-solid fa-globe"></i>
+              <span>Launch Web Platform</span>
+              <i className="fa-solid fa-arrow-up-right-from-square"></i>
+            </a>
 
-            <motion.a
+            <a
               href={UWO_CONNECT_ANDROID_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="uwoc-btn uwoc-btn-secondary uwoc-btn-lg"
-              aria-label="Download UWO Connect on Google Play Store"
-              whileHover={btnMotion.hover}
-              whileTap={btnMotion.tap}
+              className="uwoc-btn-secondary uwoc-btn-lg"
             >
-              <i className="fa-brands fa-google-play"></i>
-              <span>Get on Google Play</span>
-            </motion.a>
-
-            <motion.button
-              type="button"
-              className="uwoc-btn uwoc-btn-dark-outline uwoc-btn-lg"
-              onClick={scrollToFeatures}
-              whileHover={btnMotion.hover}
-              whileTap={btnMotion.tap}
-            >
-              <i className="fa-solid fa-shapes"></i>
-              <span>Explore Features</span>
-            </motion.button>
-          </div>
-
-          <div className="uwoc-final-perks">
-            {perks.map((perk, idx) => (
-              <motion.span 
-                key={idx}
-                whileHover={{ y: -2, scale: 1.03, transition: { duration: 0.2, ease: EASE_PREMIUM } }}
-              >
-                <i className="fa-solid fa-check text-emerald"></i> {perk}
-              </motion.span>
-            ))}
+              <i className="fa-brands fa-google-play text-emerald"></i>
+              <span>Download Android App</span>
+            </a>
           </div>
         </motion.div>
       </div>

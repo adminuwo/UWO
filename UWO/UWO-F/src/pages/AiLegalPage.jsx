@@ -5,11 +5,7 @@ import EcosystemSection from '../components/ailegal/EcosystemSection';
 import RoleExplorer from '../components/ailegal/RoleExplorer';
 import UseCaseSection from '../components/ailegal/UseCaseSection';
 import WorkflowSection from '../components/ailegal/WorkflowSection';
-import ProductShowcase from '../components/ailegal/ProductShowcase';
-import DifferentiatorSection from '../components/ailegal/DifferentiatorSection';
 import PlatformAvailability from '../components/ailegal/PlatformAvailability';
-import TrustSection from '../components/ailegal/TrustSection';
-import FinalCTA from '../components/ailegal/FinalCTA';
 import { AI_LEGAL_META, AI_LEGAL_ANDROID_URL } from '../constants/aiLegalConstants';
 import '../ai-legal.css';
 
@@ -130,23 +126,10 @@ export default function AiLegalPage() {
       {/* 6. How AI Legal Works (4-Step Workflow) */}
       <WorkflowSection />
 
-      {/* 7. Product Experience (Multi-UI Showcase) */}
-      <ProductShowcase />
 
-      {/* 8. Differentiator Section ("More Than a Chatbot") */}
-      <DifferentiatorSection />
-
-      {/* 9. Web + Mobile Availability */}
+      {/* 7. Web + Mobile Availability */}
       <PlatformAvailability />
 
-      {/* 10. Trust / Security Section */}
-      <TrustSection />
-
-      {/* 11. Final CTA & Disclaimer */}
-      <FinalCTA 
-        onExploreClick={() => scrollToSection('ecosystem')} 
-        onDownloadClick={() => scrollToSection('platforms')} 
-      />
     </div>
   );
 }

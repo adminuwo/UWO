@@ -1,90 +1,97 @@
 import React, { useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Compass, Calendar, ArrowRight, CheckCircle2, TrendingUp, Layers, Zap } from 'lucide-react';
+import { Compass, CheckCircle2, Calendar, Target, Layers, ArrowRight, Zap } from 'lucide-react';
 import { STRATEGY_ROADMAP_WEEKS } from '../../constants/aiAdsConstants';
-import { fadeInUp, staggerContainer } from '../aieducation/motionVariants';
 
 export default function StrategyHub() {
   const shouldReduceMotion = useReducedMotion();
-  const [activeWeek, setActiveWeek] = useState(0);
+  const [activeWeekIdx, setActiveWeekIdx] = useState(0);
+  const activeWeek = STRATEGY_ROADMAP_WEEKS[activeWeekIdx];
 
   return (
-    <section className="aiads-section" id="strategy-hub" style={{ background: '#f8fafc' }}>
+    <section className="aiads-section" id="strategy-hub" style={{ background: '#f8fafc', overflow: 'hidden' }}>
       <div className="aiads-container">
-        <div className="aiads-section-header">
+        {/* Minimal Header */}
+        <div className="aiads-section-header" style={{ marginBottom: '32px' }}>
           <span className="aiads-badge aiads-badge-coral">
-            <Compass size={14} />
-            Autonomous Roadmap Planning
+            <Compass size={13} />
+            30-Day Autonomous Trajectory
           </span>
           <h2 className="aiads-section-title">
-            Dynamic 30-Day Strategy Hub, <br />
-            <span className="aiads-gradient-title">Orchestrated in Advance.</span>
+            Pre-Orchestrated <span className="aiads-gradient-title">GTM Flight Plan.</span>
           </h2>
           <p className="aiads-section-subtitle">
-            Say goodbye to reactive marketing scrambles. AI Ads generates a structured, multi-channel 
-            4-week go-to-market blueprint allocating cadence, budget, and creative assets.
+            Autonomous 4-week multi-channel allocation, eliminating reactive marketing scrambles.
           </p>
         </div>
 
-        {/* 4-Week Strategic Roadmap Rail */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', position: 'relative' }}>
-          {STRATEGY_ROADMAP_WEEKS.map((week, idx) => {
-            const isSelected = activeWeek === idx;
-            return (
-              <motion.div
-                key={idx}
-                className="aiads-card"
-                onClick={() => setActiveWeek(idx)}
-                whileHover={{ y: -4 }}
-                style={{
-                  padding: '24px',
-                  cursor: 'pointer',
-                  borderColor: isSelected ? week.color : 'var(--aiads-border)',
-                  boxShadow: isSelected ? `0 10px 30px ${week.color}25` : 'var(--aiads-shadow-sm)',
-                  background: '#ffffff',
-                  position: 'relative'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <span style={{ fontSize: '0.74rem', fontFamily: 'var(--aiads-font-mono)', fontWeight: 800, color: week.color }}>
-                    {week.week}
-                  </span>
-                  <span style={{ fontSize: '0.64rem', fontWeight: 700, padding: '2px 8px', borderRadius: '9999px', background: `${week.color}15`, color: week.color }}>
-                    {week.badge}
-                  </span>
+        {/* NON-CARD OBJECT: Horizontal Trajectory Ribbon with Docking Nodes */}
+        <div className="aiads-flightplan-object">
+          {/* Timeline Ribbon Rail */}
+          <div className="aiads-flightplan-rail">
+            <div className="aiads-rail-line">
+              <div 
+                className="aiads-rail-progress" 
+                style={{ width: `${(activeWeekIdx / (STRATEGY_ROADMAP_WEEKS.length - 1)) * 100}%` }}
+              ></div>
+            </div>
+
+            {STRATEGY_ROADMAP_WEEKS.map((week, idx) => {
+              const isSelected = activeWeekIdx === idx;
+              const isPast = activeWeekIdx >= idx;
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setActiveWeekIdx(idx)}
+                  className={`aiads-flightplan-node ${isSelected ? 'active' : ''} ${isPast ? 'reached' : ''}`}
+                  style={{ '--node-color': week.color }}
+                >
+                  <div className="aiads-node-ring">
+                    <span className="aiads-node-dot"></span>
+                  </div>
+                  <span className="aiads-node-week">{week.week}</span>
+                  <span className="aiads-node-badge">{week.badge}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Single Consolidated Mission Control Deck (NO MULTIPLE BOXED CARDS) */}
+          <div className="aiads-flightplan-cockpit">
+            <div className="aiads-cockpit-bar">
+              <div className="aiads-cockpit-title-group">
+                <span className="aiads-cockpit-label">PHASE {activeWeekIdx + 1} FOCUS</span>
+                <h3 className="aiads-cockpit-title" style={{ color: activeWeek.color }}>
+                  {activeWeek.theme}
+                </h3>
+              </div>
+              <span className="aiads-cockpit-status-tag" style={{ background: `${activeWeek.color}15`, color: activeWeek.color }}>
+                {activeWeek.badge}
+              </span>
+            </div>
+
+            {/* Micro Deliverable Tags */}
+            <div className="aiads-cockpit-deliverables">
+              {activeWeek.deliverables.map((item, dIdx) => (
+                <div key={dIdx} className="aiads-cockpit-chip">
+                  <CheckCircle2 size={13} style={{ color: activeWeek.color, flexShrink: 0 }} />
+                  <span>{item}</span>
                 </div>
+              ))}
+            </div>
 
-                <h4 style={{ fontSize: '1.02rem', fontWeight: 800, color: 'var(--aiads-text-main)', marginBottom: '14px', lineHeight: 1.3 }}>
-                  {week.theme}
-                </h4>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {week.deliverables.map((item, dIdx) => (
-                    <div key={dIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '0.76rem', color: 'var(--aiads-text-muted)', lineHeight: 1.4 }}>
-                      <CheckCircle2 size={13} style={{ color: week.color, flexShrink: 0, marginTop: '2px' }} />
-                      <span>{item}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {isSelected && !shouldReduceMotion && (
-                  <motion.div
-                    layoutId="activeStrategyGlow"
-                    style={{
-                      position: 'absolute',
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      height: '3px',
-                      background: week.color,
-                      borderRadius: '0 0 16px 16px'
-                    }}
-                    transition={{ duration: 0.3 }}
-                  />
-                )}
-              </motion.div>
-            );
-          })}
+            {/* Omnichannel Allocation Bar */}
+            <div className="aiads-cockpit-channels">
+              <span className="aiads-channel-label">CROSS-CHANNEL ALLOCATION:</span>
+              <div className="aiads-channel-meter">
+                <div className="meter-seg seg-meta" style={{ width: '40%' }} title="Meta Ads (40%)">Meta 40%</div>
+                <div className="meter-seg seg-linkedin" style={{ width: '30%' }} title="LinkedIn (30%)">LinkedIn 30%</div>
+                <div className="meter-seg seg-google" style={{ width: '20%' }} title="Google SERP (20%)">Search 20%</div>
+                <div className="meter-seg seg-email" style={{ width: '10%' }} title="Direct Email (10%)">Email 10%</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>

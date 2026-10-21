@@ -3,6 +3,10 @@
 // Source of Truth: Convee Master Enterprise Architecture & Docs
 // ========================================================
 
+export const AI_EDUCATION_WEB_URL = 'https://education.uwo24.com';
+export const AI_EDUCATION_ANDROID_URL = 'https://play.google.com/store/apps/details?id=com.uwo.education&pcampaignid=web_share';
+export const AI_EDUCATION_IOS_URL = 'https://apps.apple.com/app/uwo-education/id6470000000';
+
 export const AI_EDUCATION_META = {
   title: 'AI Education™ | AI-Powered Academic Operating Platform | UWO™',
   description: 'AI Education™ is an intelligent academic platform connecting institutions, faculty, students and parents through modern academic operations, learning and AI-powered workflows.',

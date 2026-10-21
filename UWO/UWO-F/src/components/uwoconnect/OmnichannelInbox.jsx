@@ -47,40 +47,26 @@ export default function OmnichannelInbox() {
           viewport={{ once: true, amount: 0.2 }}
           variants={fadeUp}
         >
-          <div className="uwoc-eyebrow">
-            <i className="fa-solid fa-comments"></i>
-            <span>OMNICHANNEL UNIFIED INBOX</span>
-          </div>
-
           <h2 className="uwoc-section-title">
             Every Conversation. <span className="uwoc-gradient-gold">One Inbox.</span>
           </h2>
-
-          <p className="uwoc-section-subtitle">
-            Never lose a lead between switching apps. Unify WhatsApp Business, Instagram Direct, Facebook Messenger, and YouTube comments into one collaborative multi-agent workspace.
-          </p>
         </motion.div>
 
         {/* 2-Column Interactive Workspace */}
-        <div 
+        <div
           className="uwoc-inbox-interactive-grid"
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
           {/* LEFT: COMPACT CHANNEL SELECTOR CARDS WITH STAGGERED ENTRANCE */}
-          <motion.div 
+          <motion.div
             className="uwoc-channels-list"
             variants={staggerContainer(0.1, 0.1)}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, amount: 0.15 }}
           >
-            <div className="uwoc-channels-header-hint">
-              <span>ACTIVE CHANNELS</span>
-              <span className="uwoc-sync-live-pill">
-                <span className="pulse-dot-green" /> Auto-Sync Active
-              </span>
-            </div>
+
 
             {CHANNELS_DATA.map((channel, idx) => {
               const isSelected = idx === currentIndex;
@@ -95,26 +81,15 @@ export default function OmnichannelInbox() {
                   variants={fadeUp}
                   whileHover={{ x: 5, transition: { duration: 0.25, ease: EASE_PREMIUM } }}
                 >
-                  <div 
-                    className="uwoc-channel-icon-pill" 
+                  <div
+                    className="uwoc-channel-icon-pill"
                     style={{ backgroundColor: `${channel.color}15`, color: channel.color }}
                   >
                     <i className={channel.icon}></i>
                   </div>
 
                   <div className="uwoc-channel-meta">
-                    <div className="uwoc-channel-meta-top">
-                      <h3>{channel.name}</h3>
-                      <span className="uwoc-pill-label">{channel.badge}</span>
-                    </div>
-                    <div className="uwoc-channel-meta-bottom">
-                      <span className="uwoc-channel-tag">{channel.tag}</span>
-                      <span className="uwoc-dot-sep">•</span>
-                      <span className="uwoc-status-text" style={{ color: channel.color }}>
-                        <span className="dot" style={{ backgroundColor: channel.color }} />
-                        {channel.status}
-                      </span>
-                    </div>
+                    <h3>{channel.name}</h3>
                   </div>
 
                   <div className="uwoc-channel-arrow">
@@ -123,7 +98,7 @@ export default function OmnichannelInbox() {
 
                   {/* Active Auto-cycle Progress Line */}
                   {isSelected && (
-                    <div 
+                    <div
                       className="uwoc-channel-progress-bar"
                       style={{ width: `${progress}%` }}
                     />
@@ -147,12 +122,12 @@ export default function OmnichannelInbox() {
                 {/* Inbox Top Bar */}
                 <div className="uwoc-inbox-head">
                   <div className="uwoc-customer-meta">
-                    <div 
-                      className="uwoc-avatar" 
-                      style={{ 
+                    <div
+                      className="uwoc-avatar"
+                      style={{
                         border: `2px solid ${selectedChannel.color}`,
                         backgroundColor: `${selectedChannel.color}15`,
-                        color: selectedChannel.color 
+                        color: selectedChannel.color
                       }}
                     >
                       {selectedChannel.conversation.customerAvatar}
@@ -174,7 +149,7 @@ export default function OmnichannelInbox() {
                       <i className="fa-solid fa-chart-pie"></i>
                       {selectedChannel.conversation.leadStage}
                     </span>
-                    <motion.span 
+                    <motion.span
                       className="uwoc-val-badge"
                       animate={{ scale: [1, 1.05, 1] }}
                       transition={{ duration: 0.5, ease: EASE_PREMIUM }}
@@ -189,8 +164,8 @@ export default function OmnichannelInbox() {
                   {selectedChannel.conversation.messages.map((msg, i) => {
                     if (msg.sender === 'system') {
                       return (
-                        <motion.div 
-                          key={i} 
+                        <motion.div
+                          key={i}
                           className="uwoc-inbox-sys-msg"
                           initial={{ opacity: 0, y: 8 }}
                           animate={{ opacity: 1, y: 0 }}

@@ -1,20 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { ShieldCheck, Lock, KeyRound, Server, EyeOff, FileCode, CheckCircle2 } from 'lucide-react';
-import { SECURITY_STANDARDS } from '../../constants/aiEducationConstants';
-import { fadeInUp, staggerContainer } from './motionVariants';
+import { ShieldCheck, Lock, KeyRound, Server, EyeOff, FileCode, CheckCircle2, Zap } from 'lucide-react';
 
-const TRUST_ICONS = [
-  ShieldCheck,
-  Lock,
-  KeyRound,
-  EyeOff,
-  Server,
-  FileCode
+const SECURITY_METRICS = [
+  { id: 'casa', label: 'CASA Tier-2 Standard', icon: ShieldCheck, code: 'SEC-01', status: 'VERIFIED', detail: 'Cloud Application Security Assessment Tier-2 authorized with rigorous multi-tenant data boundary verification.' },
+  { id: 'iso', label: 'Multi-Tenant Isolation', icon: Lock, code: 'SEC-02', status: 'ENFORCED', detail: 'Strict database-level org_id schema partitioning guaranteeing zero cross-institution data leakage.' },
+  { id: 'bola', label: 'Zero BOLA / BFLA', icon: KeyRound, code: 'SEC-03', status: 'PROTECTED', detail: 'Every API endpoint enforces compound actor verification preventing unauthorized IDOR object tampering.' },
+  { id: 'rate', label: 'Compound Rate Limiter', icon: Server, code: 'SEC-04', status: 'ACTIVE', detail: 'Adaptive classroom burst-tolerant rate limiting per client IP, user session, and institutional domain.' },
+  { id: 'pii', label: 'Sanitized Audit Stream', icon: EyeOff, code: 'SEC-05', status: 'COMPLIANT', detail: 'Real-time hashing and obfuscation of all student credentials, exam logs, and payment voucher records.' },
+  { id: 'llm', label: 'Zero LLM Training Retention', icon: FileCode, code: 'SEC-06', status: 'ENCRYPTED', detail: 'Enterprise Vertex AI & OpenAI API agreements ensuring zero institutional data retention or model training.' }
 ];
 
 export default function TrustSection() {
   const shouldReduceMotion = useReducedMotion();
+  const [activeMetricId, setActiveMetricId] = useState('casa');
+  const activeMetric = SECURITY_METRICS.find(m => m.id === activeMetricId) || SECURITY_METRICS[0];
 
   return (
     <section className="aied-section" id="security-governance">
@@ -25,60 +25,76 @@ export default function TrustSection() {
             Institutional Governance &amp; Security
           </span>
           <h2 className="aied-section-title">
-            Enterprise Security &amp; <br />
-            <span className="aied-gradient-emerald">CASA Tier-2 Compliance.</span>
+            Enterprise Security &amp; <span className="aied-gradient-emerald">CASA Tier-2 Compliance.</span>
           </h2>
           <p className="aied-section-subtitle">
-            Engineered in strict accordance with Cloud Application Security Assessment Tier-2 guidelines, 
-            OWASP Top 10 standards, and student data privacy principles.
+            Zero compromises on data privacy. Hardened for national universities, engineering institutes, and K-12 systems.
           </p>
         </div>
 
-        <motion.div 
-          className="aied-trust-grid"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-40px' }}
-          variants={staggerContainer}
-        >
-          {SECURITY_STANDARDS.map((std, i) => {
-            const Icon = TRUST_ICONS[i] || ShieldCheck;
-            return (
-              <motion.div 
-                key={i} 
-                className="aied-trust-card"
-                variants={fadeInUp}
-                whileHover={{ y: -4, borderColor: 'var(--aied-emerald)' }}
-                style={{ position: 'relative' }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <div className="aied-trust-icon" style={{ color: 'var(--aied-emerald)', background: 'var(--aied-emerald-surface)', marginBottom: 0 }}>
-                    <Icon size={18} />
-                  </div>
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: 0.15 + i * 0.08, duration: 0.3 }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(0, 184, 122, 0.08)', border: '1px solid rgba(0, 184, 122, 0.25)', borderRadius: '4px', padding: '2px 6px' }}
-                  >
-                    <CheckCircle2 size={10} style={{ color: 'var(--aied-emerald)' }} />
-                    <span style={{ fontSize: '0.62rem', color: 'var(--aied-emerald)', fontFamily: 'var(--aied-font-mono)', fontWeight: 700 }}>
-                      VERIFIED
-                    </span>
-                  </motion.div>
-                </div>
+        {/* Unified Security Vault Console (Visual Object - NOT Cards) */}
+        <div className="aied-vault-console">
+          {/* Top Verification Shield Ribbon */}
+          <div className="aied-vault-shield-strip">
+            <div className="aied-vault-shield-left">
+              <div className="aied-vault-shield-emblem">
+                <ShieldCheck size={28} className="text-emerald-400" />
+              </div>
+              <div>
+                <div className="aied-vault-shield-title">ENTERPRISE SECURITY VAULT</div>
+                <div className="aied-vault-shield-sub">CASA Tier-2 Authorized · OWASP Top 10 Hardened · End-to-End TLS 1.3</div>
+              </div>
+            </div>
+            <div className="aied-vault-shield-badges">
+              <span className="aied-vault-verified-pill">
+                <CheckCircle2 size={12} />
+                <span>100% AUDIT PASS</span>
+              </span>
+              <span className="aied-vault-verified-pill" style={{ borderColor: 'rgba(22, 184, 232, 0.4)', color: '#16b8e8' }}>
+                <Zap size={12} />
+                <span>ZERO PII RETENTION</span>
+              </span>
+            </div>
+          </div>
 
-                <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#ffffff', marginBottom: '6px' }}>
-                  {std.title}
-                </h3>
-                <p style={{ fontSize: '0.76rem', color: 'var(--aied-text-muted)', lineHeight: 1.45, margin: 0 }}>
-                  {std.desc}
-                </p>
-              </motion.div>
-            );
-          })}
-        </motion.div>
+          {/* Interactive Security Spec Bar (Clean Horizontal Segment Rack) */}
+          <div className="aied-vault-specs-rack">
+            {SECURITY_METRICS.map((metric) => {
+              const MetricIcon = metric.icon;
+              const isSelected = activeMetricId === metric.id;
+              return (
+                <button
+                  key={metric.id}
+                  type="button"
+                  className={`aied-vault-spec-slot ${isSelected ? 'active' : ''}`}
+                  onClick={() => setActiveMetricId(metric.id)}
+                >
+                  <div className="aied-vault-slot-header">
+                    <span className="aied-vault-slot-code">{metric.code}</span>
+                    <span className="aied-vault-slot-led" style={{ background: isSelected ? '#00b87a' : 'rgba(255,255,255,0.2)' }}></span>
+                  </div>
+                  <div className="aied-vault-slot-title">
+                    <MetricIcon size={14} className={isSelected ? 'text-emerald-400' : 'text-slate-400'} />
+                    <span>{metric.label}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Real-time Detail & Verification Readout */}
+          <div className="aied-vault-readout">
+            <div className="aied-vault-readout-header">
+              <span className="aied-pulse-dot" style={{ width: 6, height: 6, borderRadius: '50%', background: '#00b87a', display: 'inline-block', boxShadow: '0 0 6px #00b87a' }}></span>
+              <span className="aied-vault-readout-code">SECURITY SPECIFICATION: {activeMetric.code}</span>
+              <span className="aied-vault-readout-title">· {activeMetric.label}</span>
+              <span className="aied-vault-readout-status">[{activeMetric.status}]</span>
+            </div>
+            <p className="aied-vault-readout-detail">
+              {activeMetric.detail}
+            </p>
+          </div>
+        </div>
       </div>
     </section>
   );

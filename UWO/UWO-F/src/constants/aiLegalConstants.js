@@ -20,8 +20,9 @@ export const ECOSYSTEM_NODES = [
     title: 'AI Legal Assistant',
     category: 'Reasoning & Intelligence',
     description: 'Context-aware global legal reasoning assistant trained on statutory provisions, case law precedents, and procedural codes.',
-    icon: 'fa-brain-circuit',
-    badge: 'Core Engine'
+    icon: 'fa-brain',
+    badge: 'Core Engine',
+    highlight: 'Statutory Reasoning'
   },
   {
     id: 'cases',
@@ -29,7 +30,8 @@ export const ECOSYSTEM_NODES = [
     category: 'Practice Management',
     description: 'Centralized registry to manage active case dockets, parties, court hearings, procedural filings, and client records.',
     icon: 'fa-briefcase',
-    badge: 'Management'
+    badge: 'Management',
+    highlight: 'Active Case Dockets'
   },
   {
     id: 'workspace',
@@ -37,7 +39,8 @@ export const ECOSYSTEM_NODES = [
     category: 'Contextual AI',
     description: 'Isolated case-specific AI environment that digests case pleadings, petitions, and evidence for contextual interrogation.',
     icon: 'fa-folder-open',
-    badge: 'Deep Context'
+    badge: 'Deep Context',
+    highlight: 'Pleadings & Memory'
   },
   {
     id: 'tools',
@@ -45,15 +48,17 @@ export const ECOSYSTEM_NODES = [
     category: 'Utility Suite',
     description: 'Specialized legal utilities including date reckoning, limitation calculators, legal notice builders, and court fee estimators.',
     icon: 'fa-screwdriver-wrench',
-    badge: 'Utilities'
+    badge: 'Utilities',
+    highlight: 'Court Fee & Limitations'
   },
   {
     id: 'evidence',
     title: 'Evidence Vault',
     category: 'Secure Repository',
     description: 'Encrypted document repository supporting automated OCR, multi-format forensic indexing, and bilingual transcript generation.',
-    icon: 'fa-shield-halved',
-    badge: 'Vault'
+    icon: 'fa-shield',
+    badge: 'Vault',
+    highlight: 'Bilingual OCR & Vault'
   },
   {
     id: 'knowledge',
@@ -61,7 +66,8 @@ export const ECOSYSTEM_NODES = [
     category: 'Precedent & Doctrine',
     description: 'Intelligent search across Supreme Court, High Court precedents, constitutional authorities, and statutory regulations.',
     icon: 'fa-scale-balanced',
-    badge: 'Authorities'
+    badge: 'Authorities',
+    highlight: '3.8 Cr+ Judgments'
   },
   {
     id: 'courtroom',
@@ -69,7 +75,8 @@ export const ECOSYSTEM_NODES = [
     category: 'Hearing Simulation',
     description: 'Interactive simulated courtroom hearings supporting voice or text interrogation with procedural objections and judicial critique.',
     icon: 'fa-gavel',
-    badge: 'Simulation'
+    badge: 'Simulation',
+    highlight: 'Simulated Hearings'
   },
   {
     id: 'clients',
@@ -77,7 +84,8 @@ export const ECOSYSTEM_NODES = [
     category: 'Client Collaboration',
     description: 'Client relationship bridge facilitating verified case status broadcasts and templated WhatsApp communications.',
     icon: 'fa-comments',
-    badge: 'Communication'
+    badge: 'Communication',
+    highlight: 'WhatsApp Updates'
   }
 ];
 
@@ -300,20 +308,17 @@ export const LEGAL_ROLES = [
     title: 'Advocates & Counsel',
     badge: 'Solo & Independent Practice',
     icon: 'fa-user-tie',
-    summary: 'Empowering independent litigators to manage heavy dockets, draft complex pleadings in minutes, and conduct deep research with speed.',
+    summary: 'Empowering independent litigators to manage dockets, draft pleadings, and conduct deep research with speed.',
     problems: [
-      'Hours spent cross-referencing multi-volume law reports and statute updates',
-      'Repetitive manual drafting of routine notices, petitions, and applications',
-      'Fragmented evidence files stored across paper bundles, email threads, and phone galleries',
-      'Frequent client queries demanding status updates while preparing for hearings'
+      'Hours spent cross-referencing law reports and statute updates',
+      'Repetitive manual drafting of routine notices and petitions'
     ],
-    solution: 'AI LEGAL serves as a 24/7 senior legal associate that organizes matter files, drafts petitions from verified templates, extracts contradictions from evidence, and keeps clients informed.',
-    modules: ['Case Workspace', 'AI Draft Maker', 'Evidence Analyst', 'AI Mock Courtroom', 'AI Client Connect'],
+    solution: 'A 24/7 AI legal associate that organizes matter files, drafts petitions from verified templates, and extracts contradictions from evidence.',
+    modules: ['Case Workspace', 'AI Draft Maker', 'AI Mock Courtroom'],
     workflow: [
-      { step: '01', title: 'Matter Ingestion', desc: 'Create matter file and drop in pleadings, FIRs, or contracts.' },
-      { step: '02', title: 'Contextual Research', desc: 'Query case precedents specific to the judge and bench citations.' },
-      { step: '03', title: 'Rapid Drafting', desc: 'Generate petition draft in minutes; refine and export to DOCX/PDF.' },
-      { step: '04', title: 'Courtroom Rehearsal', desc: 'Run a mock hearing with AI judge to pressure-test oral arguments.' }
+      { step: '01', title: 'Matter Ingestion', desc: 'Create matter file and drop in pleadings or contracts.' },
+      { step: '02', title: 'Contextual Research', desc: 'Query case precedents specific to bench citations.' },
+      { step: '03', title: 'Rapid Drafting', desc: 'Generate petition draft in minutes; export to DOCX/PDF.' }
     ]
   },
   {
@@ -321,20 +326,17 @@ export const LEGAL_ROLES = [
     title: 'Law Firms & Chambers',
     badge: 'Multi-Attorney Practice',
     icon: 'fa-building-columns',
-    summary: 'Equipping legal chambers and boutique law firms with centralized case workspaces, team collaboration, and standardized work products.',
+    summary: 'Centralized case workspaces, team collaboration, and standardized work products for legal chambers.',
     problems: [
-      'Inconsistent drafting quality and citation styles across associates and interns',
-      'Knowledge leakage when team members transition off active matters',
-      'Lack of centralized visibility over matter progress and upcoming deadlines',
-      'Labor-intensive contract audits during commercial due diligence'
+      'Inconsistent drafting quality and citation styles across associates',
+      'Lack of centralized visibility over matter progress and deadlines'
     ],
-    solution: 'A unified legal operating system providing shared matter workspaces, firm-wide citation and drafting standards, and instant contract risk scoring.',
-    modules: ['My Cases', 'Contract Analyzer', 'Evidence Vault', 'Strategy Engine', 'Case Workspace'],
+    solution: 'A unified legal operating system with shared matter workspaces, firm-wide drafting standards, and instant contract risk scoring.',
+    modules: ['My Cases', 'Contract Analyzer', 'Strategy Engine'],
     workflow: [
-      { step: '01', title: 'Chamber Matter Setup', desc: 'Assign senior partner, associates, and researchers to matters.' },
-      { step: '02', title: 'Due Diligence & Audit', desc: 'Batch-analyze agreements for compliance risks and missing clauses.' },
-      { step: '03', title: 'Collaborative Briefs', desc: 'Collaborate in real time on arguments anchored to the Evidence Vault.' },
-      { step: '04', title: 'Review & Approval', desc: 'Senior counsel reviews AI-synthesized brief before filing.' }
+      { step: '01', title: 'Chamber Setup', desc: 'Assign partner, associates, and researchers to matters.' },
+      { step: '02', title: 'Due Diligence', desc: 'Batch-analyze agreements for compliance risks.' },
+      { step: '03', title: 'Review & Approval', desc: 'Senior counsel reviews AI-synthesized brief before filing.' }
     ]
   },
   {
@@ -342,20 +344,17 @@ export const LEGAL_ROLES = [
     title: 'Law Students & Scholars',
     badge: 'Legal Education & Moot Court',
     icon: 'fa-graduation-cap',
-    summary: 'Accelerating legal comprehension, moot court preparation, drafting mastery, and doctrine analysis.',
+    summary: 'Accelerating legal comprehension, moot court preparation, and drafting mastery.',
     problems: [
-      'Steep learning curve transitioning from theoretical doctrine to procedural filings',
-      'Difficulty deconstructing lengthy 100+ page landmark judicial judgments',
-      'Limited opportunities for realistic oral advocacy practice before moot competitions',
-      'Lack of immediate feedback on drafted legal instruments'
+      'Steep learning curve from theoretical doctrine to procedural filings',
+      'Limited opportunities for realistic oral advocacy practice'
     ],
-    solution: 'Interactive pedagogical environment to rehearse moot court arguments with voice AI, learn procedural drafting step-by-step, and grasp complex judicial ratios.',
-    modules: ['AI Mock Courtroom', 'Legal Research', 'Argument Builder', 'Legal Precedent'],
+    solution: 'An interactive environment to rehearse moot court arguments with voice AI and learn procedural drafting step-by-step.',
+    modules: ['AI Mock Courtroom', 'Legal Research', 'Argument Builder'],
     workflow: [
-      { step: '01', title: 'Judgment Decomposition', desc: 'Feed landmark cases to extract ratio decidendi and obiter dicta.' },
-      { step: '02', title: 'Moot Problem Analysis', desc: 'Structure arguments for petitioner and respondent using Argument Builder.' },
-      { step: '03', title: 'Voice Mock Hearing', desc: 'Argue orally before the AI Bench and receive real-time procedural critiques.' },
-      { step: '04', title: 'Submission Polish', desc: 'Refine written memorials according to structured citation standards.' }
+      { step: '01', title: 'Case Decomposition', desc: 'Extract ratio decidendi from landmark cases.' },
+      { step: '02', title: 'Voice Mock Hearing', desc: 'Argue before AI Bench with real-time critiques.' },
+      { step: '03', title: 'Submission Polish', desc: 'Refine memorials with structured citation standards.' }
     ]
   }
 ];
@@ -365,72 +364,72 @@ export const USE_CASES = [
     id: 'case-research',
     number: '01',
     title: 'Case Research',
-    subtitle: 'From Complex Legal Question to High-Authority Precedents',
+    subtitle: 'From legal questions to binding precedents',
     steps: [
-      { step: '1', title: 'Enter Legal Query', desc: 'User enters a nuanced factual or legal inquiry in plain language.' },
-      { step: '2', title: 'AI Searches Knowledge', desc: 'Engine scans statutes, recent bench rulings, and landmark ratios.' },
-      { step: '3', title: 'Authorities Organized', desc: 'Binding authorities, persuasive precedents, and contrary rulings are categorized.' },
-      { step: '4', title: 'Review & Citation', desc: 'Advocate reviews extracted paragraphs, ready for court submission insertion.' }
+      { step: '1', title: 'Enter Legal Query' },
+      { step: '2', title: 'Search Statutes & Rulings' },
+      { step: '3', title: 'Categorize Authorities' },
+      { step: '4', title: 'Review Court Citations' }
     ]
   },
   {
     id: 'document-analysis',
     number: '02',
     title: 'Document Analysis',
-    subtitle: 'Extracting Actionable Intelligence from Hundreds of Matter Pages',
+    subtitle: 'Actionable intelligence from matter records',
     steps: [
-      { step: '1', title: 'Upload Document', desc: 'Advocate uploads scanned briefs, affidavits, FIR copies, or commercial deeds.' },
-      { step: '2', title: 'OCR & Extraction', desc: 'High-accuracy OCR extracts raw text, preserving tables and formatting.' },
-      { step: '3', title: 'AI Deep Analysis', desc: 'AI identifies dates, key obligations, inconsistencies, and relevant legal issues.' },
-      { step: '4', title: 'Structured Report', desc: 'Comprehensive executive summary generated with citations and risk flags.' }
+      { step: '1', title: 'Upload Scanned Documents' },
+      { step: '2', title: 'OCR & Text Extraction' },
+      { step: '3', title: 'Identify Obligations & Risks' },
+      { step: '4', title: 'Structured Summary Report' }
     ]
   },
   {
     id: 'legal-drafting',
     number: '03',
     title: 'Legal Drafting',
-    subtitle: 'Creating Editable Legal Drafts for Professional Review in Minutes',
+    subtitle: 'Editable legal instruments in minutes',
     steps: [
-      { step: '1', title: 'Select Template', desc: 'Choose from structured legal pleadings, notices, or transactional templates.' },
-      { step: '2', title: 'Provide Case Context', desc: 'Bind matter facts, party names, and relevant statutory provisions.' },
-      { step: '3', title: 'AI Generates Draft', desc: 'Synthesizes editable legal drafts for professional advocate review.' },
-      { step: '4', title: 'Edit & Export', desc: 'Live in-line editing with instant export to PDF, DOCX, or TXT.' }
+      { step: '1', title: 'Select Legal Template' },
+      { step: '2', title: 'Bind Case Facts & Parties' },
+      { step: '3', title: 'AI-Generated First Draft' },
+      { step: '4', title: 'In-line Edit & Export' }
     ]
   },
   {
     id: 'case-workspace',
     number: '04',
     title: 'Case Workspace',
-    subtitle: 'A Context-Aware Intelligence Nerve Center for Every Matter',
+    subtitle: 'Context-aware nerve center for every matter',
     steps: [
-      { step: '1', title: 'Create Case File', desc: 'Instantiate an isolated matter workspace with court docket details.' },
-      { step: '2', title: 'Upload Pleadings', desc: 'Deposit all exhibits, rejoinders, orders, and transcripts.' },
-      { step: '3', title: 'AI Ingests Context', desc: 'Engine builds an indexed neural context map of the entire dispute.' },
-      { step: '4', title: 'Generate Insights', desc: 'Ask specific factual queries and receive verified answers with page citations.' }
+      { step: '1', title: 'Create Matter Docket' },
+      { step: '2', title: 'Upload Pleadings & Exhibits' },
+      { step: '3', title: 'Contextual Case Memory' },
+      { step: '4', title: 'Instant Citations & Insights' }
     ]
   },
   {
     id: 'mock-courtroom',
     number: '05',
     title: 'Mock Courtroom',
-    subtitle: 'Oral Advocacy Simulation & Judicial Pressure-Testing',
+    subtitle: 'Oral advocacy simulation & bench testing',
     steps: [
-      { step: '1', title: 'Select Hearing Mode', desc: 'Choose between real-time Voice Hearing or structured Text Hearing.' },
-      { step: '2', title: 'Present Arguments', desc: 'Advocate opens submissions, framing statutory basis and case facts.' },
-      { step: '3', title: 'Courtroom Interaction', desc: 'Simulated bench asks probing questions and raises procedural objections.' },
-      { step: '4', title: 'Scoring & Feedback', desc: 'Receive structured scoring on clarity, legal doctrine, and rebuttal agility.' }
+      { step: '1', title: 'Select Voice or Text Mode' },
+      { step: '2', title: 'Present Arguments & Doctrine' },
+      { step: '3', title: 'Simulated Bench Inquiries' },
+      { step: '4', title: 'Advocacy Scoring & Feedback' }
     ]
   },
   {
     id: 'client-connect',
     number: '06',
     title: 'Client Communication',
-    subtitle: 'Automated, Respectful, and Templated Client Updates',
+    subtitle: 'Automated, templated client WhatsApp updates',
     steps: [
-      { step: '1', title: 'Select Client & Matter', desc: 'Pick client from case docket with instant access to communication history.' },
-      { step: '2', title: 'Choose Approved Template', desc: 'Select hearing adjournment, order update, or document request template.' },
-      { step: '3', title: 'Customize & Review', desc: 'AI tailors technical court language into easily comprehensible updates.' },
-      { step: '4', title: 'Send via WhatsApp', desc: 'Dispatches instantly through secure WhatsApp integration with logged audit trail.' }
+      { step: '1', title: 'Select Client & Docket' },
+      { step: '2', title: 'Choose Approved Template' },
+      { step: '3', title: 'Review Simplified Language' },
+      { step: '4', title: 'Send via Secure WhatsApp' }
     ]
   }
 ];
