@@ -951,12 +951,14 @@ router.get(['/analytics/google-play/overview', '/google-play/overview'], verifyA
       }
     ];
 
-    const [results, [liveData, fbData]] = await Promise.all([
+    const [results, [liveData, fbData], mergedAilegal, mergedAisa] = await Promise.all([
       db.collection('play_install_metrics').aggregate(pipeline).toArray().catch(() => []),
       Promise.all([
         getLiveDownloadsData(db),
         firebaseAnalytics.getFirebaseTelemetry().catch(() => null)
-      ])
+      ]),
+      hybridTelemetry.getMergedAppTelemetry(db, 'ailegal').catch(() => null),
+      hybridTelemetry.getMergedAppTelemetry(db, 'aisa').catch(() => null)
     ]);
     const histByApp = {};
     results.forEach(r => { if (r._id) histByApp[r._id] = r; });
@@ -1038,7 +1040,7 @@ router.get(['/analytics/google-play/overview', '/google-play/overview'], verifyA
       let yesterdayTotal = liveYesterdayTotal;
 
       // Hybrid Splicing: Google Play Console (authoritative history) + Firebase SDK (live edge)
-      const merged = await hybridTelemetry.getMergedAppTelemetry(db, code).catch(() => null);
+      const merged = code === 'ailegal' ? mergedAilegal : (code === 'aisa' ? mergedAisa : await hybridTelemetry.getMergedAppTelemetry(db, code).catch(() => null));
       if (merged) {
         totalAndroidInstalls = merged.total_android_installs;
         baseInstalls = merged.total_android_installs;
@@ -1050,6 +1052,16 @@ router.get(['/analytics/google-play/overview', '/google-play/overview'], verifyA
         currentActive = merged.active_devices;
         todayTotal = Math.max(liveTodayTotal, merged.today_installs || 0);
         yesterdayTotal = Math.max(liveYesterdayTotal, merged.yesterday_installs || 0);
+        todayAndroid = Math.max(todayAndroid, merged.today_android || 0);
+        todayIos = Math.max(todayIos, merged.today_ios || 0);
+        yesterdayAndroid = Math.max(yesterdayAndroid, merged.yesterday_android || 0);
+        yesterdayIos = Math.max(yesterdayIos, merged.yesterday_ios || 0);
+        if (todayTotal > (todayAndroid + todayIos)) {
+          todayAndroid = todayTotal - todayIos;
+        }
+        if (yesterdayTotal > (yesterdayAndroid + yesterdayIos)) {
+          yesterdayAndroid = yesterdayTotal - yesterdayIos;
+        }
         appRealtime = merged.realtime_active_devices;
         const timelineDays = Math.max(1, merged.timeline?.length || 30);
         dailyLoss = merged.total_uninstalls_raw > 0 ? Number((merged.total_uninstalls_raw / timelineDays).toFixed(2)) : dailyLoss;
@@ -1063,6 +1075,16 @@ router.get(['/analytics/google-play/overview', '/google-play/overview'], verifyA
           totalAndroidInstalls = fbInstalls;
           todayTotal = Math.max(liveTodayTotal, appFb?.today_installs ?? fbData.today_installs ?? 0);
           yesterdayTotal = Math.max(liveYesterdayTotal, appFb?.yesterday_installs ?? fbData.yesterday_installs ?? 0);
+          todayAndroid = Math.max(todayAndroid, appFb?.daily_metrics?.[todayStr]?.android || appFb?.today_installs || 0);
+          todayIos = Math.max(todayIos, appFb?.daily_metrics?.[todayStr]?.ios || 0);
+          yesterdayAndroid = Math.max(yesterdayAndroid, appFb?.daily_metrics?.[yesterdayStr]?.android || appFb?.yesterday_installs || 0);
+          yesterdayIos = Math.max(yesterdayIos, appFb?.daily_metrics?.[yesterdayStr]?.ios || 0);
+          if (todayTotal > (todayAndroid + todayIos)) {
+            todayAndroid = todayTotal - todayIos;
+          }
+          if (yesterdayTotal > (yesterdayAndroid + yesterdayIos)) {
+            yesterdayAndroid = yesterdayTotal - yesterdayIos;
+          }
           currentActive = appFb?.active_users || fbData.total_active_users || 0;
           dailyLoss = Number(((appFb?.total_uninstalls || fbData.total_uninstalls || 0) / 30).toFixed(2));
           appRealtime = appFb?.realtime_active || fbData.realtime_active || 0;
@@ -1171,39 +1193,52 @@ router.get(['/analytics/google-play/overview', '/google-play/overview'], verifyA
     const lastSyncDate = latestRecord?.metric_date || todayStr;
 
     // Structured breakdown for Today's App Downloads across AISA and AI Legal
+    const resolveAppStats = (appCode, mergedData, defaultHistFallback) => {
+      const fromLoop = appsData.find(a => a.app_code === appCode);
+      const todayTotal = fromLoop?.today_installs ?? Math.max(appTotals[appCode]?.today_total || 0, mergedData?.today_installs || 0);
+      let todayAndroid = fromLoop?.today_android ?? Math.max(appTotals[appCode]?.today_android || 0, mergedData?.today_android || 0);
+      let todayIos = fromLoop?.today_ios ?? Math.max(appTotals[appCode]?.today_ios || 0, mergedData?.today_ios || 0);
+      if (todayTotal > (todayAndroid + todayIos)) {
+        todayAndroid = todayTotal - todayIos;
+      }
+      const yesterdayTotal = fromLoop?.yesterday_installs ?? Math.max(appTotals[appCode]?.yesterday_total || 0, mergedData?.yesterday_installs || 0);
+      let yesterdayAndroid = fromLoop?.yesterday_android ?? Math.max(appTotals[appCode]?.yesterday_android || 0, mergedData?.yesterday_android || 0);
+      let yesterdayIos = fromLoop?.yesterday_ios ?? Math.max(appTotals[appCode]?.yesterday_ios || 0, mergedData?.yesterday_ios || 0);
+      if (yesterdayTotal > (yesterdayAndroid + yesterdayIos)) {
+        yesterdayAndroid = yesterdayTotal - yesterdayIos;
+      }
+      const totalAllTime = fromLoop
+        ? (fromLoop.android_store_downloads + fromLoop.ios_store_downloads)
+        : (mergedData ? ((mergedData.total_android_installs || 0) + (mergedData.total_ios_installs || 0)) : defaultHistFallback);
+
+      return {
+        app_code: appCode,
+        app_name: appCode === 'ailegal' ? 'AI Legal' : 'AISA Assistant',
+        icon: appCode === 'ailegal' ? '⚖️' : '🤖',
+        today_total: todayTotal,
+        today_android: todayAndroid,
+        today_ios: todayIos,
+        yesterday_total: yesterdayTotal,
+        yesterday_android: yesterdayAndroid,
+        yesterday_ios: yesterdayIos,
+        total_all_time: totalAllTime
+      };
+    };
+
+    const aiLegalBreakdown = resolveAppStats('ailegal', mergedAilegal, (histByApp.ailegal?.total_user_installs_latest || 1669) + 117);
+    const aisaBreakdown = resolveAppStats('aisa', mergedAisa, (histByApp.aisa?.total_user_installs_latest || 257) + 56);
+
     const todayBreakdown = {
       as_of_date: todayStr,
       as_of_ist: liveData.todayIst || todayStr,
-      total_today: (appTotals.ailegal?.today_total || 0) + (appTotals.aisa?.today_total || 0),
-      total_yesterday: (appTotals.ailegal?.yesterday_total || 0) + (appTotals.aisa?.yesterday_total || 0),
-      total_all_time: ((histByApp.ailegal?.total_user_installs_latest || 1669) + 117) + ((histByApp.aisa?.total_user_installs_latest || 257) + 56),
-      combined_android_today: (appTotals.ailegal?.today_android || 0) + (appTotals.aisa?.today_android || 0),
-      combined_ios_today: (appTotals.ailegal?.today_ios || 0) + (appTotals.aisa?.today_ios || 0),
+      total_today: aiLegalBreakdown.today_total + aisaBreakdown.today_total,
+      total_yesterday: aiLegalBreakdown.yesterday_total + aisaBreakdown.yesterday_total,
+      total_all_time: aiLegalBreakdown.total_all_time + aisaBreakdown.total_all_time,
+      combined_android_today: aiLegalBreakdown.today_android + aisaBreakdown.today_android,
+      combined_ios_today: aiLegalBreakdown.today_ios + aisaBreakdown.today_ios,
       apps: {
-        ailegal: {
-          app_code: 'ailegal',
-          app_name: 'AI Legal',
-          icon: '⚖️',
-          today_total: appTotals.ailegal?.today_total || 0,
-          today_android: appTotals.ailegal?.today_android || 0,
-          today_ios: appTotals.ailegal?.today_ios || 0,
-          yesterday_total: appTotals.ailegal?.yesterday_total || 0,
-          yesterday_android: appTotals.ailegal?.yesterday_android || 0,
-          yesterday_ios: appTotals.ailegal?.yesterday_ios || 0,
-          total_all_time: (histByApp.ailegal?.total_user_installs_latest || 1669) + 117
-        },
-        aisa: {
-          app_code: 'aisa',
-          app_name: 'AISA Assistant',
-          icon: '🤖',
-          today_total: appTotals.aisa?.today_total || 0,
-          today_android: appTotals.aisa?.today_android || 0,
-          today_ios: appTotals.aisa?.today_ios || 0,
-          yesterday_total: appTotals.aisa?.yesterday_total || 0,
-          yesterday_android: appTotals.aisa?.yesterday_android || 0,
-          yesterday_ios: appTotals.aisa?.yesterday_ios || 0,
-          total_all_time: (histByApp.aisa?.total_user_installs_latest || 257) + 56
-        }
+        ailegal: aiLegalBreakdown,
+        aisa: aisaBreakdown
       }
     };
 

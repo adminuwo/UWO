@@ -246,6 +246,10 @@ export const AppDownloadsTab = () => {
   const totalTodayAndroid = isLoaded ? (aiLegalTodayAndroid + aisaTodayAndroid) : '...';
   const totalTodayIos = isLoaded ? (aiLegalTodayIos + aisaTodayIos) : '...';
 
+  const aiLegalAllTime = aiLegalStats.total_all_time || ((aiLegalStats.android_store_downloads || 0) + (aiLegalStats.ios_store_downloads || 0)) || 1786;
+  const aisaAllTime = aisaStats.total_all_time || ((aisaStats.android_store_downloads || 0) + (aisaStats.ios_store_downloads || 0)) || 465;
+  const totalAllTime = todayBreakdown?.total_all_time || (Number(aiLegalAllTime) + Number(aisaAllTime)) || 2099;
+
 
   const storeAndroidDownloads = isLoaded ? (combined.android_store_downloads ?? 0) : '...';
   const liveAndroidPings = isLoaded ? (combined.android_live_installs ?? 0) : '...';
@@ -630,7 +634,7 @@ export const AppDownloadsTab = () => {
             {/* Yesterday comparison & all time */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', fontSize: '11px', color: '#64748b' }}>
               <span>📅 Yesterday: <strong style={{ color: '#cbd5e1' }}>{isLoaded ? `${aiLegalYesterday} downloads` : '...'}</strong></span>
-              <span>All-Time: <strong style={{ color: '#cbd5e1' }}>{formatNum(aiLegalStats.total_all_time || 1786)}</strong></span>
+              <span>All-Time: <strong style={{ color: '#cbd5e1' }}>{formatNum(aiLegalAllTime)}</strong></span>
             </div>
           </div>
 
@@ -689,7 +693,7 @@ export const AppDownloadsTab = () => {
             {/* Yesterday comparison & all time */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', fontSize: '11px', color: '#64748b' }}>
               <span>📅 Yesterday: <strong style={{ color: '#cbd5e1' }}>{isLoaded ? `${aisaYesterday} downloads` : '...'}</strong></span>
-              <span>All-Time: <strong style={{ color: '#cbd5e1' }}>{formatNum(aisaStats.total_all_time || 313)}</strong></span>
+              <span>All-Time: <strong style={{ color: '#cbd5e1' }}>{formatNum(aisaAllTime)}</strong></span>
             </div>
           </div>
 
@@ -748,7 +752,7 @@ export const AppDownloadsTab = () => {
             {/* Yesterday comparison & all time */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', fontSize: '11px', color: '#64748b' }}>
               <span>📅 Yesterday Total: <strong style={{ color: '#cbd5e1' }}>{isLoaded ? `${totalYesterday} downloads` : '...'}</strong></span>
-              <span>All-Time: <strong style={{ color: '#cbd5e1' }}>{formatNum(todayBreakdown?.total_all_time || 2099)}</strong></span>
+              <span>All-Time: <strong style={{ color: '#cbd5e1' }}>{formatNum(totalAllTime)}</strong></span>
             </div>
           </div>
 

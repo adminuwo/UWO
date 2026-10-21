@@ -122,6 +122,7 @@ async function runRevenueSync(options = {}) {
     }
 
     const txOps = [];
+    const seenTxIds = new Set();
     let processed = 0;
     let created = 0;
     let updated = 0;
@@ -197,14 +198,11 @@ async function runRevenueSync(options = {}) {
       };
 
       const { _id: docId, ...txData } = txDoc;
+      if (extTxId) seenTxIds.add(extTxId);
+      const payFilter = extTxId ? { external_transaction_id: extTxId } : { _id: `aisa_pay_${pid}` };
       txOps.push({
         updateOne: {
-          filter: {
-            $or: [
-              { _id: `aisa_pay_${pid}` },
-              { external_transaction_id: extTxId }
-            ]
-          },
+          filter: payFilter,
           update: {
             $set: txData,
             $setOnInsert: { _id: `aisa_pay_${pid}` }
@@ -220,6 +218,10 @@ async function runRevenueSync(options = {}) {
       processed++;
       const phid = String(ph._id);
       const extTxId = ph.razorpayPaymentId || `pay_hist_${phid}`;
+      if (extTxId && seenTxIds.has(extTxId)) {
+        continue; // Already processed from primary payments collection
+      }
+      if (extTxId) seenTxIds.add(extTxId);
       const extOrderId = ph.razorpayOrderId || ph.invoice || null;
       const accId = ph.accountId ? String(ph.accountId) : null;
       const user = accId && usersMap[accId] ? usersMap[accId] : { name: 'Advocate User', email: 'advocate@ailegal.app' };
@@ -269,14 +271,10 @@ async function runRevenueSync(options = {}) {
       };
 
       const { _id: histId, ...histData } = txDoc;
+      const phFilter = extTxId ? { external_transaction_id: extTxId } : { _id: `aisa_ph_${phid}` };
       txOps.push({
         updateOne: {
-          filter: {
-            $or: [
-              { _id: `aisa_ph_${phid}` },
-              { external_transaction_id: extTxId }
-            ]
-          },
+          filter: phFilter,
           update: {
             $set: histData,
             $setOnInsert: { _id: `aisa_ph_${phid}` }

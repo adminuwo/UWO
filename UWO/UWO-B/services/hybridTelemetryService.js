@@ -200,19 +200,30 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
   // Today & Yesterday installs
   let todayInstalls = 0;
   let yesterdayInstalls = 0;
+  let todayAndroid = 0;
+  let todayIos = 0;
+  let yesterdayAndroid = 0;
+  let yesterdayIos = 0;
 
-  if (appFb?.today_installs !== undefined) {
+  if (fbDaily[todayStr]) {
+    todayAndroid = fbDaily[todayStr].android || 0;
+    todayIos = fbDaily[todayStr].ios || 0;
+    todayInstalls = fbDaily[todayStr].installs || (todayAndroid + todayIos);
+  } else if (appFb?.today_installs !== undefined) {
     todayInstalls = appFb.today_installs;
-  } else if (fbDaily[todayStr]) {
-    todayInstalls = fbDaily[todayStr].android || fbDaily[todayStr].installs || 0;
+    todayAndroid = appFb.today_installs;
   }
 
-  if (appFb?.yesterday_installs !== undefined) {
+  if (fbDaily[yesterdayStr]) {
+    yesterdayAndroid = fbDaily[yesterdayStr].android || 0;
+    yesterdayIos = fbDaily[yesterdayStr].ios || 0;
+    yesterdayInstalls = fbDaily[yesterdayStr].installs || (yesterdayAndroid + yesterdayIos);
+  } else if (appFb?.yesterday_installs !== undefined) {
     yesterdayInstalls = appFb.yesterday_installs;
-  } else if (fbDaily[yesterdayStr]) {
-    yesterdayInstalls = fbDaily[yesterdayStr].android || fbDaily[yesterdayStr].installs || 0;
+    yesterdayAndroid = appFb.yesterday_installs;
   } else if (playDailyMap[yesterdayStr]) {
     yesterdayInstalls = playDailyMap[yesterdayStr].daily_user_installs;
+    yesterdayAndroid = yesterdayInstalls;
   }
 
   const realtimeActive = appFb?.realtime_android ?? appFb?.realtime_active ?? 0;
@@ -229,7 +240,7 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
   const churnRate = Number((100 - retentionRate).toFixed(1));
   const totalUninstalls = netLostUsers;
 
-  return {
+  const result = {
     app_code: appCode,
     display_name: appCode === 'ailegal' ? 'AI-LEGAL' : (appCode === 'aisa' ? 'AISA' : appCode.toUpperCase()),
     watermark_date: playMaxDate ? `Google Play Console (to ${playMaxDate}) + Live Firebase Edge` : 'Firebase Primary',
@@ -249,7 +260,11 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
     churn_rate: churnRate,
     total_uninstalls_raw: totalUninstalls,
     today_installs: todayInstalls,
+    today_android: todayAndroid,
+    today_ios: todayIos,
     yesterday_installs: yesterdayInstalls,
+    yesterday_android: yesterdayAndroid,
+    yesterday_ios: yesterdayIos,
     realtime_active_devices: realtimeActive,
     realtime_ios: realtimeIos,
     avg_rating: playRating?.total_avg_rating || playRating?.avg_rating || 0,
