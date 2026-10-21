@@ -18,50 +18,7 @@ export default function Footer({ onOpenLegal, onOpenEarnRefer }) {
         {/* TOP 3-COLUMN BALANCED & SYSTEMATIC GRID */}
         <div className="footer-grid">
           
-          {/* COLUMN 1 (LEFT): BRAND IDENTITY & RECOGNITION */}
-          <div className="footer-col footer-col-brand">
-            <Link to="/" className="footer-brand-logo" title="UWO Home">
-              <img 
-                src="/images/uwo-logo-cropped.png" 
-                alt="UWO™ Logo" 
-                onError={(e) => { e.currentTarget.src = '/images/uwo-logo.png'; }} 
-              />
-            </Link>
-            
-            <div className="footer-badges-row">
-              <div className="footer-badge-item">
-                <img src="/images/duns-logo.png" alt="D-U-N-S® Registered™" className="footer-badge-seal" />
-                <div className="footer-badge-info">
-                  <span className="badge-title">D-U-N-S&reg; Registered&trade;</span>
-                  <span className="badge-sub">Verified Enterprise</span>
-                </div>
-              </div>
-
-              <div className="footer-badge-divider"></div>
-
-              <div className="footer-badge-item">
-                <img src="/images/devcon.png" alt="Ethereum Devcon" className="footer-badge-seal devcon-seal" />
-                <div className="footer-badge-info">
-                  <span className="badge-title">Ethereum Devcon</span>
-                  <span className="badge-sub">Community Partner</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="footer-direct-contact">
-              <a href="mailto:admin@uwo24.com" className="footer-contact-link" title="Email UWO">
-                <i className="fa-solid fa-envelope"></i>
-                <span>admin@uwo24.com</span>
-              </a>
-              <span className="footer-contact-dot">&bull;</span>
-              <a href="https://wa.me/918358990909" target="_blank" rel="noopener noreferrer" className="footer-contact-link" title="WhatsApp UWO">
-                <i className="fa-brands fa-whatsapp"></i>
-                <span>+91 8358990909</span>
-              </a>
-            </div>
-          </div>
-
-          {/* COLUMN 2 (CENTER): EXPLORE & COMPANY (2 BALANCED SUB-COLUMNS) */}
+          {/* COLUMN 1 (LEFT): EXPLORE & COMPANY (2 BALANCED SUB-COLUMNS) */}
           <div className="footer-col footer-col-explore">
             <div className="footer-explore-inner">
               <div className="footer-heading-wrap">
@@ -84,6 +41,29 @@ export default function Footer({ onOpenLegal, onOpenEarnRefer }) {
                   <Link to="/cookies-policy" onClick={() => { if (onOpenLegal) onOpenLegal('cookies'); }}>Cookies Policy</Link>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* COLUMN 2 (CENTER): BRAND IDENTITY & RECOGNITION */}
+          <div className="footer-col footer-col-brand">
+            <Link to="/" className="footer-brand-logo" title="UWO Home">
+              <img 
+                src="/images/uwo-logo-cropped.png" 
+                alt="UWO™ Logo" 
+                onError={(e) => { e.currentTarget.src = '/images/uwo-logo.png'; }} 
+              />
+            </Link>
+
+            <div className="footer-direct-contact">
+              <a href="mailto:admin@uwo24.com" className="footer-contact-link" title="Email UWO">
+                <i className="fa-solid fa-envelope"></i>
+                <span>admin@uwo24.com</span>
+              </a>
+              <span className="footer-contact-dot">&bull;</span>
+              <a href="https://wa.me/918358990909" target="_blank" rel="noopener noreferrer" className="footer-contact-link" title="WhatsApp UWO">
+                <i className="fa-brands fa-whatsapp"></i>
+                <span>+91 8358990909</span>
+              </a>
             </div>
           </div>
 
@@ -148,15 +128,16 @@ export default function Footer({ onOpenLegal, onOpenEarnRefer }) {
 
         {/* CLOUD & STARTUP PARTNERS STRIP */}
         <div className="footer-partners-bar">
-          <span className="footer-partners-heading">Supported By Global Startup &amp; Cloud Programs</span>
+          <span className="footer-partners-heading">Supported By Global Startup &amp; Cloud Partners</span>
           <div className="partner-logos-row">
             <div className="logo-item" title="Microsoft Azure"><img src="/images/azure.png" alt="Azure" /></div>
             <div className="logo-item" title="Amazon Web Services"><img src="/images/AWS.png" alt="AWS" /></div>
-            <div className="logo-item" title="MongoDB"><img src="/images/mongodb-transparent.png" alt="MongoDB" /></div>
+            <div className="logo-item" title="MongoDB"><img src="/images/mongo.png" alt="MongoDB" /></div>
             <div className="logo-item" title="Notion"><img src="/images/notion copy.png" alt="Notion" /></div>
             <div className="logo-item" title="Google Cloud"><img src="/images/google_cloud_.webp" alt="Google Cloud" /></div>
-            <div className="logo-item" title="DigitalOcean"><img src="/images/digitalocean-transparent.png" alt="DigitalOcean" /></div>
+            <div className="logo-item" title="DigitalOcean"><img src="/images/digital.png" alt="DigitalOcean" /></div>
             <div className="logo-item" title="Tavily AI"><img src="/images/tavily-transparent.png" alt="Tavily" /></div>
+            <div className="logo-item" title="Ethereum Devcon – Community Partner"><img src="/images/devcon.png" alt="Ethereum Devcon" /></div>
           </div>
         </div>
 

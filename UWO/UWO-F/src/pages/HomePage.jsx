@@ -17,13 +17,13 @@ export default function HomePage() {
       try {
         const data = await fetchProjects();
         const defaultList = getDefaultProjects();
-        
+
         // Helper to normalize project names for collision-free deduplication
         const normalizeKey = (str) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '').trim();
         const defaultMap = new Map(defaultList.map(d => [normalizeKey(d.name), d]));
 
         // Filter out AISA Connect and invalid entries
-        const validApiData = Array.isArray(data) 
+        const validApiData = Array.isArray(data)
           ? data.filter(p => !((p.name || '').toLowerCase().includes('aisa connect')))
           : [];
 
@@ -207,7 +207,7 @@ export default function HomePage() {
     const track = trackRef.current;
     const card = track.querySelector('.project-carousel-card');
     const scrollAmount = card ? (card.offsetWidth + 20) : 320;
-    
+
     if (direction === 'next') {
       if (track.scrollLeft + track.clientWidth >= track.scrollWidth - 15) {
         track.scrollTo({ left: 0, behavior: 'smooth' });
@@ -273,8 +273,8 @@ export default function HomePage() {
           </p>
 
           <div className="hero-cta-wrapper">
-            <a 
-              href="#projects" 
+            <a
+              href="#projects"
               className="btn btn-primary"
               onClick={(e) => {
                 e.preventDefault();
@@ -358,7 +358,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div 
+          <div
             className="projects-carousel-wrapper"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
@@ -374,9 +374,9 @@ export default function HomePage() {
             </button>
 
             {/* Scrollable Track */}
-            <div 
+            <div
               ref={trackRef}
-              className="projects-carousel-track" 
+              className="projects-carousel-track"
               id="dynamic-project-cards"
               onScroll={handleTrackScroll}
             >
@@ -391,16 +391,16 @@ export default function HomePage() {
                 projects.map((project, index) => {
                   const isSpaRoute = project.project_url && project.project_url.startsWith('/') && !project.project_url.includes('aisa-connect');
                   const CardTag = isSpaRoute ? Link : 'a';
-                  const linkAttributes = isSpaRoute 
+                  const linkAttributes = isSpaRoute
                     ? { to: project.project_url, className: 'project-carousel-card' }
                     : { href: project.project_url, className: 'project-carousel-card' };
 
                   return (
                     <CardTag key={index} {...linkAttributes}>
-                      <img 
-                        src={getLogoUrl(project.logo, project.name)} 
-                        alt={project.name} 
-                        className="project-icon-compact" 
+                      <img
+                        src={getLogoUrl(project.logo, project.name)}
+                        alt={project.name}
+                        className="project-icon-compact"
                         onError={(e) => {
                           const nameLower = (project.name || '').toLowerCase();
                           if (nameLower.includes('aimall') || nameLower.includes('ai mall')) {
@@ -422,7 +422,7 @@ export default function HomePage() {
                           } else {
                             e.currentTarget.src = '/images/uwo-logo.png';
                           }
-                        }} 
+                        }}
                       />
                       <h3 className="project-card-title">
                         {project.name}
@@ -492,9 +492,9 @@ export default function HomePage() {
             {/* DPIIT Recognition */}
             <div style={{ background: '#F0EAD8', border: '1px solid #DDD0B8', borderRadius: '18px', padding: '28px 24px', textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
               <div style={{ height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                <img 
-                  src="/images/startup-india-logo.png" 
-                  alt="DPIIT Recognised" 
+                <img
+                  src="/images/startup-india-logo.png"
+                  alt="DPIIT Recognised"
                   style={{ maxHeight: '54px', maxWidth: '160px', objectFit: 'contain' }}
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
@@ -512,9 +512,9 @@ export default function HomePage() {
             {/* IIT Ropar TBIF */}
             <div style={{ background: '#F0EAD8', border: '1px solid #DDD0B8', borderRadius: '18px', padding: '28px 24px', textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
               <div style={{ height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                <img 
-                  src="/images/tbif-logo.png" 
-                  alt="IIT Ropar – TBIF Incubated" 
+                <img
+                  src="/images/tbif-logo.png"
+                  alt="IIT Ropar – TBIF Incubated"
                   style={{ maxHeight: '54px', maxWidth: '160px', objectFit: 'contain' }}
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
@@ -532,9 +532,9 @@ export default function HomePage() {
             {/* D-U-N-S Registered */}
             <div style={{ background: '#F0EAD8', border: '1px solid #DDD0B8', borderRadius: '18px', padding: '28px 24px', textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
               <div style={{ height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                <img 
-                  src="/images/duns-logo.png" 
-                  alt="D-U-N-S® Registered" 
+                <img
+                  src="/images/duns-logo.png"
+                  alt="D-U-N-S® Registered"
                   style={{ maxHeight: '54px', maxWidth: '110px', objectFit: 'contain' }}
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';

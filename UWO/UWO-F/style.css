@@ -476,6 +476,7 @@ select:focus {
   box-shadow: none !important;
   transform: translateX(3px) !important;
 }
+
 /* ==========================================================================
    UNIFIED WHITE TOP BAR NAVBARS (All Pages, Blogs, AI Legal, AI Ads, UWO Connect)
    Crisp typography, solid white surface, full width header bar
@@ -578,6 +579,7 @@ header.navbar-blogs .nav-links a.active {
   filter: none !important;
   transform: translateY(-2px) !important;
 }
+
 .navbar.navbar-ai-legal .earn-refer-btn:hover {
   background: #0F172A !important;
   color: #FFFFFF !important;
@@ -595,6 +597,7 @@ header.navbar-blogs .nav-links a.active {
   filter: none !important;
   transform: translateY(-2px) !important;
 }
+
 .navbar.navbar-ai-ads .earn-refer-btn:hover {
   background: #7c3aed !important;
   color: #FFFFFF !important;
@@ -612,6 +615,7 @@ header.navbar-blogs .nav-links a.active {
   filter: none !important;
   transform: translateY(-2px) !important;
 }
+
 .navbar.navbar-uwo-connect .earn-refer-btn:hover {
   background: #0B8F78 !important;
   color: #FFFFFF !important;
@@ -1362,12 +1366,15 @@ header.navbar-blogs .projects-menu a:active,
   .flagship-full-container {
     padding: 0 12px;
   }
+
   .projects-carousel-wrapper {
     padding: 0 4px;
   }
+
   .projects-carousel-arrow {
     display: none;
   }
+
   .project-carousel-card {
     flex: 0 0 88%;
     min-width: 260px;
@@ -1626,84 +1633,42 @@ header.navbar-blogs .projects-menu a:active,
   transform: scale(1.06);
 }
 
-/* BADGES ROW (D-U-N-S & DEVCON SIDE-BY-SIDE WITHOUT BOX) */
-.footer-badges-row {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  flex-direction: row !important;
-  flex-wrap: nowrap !important;
-  gap: 28px !important;
-  margin: 26px 0 22px 0 !important;
-  width: auto;
+/* LOGOS ROW - UWO + DEVCON SIDE BY SIDE */
+.footer-logos-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  flex-wrap: nowrap;
 }
 
-.footer-badge-item {
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 10px !important;
-  background: transparent !important;
-  border: none !important;
-  padding: 0 !important;
-  flex-shrink: 0 !important;
-  white-space: nowrap !important;
-  transition: transform 0.25s ease;
+.footer-devcon-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 54px;
+  cursor: default;
+  transition: transform 0.3s ease;
 }
 
-.footer-badge-item:hover {
-  transform: translateY(-2px);
-}
-
-.footer-badge-seal {
-  height: 25px;
+.footer-devcon-logo img {
+  height: 50px;
   width: auto;
   object-fit: contain;
-  flex-shrink: 0;
-  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
+  filter: drop-shadow(0 0 10px rgba(110, 80, 220, 0.4));
 }
 
-.footer-badge-seal.devcon-seal {
-  height: 28px;
-}
-
-.footer-badge-info {
-  display: flex;
-  flex-direction: column;
-  text-align: left;
-  line-height: 1.25;
-  white-space: nowrap;
-}
-
-.badge-title {
-  color: #ffffff;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  white-space: nowrap;
-}
-
-.badge-sub {
-  color: #FABE56;
-  font-size: 0.64rem;
-  font-weight: 600;
-  letter-spacing: 0.2px;
-  white-space: nowrap;
-}
-
-.footer-badge-divider {
-  width: 1px;
-  height: 26px;
-  background: rgba(255, 255, 255, 0.16);
-  flex-shrink: 0;
+.footer-devcon-logo:hover {
+  transform: scale(1.06);
 }
 
 @media (max-width: 600px) {
-  .footer-badges-row {
-    flex-wrap: wrap !important;
-    gap: 12px !important;
+  .footer-logos-row {
+    gap: 12px;
   }
-  .footer-badge-divider {
-    display: none;
+
+  .footer-devcon-logo img {
+    height: 40px;
   }
 }
 
@@ -1755,7 +1720,8 @@ header.navbar-blogs .projects-menu a:active,
   align-items: center;
   justify-content: center;
   gap: 7px;
-  flex-wrap: nowrap; /* PREVENTS ANY AWKWARD WRAPPING ON DESKTOP */
+  flex-wrap: nowrap;
+  /* PREVENTS ANY AWKWARD WRAPPING ON DESKTOP */
   width: 100%;
   max-width: 440px;
 }
@@ -1781,18 +1747,62 @@ header.navbar-blogs .projects-menu a:active,
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
 }
 
-.social-circle-btn.social-fb { background: #1877F2; }
-.social-circle-btn.social-insta { background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285AEB 90%); }
-.social-circle-btn.social-linkedin { background: #0A66C2; }
-.social-circle-btn.social-threads { background: #111111; border: 1px solid rgba(255, 255, 255, 0.22); color: #ffffff; }
-.social-circle-btn.social-x { background: #000000; border: 1px solid rgba(255, 255, 255, 0.22); color: #ffffff; }
-.social-circle-btn.social-yt { background: #FF0000; }
-.social-circle-btn.social-pin { background: #E60023; }
-.social-circle-btn.social-wa { background: #25D366; }
-.social-circle-btn.social-reddit { background: #FF4500; }
-.social-circle-btn.social-gmail { background: #ffffff; padding: 6px; box-sizing: border-box; }
-.social-circle-btn.social-gmail img { width: 100%; height: 100%; object-fit: contain; }
-.social-circle-btn.social-medium { background: #ffffff; color: #000000; }
+.social-circle-btn.social-fb {
+  background: #1877F2;
+}
+
+.social-circle-btn.social-insta {
+  background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285AEB 90%);
+}
+
+.social-circle-btn.social-linkedin {
+  background: #0A66C2;
+}
+
+.social-circle-btn.social-threads {
+  background: #111111;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+.social-circle-btn.social-x {
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+.social-circle-btn.social-yt {
+  background: #FF0000;
+}
+
+.social-circle-btn.social-pin {
+  background: #E60023;
+}
+
+.social-circle-btn.social-wa {
+  background: #25D366;
+}
+
+.social-circle-btn.social-reddit {
+  background: #FF4500;
+}
+
+.social-circle-btn.social-gmail {
+  background: #ffffff;
+  padding: 6px;
+  box-sizing: border-box;
+}
+
+.social-circle-btn.social-gmail img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.social-circle-btn.social-medium {
+  background: #ffffff;
+  color: #000000;
+}
 
 .footer-earn-box {
   margin-top: 4px;
@@ -1852,13 +1862,18 @@ header.navbar-blogs .projects-menu a:active,
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 42px;
+  height: 30px;
+  flex-shrink: 0;
 }
 
 .logo-item img {
-  height: 22px !important;
-  width: auto !important;
-  max-width: none !important;
-  opacity: 0.82 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 42px !important;
+  max-height: 30px !important;
+  object-fit: contain !important;
+  opacity: 0.85 !important;
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.3));
   transition: all 0.25s ease;
 }
@@ -1918,12 +1933,15 @@ header.navbar-blogs .projects-menu a:active,
     grid-template-columns: 1fr;
     gap: 36px;
   }
+
   .footer-col-explore {
     order: 2;
   }
+
   .footer-col-brand {
     order: 1;
   }
+
   .footer-col-connect {
     order: 3;
   }
@@ -1934,12 +1952,15 @@ header.navbar-blogs .projects-menu a:active,
     padding: 0 20px;
     gap: 28px !important;
   }
+
   .footer-grid {
     gap: 30px;
   }
+
   .footer-links-two-col {
     gap: 12px 20px;
   }
+
   .footer-bottom-bar {
     flex-direction: column;
     text-align: center;
@@ -2133,7 +2154,7 @@ header.navbar-blogs .projects-menu a:active,
 }
 
 /* Hide Bot when Sidebar is open */
-#drawerOverlay.active ~ #uwo-chatbot-widget {
+#drawerOverlay.active~#uwo-chatbot-widget {
   display: none !important;
 }
 
@@ -3956,7 +3977,7 @@ select#purpose:focus {
   box-shadow: 0 0 14px rgba(214, 165, 89, 0.25), inset 0 1px 2px rgba(0, 0, 0, 0.2) !important;
 }
 
-.earn-input-wrap input:focus + i {
+.earn-input-wrap input:focus+i {
   color: #D6A559;
 }
 
@@ -4073,6 +4094,7 @@ select#purpose:focus {
     padding: 28px 20px 24px;
     border-radius: 22px;
   }
+
   .earn-title {
     font-size: 1.4rem;
   }
@@ -4082,7 +4104,8 @@ select#purpose:focus {
 .uwo-spotlight-section {
   padding: 100px 0;
   position: relative;
-  background: #f7efd7; /* Theme cream shade from section-gold */
+  background: #f7efd7;
+  /* Theme cream shade from section-gold */
   border-bottom: 1px solid rgba(214, 165, 89, 0.25);
   overflow: hidden;
 }
@@ -4229,14 +4252,14 @@ select#purpose:focus {
     align-items: center;
     gap: 30px;
   }
-  
+
   .uwo-spotlight-vertical-divider {
     width: 80%;
     height: 1px;
     background: linear-gradient(90deg, transparent, var(--primary, #D6A559), transparent);
   }
-  
+
   .uwo-spotlight-title {
     font-size: 2.4rem;
   }
-}
+}
