@@ -93,7 +93,6 @@ export const AppDownloadsTab = () => {
   const [geoData, setGeoData] = useState(initialCache?.geoData || DEFAULT_GEO_DATA);
   const [activeGeoView, setActiveGeoView] = useState('india'); // 'india' | 'countries'
   const [geoSearchQuery, setGeoSearchQuery] = useState('');
-  const [geoZoneFilter, setGeoZoneFilter] = useState('all');
   const [showChurnColumn, setShowChurnColumn] = useState(false);
 
   const handleSelectApp = (targetApp) => {
@@ -1064,40 +1063,13 @@ export const AppDownloadsTab = () => {
 
         const filteredStates = rawStates.filter(s => {
           const q = geoSearchQuery.toLowerCase().trim();
-          const matchesSearch = !q || s.state.toLowerCase().includes(q) || (s.zone || '').toLowerCase().includes(q);
-          const matchesZone = geoZoneFilter === 'all' || (s.zone || '').toLowerCase() === geoZoneFilter.toLowerCase();
-          return matchesSearch && matchesZone;
+          return !q || s.state.toLowerCase().includes(q);
         });
 
         const filteredCountries = rawCountries.filter(c => {
           const q = geoSearchQuery.toLowerCase().trim();
           return !q || c.country.toLowerCase().includes(q) || (c.code || '').toLowerCase().includes(q);
         });
-
-        const getZoneBadge = (zone) => {
-          const styles = {
-            Northern: { bg: 'rgba(168, 85, 247, 0.15)', text: '#c084fc', border: 'rgba(168, 85, 247, 0.3)' },
-            Western: { bg: 'rgba(245, 158, 11, 0.15)', text: '#fbbf24', border: 'rgba(245, 158, 11, 0.3)' },
-            Southern: { bg: 'rgba(56, 189, 248, 0.15)', text: '#38bdf8', border: 'rgba(56, 189, 248, 0.3)' },
-            Eastern: { bg: 'rgba(6, 182, 212, 0.15)', text: '#22d3ee', border: 'rgba(6, 182, 212, 0.3)' },
-            Central: { bg: 'rgba(16, 185, 129, 0.15)', text: '#34d399', border: 'rgba(16, 185, 129, 0.3)' },
-            'North-Eastern': { bg: 'rgba(244, 63, 94, 0.15)', text: '#fb7185', border: 'rgba(244, 63, 94, 0.3)' }
-          }[zone] || { bg: 'rgba(148, 163, 184, 0.15)', text: '#94a3b8', border: 'rgba(148, 163, 184, 0.3)' };
-
-          return (
-            <span style={{
-              background: styles.bg,
-              color: styles.text,
-              border: `1px solid ${styles.border}`,
-              padding: '2px 8px',
-              borderRadius: '6px',
-              fontSize: '11px',
-              fontWeight: '600'
-            }}>
-              {zone}
-            </span>
-          );
-        };
 
         return (
           <div className="card-section" style={{ marginTop: '28px', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '16px', padding: '24px' }}>
@@ -1276,7 +1248,7 @@ export const AppDownloadsTab = () => {
               <div style={{ position: 'relative', minWidth: 'min(100%, 260px)', flex: '1', maxWidth: '380px' }}>
                 <input
                   type="text"
-                  placeholder={activeGeoView === 'india' ? '🔍 Search Indian state or zone...' : '🔍 Search country name...'}
+                  placeholder={activeGeoView === 'india' ? '🔍 Search Indian state...' : '🔍 Search country name...'}
                   value={geoSearchQuery}
                   onChange={(e) => setGeoSearchQuery(e.target.value)}
                   style={{
@@ -1292,31 +1264,6 @@ export const AppDownloadsTab = () => {
                   }}
                 />
               </div>
-
-              {/* Zone Filter (India view only) */}
-              {activeGeoView === 'india' && (
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-                  <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Zone:</span>
-                  {['all', 'Northern', 'Western', 'Southern', 'Eastern', 'Central', 'North-Eastern'].map(zone => (
-                    <button
-                      key={zone}
-                      onClick={() => setGeoZoneFilter(zone)}
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        border: geoZoneFilter === zone ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.08)',
-                        background: geoZoneFilter === zone ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.02)',
-                        color: geoZoneFilter === zone ? '#34d399' : '#94a3b8',
-                        fontSize: '11px',
-                        fontWeight: '600',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {zone === 'all' ? 'All Zones' : zone}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
 
             {/* INDIA STATES TABLE */}
@@ -1332,7 +1279,6 @@ export const AppDownloadsTab = () => {
                     <tr>
                       <th style={{ width: '40px' }}>#</th>
                       <th>State / Union Territory</th>
-                      <th>Zone</th>
                       <th>Total Downloads</th>
                       <th>🤖 Android</th>
                       <th>🍏 iOS</th>
@@ -1348,7 +1294,6 @@ export const AppDownloadsTab = () => {
                             {item.state}
                           </span>
                         </td>
-                        <td>{getZoneBadge(item.zone)}</td>
                         <td style={{ fontWeight: '800', color: '#f8fafc' }}>
                           {formatNum(item.installs)}
                         </td>

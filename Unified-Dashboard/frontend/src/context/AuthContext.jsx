@@ -29,7 +29,8 @@ export const AuthProvider = ({ children }) => {
       }
 
       if (!res.ok) {
-        throw new Error(data.detail || 'Authentication failed');
+        const errorDetail = data?.detail || data?.error || data?.message || (res.status === 404 ? 'API endpoint not found (check if correct backend is running on port 8080)' : 'Authentication failed');
+        throw new Error(errorDetail);
       }
 
       setToken(data.access_token);
