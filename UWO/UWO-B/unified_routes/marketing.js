@@ -634,7 +634,7 @@ router.get('/analytics/summary', async (req, res) => {
     const totalDownloads = Math.max(installsCollCount, androidDownloads + iosDownloads, Number(linkStats.total_downloads || 0));
     const finalAndroid = androidDownloads || Math.round(totalDownloads * 0.65);
     const finalIos = iosDownloads || (totalDownloads - finalAndroid);
-    const cr = totalClicks > 0 ? Number(((totalDownloads / totalClicks) * 100).toFixed(1)) : 0.0;
+    const cr = uniqueReach > 0 ? Math.min(100, Number(((Math.min(totalDownloads, uniqueReach) / uniqueReach) * 100).toFixed(1))) : (totalClicks > 0 ? Math.min(100, Number(((totalDownloads / totalClicks) * 100).toFixed(1))) : 0.0);
 
     // Platform distribution
     const platformAgg = await db.collection('marketing_clicks').aggregate([

@@ -50,6 +50,11 @@ function buildMatchStage(query) {
   const provider = query.provider;
   if (provider && provider.toLowerCase() !== 'all') {
     match.provider = provider.toLowerCase();
+  } else if (query.include_manual !== 'true') {
+    // Exclude manual admin grants and direct manual invoices from verified gateway revenue
+    match.provider = { $nin: ['direct_invoice', 'admin', 'manual'] };
+    match.source = { $nin: ['direct_invoice', 'admin', 'manual'] };
+    match.external_transaction_id = { $not: /^txn_admin_/i };
   }
 
   const platform = query.platform;
@@ -73,7 +78,7 @@ router.get('/overview', async (req, res) => {
     const db = await getUnifiedDb();
     const { match, fromDate, toDate } = buildMatchStage(req.query);
 
-    const [aggResult, activeSubs, subsList] = await Promise.all([
+    const [aggResult, metrics] = await Promise.all([
       db.collection('revenue_transactions').aggregate([
         { $match: match },
         {
@@ -88,8 +93,13 @@ router.get('/overview', async (req, res) => {
           }
         }
       ]).toArray(),
-      db.collection('subscriptions').countDocuments({ status: { $in: ['active', 'trialing'] } }).catch(() => 0),
-      db.collection('subscriptions').find({ status: { $in: ['active', 'trialing'] } }).toArray().catch(() => [])
+      subscriptionRepository.getMetrics(req.query, db).catch(() => ({
+        monthly_recurring_revenue: 0,
+        annual_run_rate: 0,
+        paid_active_subscriptions: 0,
+        manually_assigned_subscriptions: 0,
+        total_active_subscriptions: 0
+      }))
     ]);
 
     const stats = aggResult[0] || {
@@ -101,13 +111,11 @@ router.get('/overview', async (req, res) => {
       total_count: 0
     };
 
-    let mrr = 0;
-    for (const s of subsList) {
-      mrr += Number(s.amount || s.plan_amount || 499);
-    }
-    if (mrr === 0 && stats.gross_revenue > 0) {
-      mrr = round2(stats.gross_revenue * 0.35);
-    }
+    const mrr = metrics.monthly_recurring_revenue || 0;
+    const arr = metrics.annual_run_rate || (mrr * 12);
+    const paidSubs = metrics.paid_active_subscriptions || 0;
+    const manualSubs = metrics.manually_assigned_subscriptions || 0;
+    const totalActive = metrics.total_active_subscriptions || (paidSubs + manualSubs);
 
     const fromStr = fromDate ? fromDate.toISOString().split('T')[0] : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const toStr = toDate ? toDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
@@ -128,9 +136,12 @@ router.get('/overview', async (req, res) => {
       taxes: taxes,
       total_count: stats.total_count,
       mrr: round2(mrr),
-      arr: round2(mrr * 12),
+      arr: round2(arr),
       growth_pct: 14.8,
-      active_subscriptions: activeSubs || Math.max(Math.round(stats.total_count * 0.4), 1),
+      active_subscriptions: paidSubs,
+      paid_active_subscriptions: paidSubs,
+      manually_assigned_subscriptions: manualSubs,
+      total_active_subscriptions: totalActive,
       last_sync: new Date().toISOString(),
       last_synced_at: new Date().toISOString()
     });

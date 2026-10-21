@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ActiveSubscriptions } from './ActiveSubscriptions';
+import { TableScroller } from './TableScroller';
 
 const getProjectLogo = (code) => {
   const c = (code || '').toLowerCase();
@@ -334,12 +335,7 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
       )}
 
       {/* Navigation Sub-Tabs */}
-      <div style={{
-        display: 'flex',
-        gap: '8px',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-        paddingBottom: '4px'
-      }}>
+      <div className="revenue-subtabs">
         {[
           { id: 'overview', label: '📊 Financial Overview & Breakdown' },
           { id: 'subscriptions', label: '🔄 Active Subscriptions' },
@@ -761,7 +757,7 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
           {/* Breakdown Section: Product Matrix & Providers */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
             gap: '20px'
           }}>
             
@@ -982,7 +978,7 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
             marginBottom: '20px'
           }}>
             {/* Search Input */}
-            <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '8px', flex: 1, minWidth: '280px' }}>
+            <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '8px', flex: 1, minWidth: 'min(100%, 260px)' }}>
               <input
                 type="text"
                 placeholder="Search by Payment ID (pay_...), Customer Email, or Order ID..."
@@ -1083,8 +1079,8 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
           </div>
 
           {/* Transactions Table */}
-          <div className="table-responsive" style={{ overflowX: 'auto' }}>
-            <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <TableScroller minWidth={950} hintText="Swipe or scroll to view transaction breakdown">
+            <table className="data-table" style={{ width: '100%', minWidth: '950px', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)', textAlign: 'left', color: '#94a3b8', fontSize: '12px' }}>
                   <th style={{ padding: '14px 14px' }}>Transaction ID</th>
@@ -1170,7 +1166,7 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
                 )}
               </tbody>
             </table>
-          </div>
+          </TableScroller>
 
           {/* Pagination Controls */}
           <div style={{
@@ -1327,8 +1323,8 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
               </button>
             </div>
 
-            <div className="table-responsive" style={{ overflowX: 'auto' }}>
-              <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <TableScroller minWidth={850} hintText="Swipe or scroll to view audit details">
+              <table className="data-table" style={{ width: '100%', minWidth: '850px', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)', textAlign: 'left', color: '#94a3b8', fontSize: '12px' }}>
                     <th style={{ padding: '14px 14px' }}>Product & Channel</th>
@@ -1443,7 +1439,7 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
                   )}
                 </tbody>
               </table>
-            </div>
+            </TableScroller>
           </div>
 
         </div>

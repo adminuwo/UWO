@@ -166,12 +166,29 @@ class SubscriptionSyncService {
         let tierNormalized = tierRaw;
         if (tierRaw.includes('PRO')) tierNormalized = 'PROFESSIONAL';
         else if (tierRaw.includes('ENTERPRISE')) tierNormalized = 'ENTERPRISE';
+        else if (tierRaw.includes('FREE')) tierNormalized = 'FREE';
         else if (tierRaw.includes('BASIC')) tierNormalized = 'BASIC';
 
-        let amount = Number(s.amount) || 0;
-        if (amount === 0) {
-          amount = tierNormalized === 'ENTERPRISE' ? 2399 : (tierNormalized === 'PROFESSIONAL' ? 999 : 499);
-        }
+        const isFreeTier = tierNormalized === 'FREE' || String(s.plan_name || '').toLowerCase().includes('free');
+        const txId = String(s.transactionId || s.paymentId || s.transaction_id || '').trim();
+        const isFakeOrAdminTx = !txId || 
+                                txId.startsWith('txn_admin') || 
+                                txId.startsWith('pay_fake') || 
+                                txId.startsWith('pay_mock') || 
+                                txId.startsWith('manual');
+        const isDirectAdmin = s.platform === 'admin' || 
+                              s.provider === 'direct_invoice' || 
+                              s.source === 'direct_invoice' ||
+                              s.is_manual === true ||
+                              s.manually_assigned === true;
+
+        const isManuallyAssigned = isFreeTier || isFakeOrAdminTx || isDirectAdmin || Number(s.amount) === 0;
+        const isPaid = !isManuallyAssigned;
+
+        // Nominal plan amount
+        const planAmount = Number(s.plan_amount) || (tierNormalized === 'ENTERPRISE' ? 2399 : (tierNormalized === 'PROFESSIONAL' ? 999 : 499));
+        // Effective revenue amount is 0 for manually assigned plans; paid plans keep verified amount
+        const amount = isPaid ? (Number(s.amount) > 0 ? Number(s.amount) : planAmount) : 0;
 
         const startDate = s.startDate ? new Date(s.startDate) : (s.createdAt ? new Date(s.createdAt) : new Date());
         const expiryDate = s.expiryDate ? new Date(s.expiryDate) : null;
@@ -187,16 +204,20 @@ class SubscriptionSyncService {
           customer_name: user.name,
           customer_phone: user.phone,
           workspace: s.workspace || 'advocate',
-          tier: tierNormalized,
-          plan_name: `Advocate ${tierNormalized.charAt(0) + tierNormalized.slice(1).toLowerCase()} Plan`,
+          tier: isFreeTier ? 'FREE' : tierNormalized,
+          plan_name: isFreeTier ? 'Advocate Free Plan' : `Advocate ${tierNormalized.charAt(0) + tierNormalized.slice(1).toLowerCase()} Plan`,
           billing_cycle: s.billingCycle || 'monthly',
           billing_type: s.billingType || 'individual',
           amount: amount,
+          plan_amount: planAmount,
+          is_paid: isPaid,
+          is_manually_assigned: isManuallyAssigned,
+          payment_status: isPaid ? 'verified_paid' : 'manually_assigned',
           currency: s.currency || 'INR',
           status: s.status || 'active',
           platform: s.platform || 'ios',
           provider: s.platform === 'ios' ? 'app_store' : 'razorpay',
-          transaction_id: s.transactionId || s.paymentId || '',
+          transaction_id: txId,
           order_id: s.orderId || '',
           invoice_id: s.invoiceId || '',
           start_date: startDate,

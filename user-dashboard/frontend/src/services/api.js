@@ -1,9 +1,21 @@
-const rawBase = (typeof window !== 'undefined' && window._env_ && window._env_.VITE_API_BASE_URL)
-  ? window._env_.VITE_API_BASE_URL
-  : (import.meta.env.VITE_API_BASE_URL !== undefined
-      ? import.meta.env.VITE_API_BASE_URL
-      : (import.meta.env.DEV ? 'http://localhost:8080' : ''));
+const resolveBase = () => {
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    // On phones or remote LAN devices, return '' so requests go through Vite's dev server proxy (/api -> 8080)
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      return '';
+    }
+    if (window._env_ && window._env_.VITE_API_BASE_URL) {
+      return window._env_.VITE_API_BASE_URL;
+    }
+  }
 
+  return (import.meta.env.VITE_API_BASE_URL !== undefined
+    ? import.meta.env.VITE_API_BASE_URL
+    : (import.meta.env.DEV ? 'http://localhost:8080' : ''));
+};
+
+const rawBase = resolveBase();
 const API_BASE = (rawBase || '').replace(/\/+$/, '');
 
 export function getToken() {

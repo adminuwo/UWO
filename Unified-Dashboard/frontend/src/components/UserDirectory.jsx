@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { TableScroller } from './TableScroller';
 
 export const UserDirectory = () => {
   const { authFetch } = useAuth();
@@ -49,7 +50,7 @@ export const UserDirectory = () => {
       {loading ? (
         <div style={{ color: 'var(--text-muted)' }}>Loading users...</div>
       ) : (
-        <div className="table-responsive">
+        <TableScroller minWidth={700}>
           <table className="data-table">
             <thead>
               <tr>
@@ -94,7 +95,7 @@ export const UserDirectory = () => {
               )}
             </tbody>
           </table>
-        </div>
+        </TableScroller>
       )}
     </div>
   );

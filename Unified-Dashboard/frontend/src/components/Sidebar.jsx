@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 
-export const Sidebar = ({ currentTab, setTab }) => {
+export const Sidebar = ({ currentTab, setTab, mobileOpen, onClose }) => {
   const { adminUsername, logout } = useAuth();
 
   const navItems = [
@@ -18,9 +18,13 @@ export const Sidebar = ({ currentTab, setTab }) => {
     { id: 'sandbox', label: 'API Sandbox', icon: '⚡' },
   ];
 
+  const handleLogout = () => {
+    if (onClose) onClose();
+    logout();
+  };
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${mobileOpen ? 'open' : ''}`}>
       <div className="brand">
         <div className="brand-icon" style={{ padding: '6px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
           <img src="/images/uwo-logo.png" alt="UWO" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
@@ -29,6 +33,16 @@ export const Sidebar = ({ currentTab, setTab }) => {
           <h1>Unified Platform</h1>
           <span>Central Shared Backend</span>
         </div>
+        {onClose && (
+          <button
+            type="button"
+            className="sidebar-close-btn"
+            onClick={onClose}
+            aria-label="Close sidebar"
+          >
+            ✕
+          </button>
+        )}
       </div>
 
       <ul className="nav-list">
@@ -50,7 +64,7 @@ export const Sidebar = ({ currentTab, setTab }) => {
             <span className="admin-name">{adminUsername || 'Master Admin'}</span>
             <span className="admin-role">● Online (Master)</span>
           </div>
-          <button className="btn-logout" onClick={logout}>
+          <button className="btn-logout" onClick={handleLogout}>
             Logout
           </button>
         </div>

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { TableScroller } from './TableScroller';
 
 export const OverlapAnalytics = () => {
   const { authFetch } = useAuth();
@@ -73,7 +74,7 @@ export const OverlapAnalytics = () => {
       </div>
 
       {/* Visual Intersect Section */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '20px', marginTop: '24px' }}>
         {/* Visual Venn / Overlap Card */}
         <div className="card-section" style={{ minHeight: '320px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div className="section-header">
@@ -185,7 +186,7 @@ export const OverlapAnalytics = () => {
         <div className="section-header">
           <div className="section-title">Cross-Application User Download Overlap Matrix</div>
         </div>
-        <div className="table-wrapper">
+        <TableScroller minWidth={600}>
           <table className="data-table">
             <thead>
               <tr>
@@ -228,7 +229,7 @@ export const OverlapAnalytics = () => {
               )}
             </tbody>
           </table>
-        </div>
+        </TableScroller>
       </div>
     </div>
   );

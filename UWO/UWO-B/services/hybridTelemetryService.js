@@ -15,7 +15,21 @@ const googlePlaySync = require('./googlePlaySyncService');
  *    superseded by official Play Store reports, with zero data gaps.
  */
 
-async function getMergedAppTelemetry(db, appCode) {
+const mergedCache = new Map();
+const MERGED_CACHE_TTL_MS = 45 * 1000; // 45 seconds cache to serve parallel endpoints in <1ms
+
+function invalidateMergedCache() {
+  mergedCache.clear();
+}
+
+async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
+  const cacheKey = String(appCode || '').toLowerCase().trim();
+  const cached = mergedCache.get(cacheKey);
+  const nowMs = Date.now();
+  if (!forceRefresh && cached && (nowMs - cached.timestamp < MERGED_CACHE_TTL_MS)) {
+    return cached.data;
+  }
+
   // 1. Fetch Google Play Console historical records from DB
   let playRecords = [];
   let playRating = null;
@@ -93,92 +107,71 @@ async function getMergedAppTelemetry(db, appCode) {
     }
   }
 
-  // 4. Determine Firebase Setup Watermark (Firebase is Primary from this date onwards)
-  const fbDaily = appFb?.daily_metrics || {};
-  const fbDates = Object.keys(fbDaily).sort();
-  const fbLatestDate = fbDates.length > 0 ? fbDates[fbDates.length - 1] : null;
-  // Firebase has active primary tracking if it has logged events and its latest telemetry reaches the active window or supersedes Google Play's latest date
-  const fbHasActiveTracking = fbDates.length > 0 && (
-    !playMaxDate ||
-    fbLatestDate >= playMaxDate ||
-    (appFb?.today_installs > 0 || appFb?.yesterday_installs > 0 || (appFb?.realtime_active || 0) > 0)
-  );
-  const fbEarliestDate = fbHasActiveTracking ? fbDates[0] : null;
-
-  // Pre-Firebase Google Play metrics (strictly before Firebase setup date)
-  let preFbInstalls = 0;
-  let preFbUninstalls = 0;
-  let preFbActive = 0;
+  // 4. Determine Hybrid Watermark & Totals
+  // Google Play Console is the authoritative historical ground truth up to playMaxDate.
+  // Firebase SDK provides the real-time forward leading edge for dates strictly after playMaxDate.
+  let playInstallsTotal = 0;
+  let playLatestActive = 0;
 
   for (const r of dedupedPlayRecords) {
-    if (!fbEarliestDate || r.metric_date < fbEarliestDate) {
-      preFbInstalls += (r.daily_user_installs || r.daily_device_installs || 0);
-      preFbUninstalls += (r.daily_user_uninstalls || 0);
-      preFbActive = r.installs_on_active_devices || preFbActive;
+    playInstallsTotal += (r.daily_user_installs || r.daily_device_installs || 0);
+    playLatestActive = r.installs_on_active_devices || playLatestActive;
+  }
+
+  const fbDaily = appFb?.daily_metrics || {};
+  const fbDates = Object.keys(fbDaily).sort();
+  let postPlayFbInstalls = 0;
+
+  for (const d of fbDates) {
+    if (!playMaxDate || d > playMaxDate) {
+      const dayData = fbDaily[d];
+      postPlayFbInstalls += (dayData.android || dayData.installs || 0);
     }
   }
 
-  // Spliced Totals: Pre-Firebase Google Play + Firebase Primary
-  let totalAndroidInstalls = 0;
-  let totalUninstalls = 0;
-  let activeDevices = 0;
-
-  if (fbHasActiveTracking) {
-    totalAndroidInstalls = preFbInstalls + (appFb?.total_installs || 0);
-    // In Firebase Primary mode, uninstalls during active tracking are from live Firebase telemetry
-    totalUninstalls = appFb?.total_uninstalls || 0;
-    activeDevices = appFb?.active_users || 0;
-  } else {
-    // If app has minimal/no Firebase tracking (e.g. AISA), Google Play is the primary foundation
-    totalAndroidInstalls = preFbInstalls + (appFb?.total_installs || 0);
-    totalUninstalls = preFbUninstalls + (appFb?.total_uninstalls || 0);
-    activeDevices = preFbActive || (appFb?.active_users || 0);
-  }
-
+  const totalAndroidInstalls = playInstallsTotal + postPlayFbInstalls;
   // 5. Construct Unified Spliced Timeline
+  // Google Play Console official records (dates <= playMaxDate) + Firebase leading edge (dates > playMaxDate)
   const mergedTimeline = [];
   let runningCum = 0;
 
-  // Add Pre-Firebase Google Play dates
-  const sortedPlayDates = Object.keys(playDailyMap).sort();
-  for (const d of sortedPlayDates) {
-    if (!fbEarliestDate || d < fbEarliestDate) {
-      runningCum += playDailyMap[d].daily_user_installs;
-      mergedTimeline.push({
-        ...playDailyMap[d],
-        total_user_installs: runningCum
-      });
-    }
+  for (const r of dedupedPlayRecords) {
+    const dailyInstalls = r.daily_user_installs || r.daily_device_installs || 0;
+    runningCum += dailyInstalls;
+    mergedTimeline.push({
+      ...playDailyMap[r.metric_date],
+      total_user_installs: runningCum
+    });
   }
 
-  // Add Firebase Primary dates (from fbEarliestDate onwards)
-  if (fbHasActiveTracking) {
-    for (const d of fbDates) {
+  let runningActive = playLatestActive;
+  for (const d of fbDates) {
+    if (!playMaxDate || d > playMaxDate) {
       const dayData = fbDaily[d];
       const dayInstalls = dayData.android || dayData.installs || 0;
       const dayUninstalls = dayData.uninstalls || 0;
       runningCum += dayInstalls;
+
+      // Realistic net active devices flow: smoothly evolves from the official Google Play Console baseline
+      if (dayData.active > 0) {
+        runningActive = dayData.active;
+      } else {
+        runningActive = Math.max(0, runningActive + dayInstalls - dayUninstalls);
+      }
+
       mergedTimeline.push({
         date: d,
         daily_user_installs: dayInstalls,
         daily_user_uninstalls: dayUninstalls,
         daily_device_installs: dayInstalls,
-        installs_on_active_devices: dayData.active || activeDevices,
+        installs_on_active_devices: runningActive,
         total_user_installs: runningCum,
-        source: 'firebase_sdk_ga4_primary'
+        source: 'firebase_sdk_ga4_live_edge'
       });
     }
-  } else {
-    for (const d of sortedPlayDates) {
-      if (fbEarliestDate && d >= fbEarliestDate) {
-        runningCum += playDailyMap[d].daily_user_installs;
-        mergedTimeline.push({
-          ...playDailyMap[d],
-          total_user_installs: runningCum
-        });
-      }
-    }
   }
+
+  const activeDevices = runningActive > 0 ? runningActive : (appFb?.active_users || playLatestActive || 0);
 
   // 6. Query Apple App Store Metrics for iOS Store Downloads
   let iosRecords = [];
@@ -225,39 +218,33 @@ async function getMergedAppTelemetry(db, appCode) {
   const realtimeActive = appFb?.realtime_android ?? appFb?.realtime_active ?? 0;
   const realtimeIos = appFb?.realtime_ios ?? 0;
 
-  let netLostDevices = 0;
-  let retentionRate = 0;
-
-  if (fbHasActiveTracking) {
-    // In Firebase Primary mode, uninstalls are derived directly from actual GA4 app_remove events
-    netLostDevices = totalUninstalls;
-    retentionRate = (activeDevices + netLostDevices) > 0
-      ? Number(((activeDevices / (activeDevices + netLostDevices)) * 100).toFixed(1))
-      : 0;
-  } else {
-    // In Google Play mode, net lost devices represents the churn gap between store acquisitions and active devices
-    netLostDevices = Math.max(0, totalAndroidInstalls - activeDevices);
-    retentionRate = totalAndroidInstalls > 0
-      ? Number(((activeDevices / totalAndroidInstalls) * 100).toFixed(1))
-      : 0;
-  }
+  // Option B: User Retention (Active Users / Total Store Installs)
+  // Reflects true retained human users from Firebase SDK / GA4
+  const activeUsers = appFb?.active_users || (runningActive > 0 ? runningActive : (playLatestActive || 0));
+  const netLostUsers = Math.max(0, totalAndroidInstalls - activeUsers);
+  const netLostDevices = Math.max(0, totalAndroidInstalls - activeDevices);
+  const retentionRate = totalAndroidInstalls > 0
+    ? Number(((activeUsers / totalAndroidInstalls) * 100).toFixed(1))
+    : 0;
   const churnRate = Number((100 - retentionRate).toFixed(1));
+  const totalUninstalls = netLostUsers;
 
   return {
     app_code: appCode,
     display_name: appCode === 'ailegal' ? 'AI-LEGAL' : (appCode === 'aisa' ? 'AISA' : appCode.toUpperCase()),
-    watermark_date: fbEarliestDate ? `Firebase Primary (since ${fbEarliestDate})` : playMaxDate,
+    watermark_date: playMaxDate ? `Google Play Console (to ${playMaxDate}) + Live Firebase Edge` : 'Firebase Primary',
     ios_watermark_date: iosMaxDate,
     sources: {
-      primary_engine: fbEarliestDate ? `Firebase Analytics GA4 (Primary since ${fbEarliestDate})` : 'Google Play Console (Primary)',
-      pre_firebase_baseline: fbEarliestDate ? `Google Play Console (Pre-setup before ${fbEarliestDate})` : 'Google Play Console Baseline',
-      live_leading_edge: 'Firebase Analytics SDK (Live Realtime)',
+      primary_engine: playMaxDate ? `Google Play Console (Official to ${playMaxDate})` : 'Google Play Console',
+      live_leading_edge: playMaxDate ? `Firebase Analytics GA4 (Live Edge since ${playMaxDate})` : 'Firebase Analytics SDK',
       ios_historical: iosMaxDate ? `Apple App Store Connect (up to ${iosMaxDate})` : 'App Store Connect Baseline'
     },
     total_android_installs: totalAndroidInstalls,
     total_ios_installs: totalIosInstalls,
     active_devices: activeDevices,
-    net_lost_devices: netLostDevices,
+    active_users: activeUsers,
+    net_lost_devices: netLostUsers,
+    net_lost_hardware_devices: netLostDevices,
     retention_rate: retentionRate,
     churn_rate: churnRate,
     total_uninstalls_raw: totalUninstalls,
@@ -272,8 +259,12 @@ async function getMergedAppTelemetry(db, appCode) {
     store_installers: playPerf?.installers || 0,
     timeline: mergedTimeline
   };
+
+  mergedCache.set(cacheKey, { timestamp: nowMs, data: result });
+  return result;
 }
 
 module.exports = {
-  getMergedAppTelemetry
+  getMergedAppTelemetry,
+  invalidateMergedCache
 };

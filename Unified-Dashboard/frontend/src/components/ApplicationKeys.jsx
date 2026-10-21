@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { TableScroller } from './TableScroller';
 
 export const ApplicationKeys = () => {
   const { authFetch } = useAuth();
@@ -74,7 +75,7 @@ export const ApplicationKeys = () => {
         {loading ? (
           <div style={{ color: 'var(--text-muted)' }}>Loading API keys...</div>
         ) : (
-          <div className="table-responsive">
+          <TableScroller minWidth={640}>
             <table className="data-table">
               <thead>
                 <tr>
@@ -119,7 +120,7 @@ export const ApplicationKeys = () => {
                 )}
               </tbody>
             </table>
-          </div>
+          </TableScroller>
         )}
       </div>
 

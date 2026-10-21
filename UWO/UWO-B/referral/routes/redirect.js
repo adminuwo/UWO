@@ -171,8 +171,20 @@ async function handleReferralRouting(req, res) {
               referrer: (req.headers['referer'] || req.headers['referrer'] || '').slice(0, 200),
             }).catch(() => {});
 
+            const detectedAppCode = (
+              marketingDoc.app_code ||
+              marketingDoc.product_id ||
+              marketingDoc.product_code ||
+              (marketingDoc.slug && /legal/i.test(marketingDoc.slug) ? 'ailegal' : '') ||
+              (marketingDoc.slug && /aisa/i.test(marketingDoc.slug) ? 'aisa' : '') ||
+              (targetUrl && /ailegal/i.test(targetUrl) ? 'ailegal' : '') ||
+              (targetUrl && /aisa/i.test(targetUrl) ? 'aisa' : '') ||
+              'general'
+            ).toLowerCase().trim();
+
             await uDb.collection('marketing_events').insertOne({
               event_type: 'click',
+              app_code: detectedAppCode,
               slug: code,
               device_type: deviceType,
               ip,

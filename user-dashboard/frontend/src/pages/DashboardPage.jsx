@@ -268,28 +268,29 @@ export default function DashboardPage({ user, onLogout }) {
     <div className="min-h-screen bg-slate-950 text-slate-100">
       {/* Top Navigation */}
       <nav className="border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-              <Sparkles className="w-5 h-5" />
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 flex-shrink-0">
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <span className="font-bold text-white text-base tracking-tight block">
-                UWO™ Referral Portal
+            <div className="min-w-0">
+              <span className="font-bold text-white text-sm sm:text-base tracking-tight block truncate">
+                UWO™ <span className="hidden xs:inline">Referral Portal</span>
               </span>
-              <span className="text-[11px] text-slate-400">
+              <span className="text-[10px] sm:text-[11px] text-slate-400 block truncate">
                 User ID: <span className="font-mono text-indigo-400 font-semibold">{user?.userId}</span>
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             <button
               onClick={() => setActiveModal('manageProjects')}
-              className="px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-xs font-medium text-indigo-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-xs font-medium text-indigo-300 flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
             >
-              <FolderGit2 className="w-4 h-4 text-indigo-400" />
-              <span>Official Ecosystem Projects ({products.length})</span>
+              <FolderGit2 className="w-4 h-4 text-indigo-400 flex-shrink-0" />
+              <span className="hidden sm:inline">Official Ecosystem Projects ({products.length})</span>
+              <span className="sm:hidden">Projects ({products.length})</span>
             </button>
 
             <div className="h-6 w-px bg-slate-800" />
@@ -534,8 +535,8 @@ export default function DashboardPage({ user, onLogout }) {
               <p className="text-xs text-slate-600 mt-1">Select a project above and click "Generate Link" to start sharing!</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+            <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <table className="w-full text-left text-xs min-w-[680px]">
                 <thead className="bg-slate-950/60 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
                   <tr>
                     <th className="py-3.5 px-6">Project</th>
@@ -817,8 +818,8 @@ export default function DashboardPage({ user, onLogout }) {
 
       {/* Modal: Device Simulator */}
       {activeModal === 'simulator' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl p-6 shadow-2xl relative max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl p-4 sm:p-6 shadow-2xl relative max-h-[90vh] flex flex-col">
             <button
               onClick={() => setActiveModal(null)}
               className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 cursor-pointer"
@@ -826,13 +827,13 @@ export default function DashboardPage({ user, onLogout }) {
               <X className="w-5 h-5" />
             </button>
 
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-indigo-600/20 text-indigo-400 border border-indigo-500/30">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-800 mb-4 gap-3">
+              <div className="flex items-center gap-2 pr-8 sm:pr-0">
+                <div className="p-2 rounded-lg bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex-shrink-0">
                   <Sparkles className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">Multi-Device & Attribution Simulator</h3>
+                  <h3 className="text-base sm:text-lg font-bold text-white">Multi-Device & Attribution Simulator</h3>
                   <p className="text-xs text-slate-400">
                     Test Desktop, Android Google Play Referrer, and iOS IP matching without any real phones!
                   </p>
@@ -841,8 +842,8 @@ export default function DashboardPage({ user, onLogout }) {
 
               {/* Link selector */}
               {links.length > 0 && (
-                <div className="flex items-center gap-2 mr-6">
-                  <span className="text-xs text-slate-400 hidden sm:inline">Testing Code:</span>
+                <div className="flex items-center gap-2 self-start sm:self-auto sm:mr-6">
+                  <span className="text-xs text-slate-400 whitespace-nowrap">Testing Code:</span>
                   <select
                     value={simSelectedCode || links[0]?.code}
                     onChange={(e) => setSimSelectedCode(e.target.value)}
@@ -866,7 +867,7 @@ export default function DashboardPage({ user, onLogout }) {
               <div className="overflow-y-auto flex-1 space-y-4 pr-1 text-xs">
                 {/* 1. Desktop Test */}
                 <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2 text-blue-400 font-bold">
                       <Laptop className="w-4 h-4" />
                       <span>1. Desktop / Laptop Web Redirection</span>
@@ -874,7 +875,7 @@ export default function DashboardPage({ user, onLogout }) {
                     <button
                       onClick={() => handleSimulateDesktop(simSelectedCode || links[0]?.code)}
                       disabled={simRunning}
-                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold text-xs rounded-lg cursor-pointer flex items-center gap-1.5"
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold text-xs rounded-lg cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
                     >
                       <span>Simulate Desktop Click</span>
                     </button>
@@ -900,12 +901,12 @@ export default function DashboardPage({ user, onLogout }) {
 
                 {/* 2. Android Test */}
                 <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2 text-green-400 font-bold">
                       <Smartphone className="w-4 h-4" />
                       <span>2. Android Google Play Referrer & Install</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <button
                         onClick={() => handleSimulateAndroidClick(simSelectedCode || links[0]?.code)}
                         disabled={simRunning}
@@ -949,12 +950,12 @@ export default function DashboardPage({ user, onLogout }) {
 
                 {/* 3. iOS Test */}
                 <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2 text-slate-200 font-bold">
                       <Apple className="w-4 h-4" />
                       <span>3. iOS IP Matching Attribution (2-4h TTL Window)</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <button
                         onClick={() => handleSimulateIosClick(simSelectedCode || links[0]?.code)}
                         disabled={simRunning}

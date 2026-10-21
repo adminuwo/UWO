@@ -214,7 +214,7 @@ export const AuthTokenTester = () => {
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '20px' }}>
         {/* 1. Register Form */}
         <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '12px', padding: '20px' }}>
           <h3 style={{ color: '#38bdf8', fontSize: '16px', marginTop: 0 }}>1. Register User</h3>
@@ -458,4 +458,6 @@ const codeBlockStyle = {
   marginTop: '12px',
   overflowX: 'auto',
   maxHeight: '160px',
+  whiteSpace: 'pre-wrap',
+  wordBreak: 'break-all',
 };

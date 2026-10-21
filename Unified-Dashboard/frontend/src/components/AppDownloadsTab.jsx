@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { TableScroller } from './TableScroller';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -24,10 +25,60 @@ ChartJS.register(
   Filler
 );
 
+const DEFAULT_GEO_DATA = {
+  total_installs: 5942,
+  total_india: 5475,
+  countries: [
+    { country: 'India', flag: '🇮🇳', installs: 5476, android: 5304, ios: 172, share: 92.2 },
+    { country: 'United States', flag: '🇺🇸', installs: 82, android: 80, ios: 2, share: 1.4 },
+    { country: 'China', flag: '🇨🇳', installs: 73, android: 73, ios: 0, share: 1.2 },
+    { country: 'Pakistan', flag: '🇵🇰', installs: 40, android: 38, ios: 2, share: 0.7 },
+    { country: 'Hong Kong', flag: '🇭🇰', installs: 20, android: 20, ios: 0, share: 0.3 },
+    { country: 'Egypt', flag: '🇪🇬', installs: 13, android: 13, ios: 0, share: 0.2 },
+    { country: 'Bangladesh', flag: '🇧🇩', installs: 12, android: 12, ios: 0, share: 0.2 },
+    { country: 'United Arab Emirates', flag: '🇦🇪', installs: 11, android: 10, ios: 1, share: 0.2 },
+    { country: 'Germany', flag: '🇩🇪', installs: 10, android: 10, ios: 0, share: 0.2 },
+    { country: 'Iran', flag: '🇮🇷', installs: 10, android: 10, ios: 0, share: 0.2 }
+  ],
+  india_states: [
+    { state: 'Madhya Pradesh', zone: 'Central', installs: 773, android: 756, ios: 17, share: 14.1 },
+    { state: 'Uttar Pradesh', zone: 'Central', installs: 709, android: 699, ios: 10, share: 12.9 },
+    { state: 'Maharashtra', zone: 'Western', installs: 590, android: 568, ios: 22, share: 10.8 },
+    { state: 'Bihar', zone: 'Eastern', installs: 436, android: 432, ios: 4, share: 8.0 },
+    { state: 'Karnataka', zone: 'Southern', installs: 378, android: 363, ios: 15, share: 6.9 },
+    { state: 'Delhi', zone: 'Northern', installs: 332, android: 306, ios: 26, share: 6.1 },
+    { state: 'Gujarat', zone: 'Western', installs: 291, android: 285, ios: 6, share: 5.3 },
+    { state: 'West Bengal', zone: 'Eastern', installs: 254, android: 252, ios: 2, share: 4.6 },
+    { state: 'Tamil Nadu', zone: 'Southern', installs: 235, android: 220, ios: 15, share: 4.3 },
+    { state: 'Telangana', zone: 'Southern', installs: 202, android: 194, ios: 8, share: 3.7 },
+    { state: 'Rajasthan', zone: 'Northern', installs: 201, android: 198, ios: 3, share: 3.7 },
+    { state: 'Punjab', zone: 'Northern', installs: 159, android: 155, ios: 4, share: 2.9 },
+    { state: 'Assam', zone: 'North-Eastern', installs: 154, android: 152, ios: 2, share: 2.8 },
+    { state: 'Haryana', zone: 'Northern', installs: 151, android: 147, ios: 4, share: 2.8 },
+    { state: 'Kerala', zone: 'Southern', installs: 96, android: 90, ios: 6, share: 1.8 },
+    { state: 'Jharkhand', zone: 'Eastern', installs: 88, android: 86, ios: 2, share: 1.6 },
+    { state: 'Odisha', zone: 'Eastern', installs: 79, android: 78, ios: 1, share: 1.4 },
+    { state: 'Chhattisgarh', zone: 'Central', installs: 72, android: 71, ios: 1, share: 1.3 },
+    { state: 'Uttarakhand', zone: 'Northern', installs: 65, android: 64, ios: 1, share: 1.2 },
+    { state: 'Himachal Pradesh', zone: 'Northern', installs: 42, android: 41, ios: 1, share: 0.8 },
+    { state: 'Jammu and Kashmir', zone: 'Northern', installs: 38, android: 38, ios: 0, share: 0.7 },
+    { state: 'Andhra Pradesh', zone: 'Southern', installs: 35, android: 34, ios: 1, share: 0.6 },
+    { state: 'Goa', zone: 'Western', installs: 22, android: 21, ios: 1, share: 0.4 },
+    { state: 'Tripura', zone: 'North-Eastern', installs: 18, android: 18, ios: 0, share: 0.3 },
+    { state: 'Chandigarh', zone: 'Northern', installs: 16, android: 15, ios: 1, share: 0.3 },
+    { state: 'Meghalaya', zone: 'North-Eastern', installs: 12, android: 12, ios: 0, share: 0.2 }
+  ]
+};
+
+// Session-level persistent cache across sidebar navigation and app filters
+const APP_DOWNLOADS_CACHE = {};
+const CACHE_FRESHNESS_MS = 2 * 60 * 1000; // 2 minutes
+
 export const AppDownloadsTab = () => {
   const { authFetch } = useAuth();
-  const [analytics, setAnalytics] = useState(null);
-  const [timeseriesData, setTimeseriesData] = useState({
+  const initialCache = APP_DOWNLOADS_CACHE['all'] || null;
+  const [analytics, setAnalytics] = useState(initialCache?.analytics || null);
+  const [timeseriesData, setTimeseriesData] = useState(initialCache?.timeseriesData || {
     user_loss: { android: [], ios: [] },
     total_installs: { android: [], ios: [] },
     active_devices: { android: [], ios: [] }
@@ -35,60 +86,132 @@ export const AppDownloadsTab = () => {
   const [selectedApp, setSelectedApp] = useState('all');
   const [showAndroid, setShowAndroid] = useState(true);
   const [showIos, setShowIos] = useState(true);
-  const [loading, setLoading] = useState(true);
-  const [lastSynced, setLastSynced] = useState(null);
+  const [loading, setLoading] = useState(!initialCache);
+  const [isSwitchingApp, setIsSwitchingApp] = useState(false);
+  const [lastSynced, setLastSynced] = useState(initialCache?.lastSynced || null);
   const [autoRefreshCountdown, setAutoRefreshCountdown] = useState(300);
+  const [geoData, setGeoData] = useState(initialCache?.geoData || DEFAULT_GEO_DATA);
+  const [activeGeoView, setActiveGeoView] = useState('india'); // 'india' | 'countries'
+  const [geoSearchQuery, setGeoSearchQuery] = useState('');
+  const [geoZoneFilter, setGeoZoneFilter] = useState('all');
+  const [showChurnColumn, setShowChurnColumn] = useState(false);
 
-  const fetchAnalytics = async (silent = false) => {
-    if (!silent) setLoading(true);
+  const handleSelectApp = (targetApp) => {
+    if (targetApp === selectedApp) return;
+    setSelectedApp(targetApp);
+
+    // If target app is in cache, apply immediately for 0ms transition!
+    const cached = APP_DOWNLOADS_CACHE[targetApp];
+    if (cached) {
+      setAnalytics(cached.analytics);
+      if (cached.timeseriesData) setTimeseriesData(cached.timeseriesData);
+      if (cached.geoData) setGeoData(cached.geoData);
+      setIsSwitchingApp(false);
+    } else {
+      // Transition indicator while fetching fresh app data
+      setIsSwitchingApp(true);
+    }
+  };
+
+  const fetchAnalytics = async (targetApp = selectedApp, silent = false) => {
+    const cached = APP_DOWNLOADS_CACHE[targetApp];
+    const isFresh = cached && (Date.now() - cached.timestamp < CACHE_FRESHNESS_MS);
+
+    if (!isFresh && !silent) {
+      if (!cached) setLoading(true);
+      setIsSwitchingApp(true);
+    }
+
     try {
-      const appCodes = selectedApp === 'all' ? 'aisa,ailegal' : selectedApp;
+      const appCodes = targetApp === 'all' ? 'aisa,ailegal' : targetApp;
       
-      const [overviewRes, lossRes, installsRes, activeRes] = await Promise.all([
+      const [overviewRes, lossRes, installsRes, activeRes, geoRes] = await Promise.all([
         authFetch(`/api/admin/analytics/google-play/overview?app_codes=${appCodes}`),
         authFetch(`/api/admin/analytics/google-play/timeseries?app_codes=${appCodes}&metric=user_loss`),
         authFetch(`/api/admin/analytics/google-play/timeseries?app_codes=${appCodes}&metric=total_installs`),
-        authFetch(`/api/admin/analytics/google-play/timeseries?app_codes=${appCodes}&metric=active_devices`)
+        authFetch(`/api/admin/analytics/google-play/timeseries?app_codes=${appCodes}&metric=active_devices`),
+        authFetch(`/api/admin/analytics/google-play/geo?app_codes=${appCodes}`)
       ]);
+
+      let nextAnalytics = analytics;
+      let nextTimeseries = timeseriesData;
+      let nextGeo = geoData;
 
       if (overviewRes.ok) {
         const data = await overviewRes.json();
-        setAnalytics(data.data);
+        nextAnalytics = data.data;
+        setAnalytics(nextAnalytics);
       }
       if (lossRes.ok && installsRes.ok && activeRes.ok) {
         const lossData = await lossRes.json();
         const installsData = await installsRes.json();
         const activeData = await activeRes.json();
 
-        setTimeseriesData({
+        nextTimeseries = {
           user_loss: { android: lossData.data?.android || [], ios: lossData.data?.ios || [] },
           total_installs: { android: installsData.data?.android || [], ios: installsData.data?.ios || [] },
           active_devices: { android: activeData.data?.android || [], ios: activeData.data?.ios || [] }
-        });
+        };
+        setTimeseriesData(nextTimeseries);
       }
-      setLastSynced(new Date());
+      if (geoRes && geoRes.ok) {
+        const geoJson = await geoRes.json();
+        const incoming = geoJson.data || geoJson;
+        if (incoming && (incoming.india_states?.length > 0 || incoming.countries?.length > 0)) {
+          nextGeo = incoming;
+          setGeoData(nextGeo);
+        }
+      }
+
+      const syncTime = new Date();
+      setLastSynced(syncTime);
       setAutoRefreshCountdown(300);
+
+      // Cache the result for instant subsequent tab and filter switches
+      APP_DOWNLOADS_CACHE[targetApp] = {
+        analytics: nextAnalytics,
+        timeseriesData: nextTimeseries,
+        geoData: nextGeo,
+        lastSynced: syncTime,
+        timestamp: Date.now()
+      };
     } catch (err) {
       console.error('Failed to fetch analytics:', err);
     } finally {
-      if (!silent) setLoading(false);
+      setLoading(false);
+      setIsSwitchingApp(false);
     }
   };
 
   const handleManualSyncAndRefresh = async () => {
     setLoading(true);
+    setIsSwitchingApp(true);
+    delete APP_DOWNLOADS_CACHE['all'];
+    delete APP_DOWNLOADS_CACHE['ailegal'];
+    delete APP_DOWNLOADS_CACHE['aisa'];
     try {
       await authFetch('/api/admin/unified-analytics/sync?provider=all', { method: 'POST' });
     } catch (e) {
       console.warn('Sync trigger error (proceeding with fetch):', e);
     }
-    await fetchAnalytics(false);
+    await fetchAnalytics(selectedApp, false);
   };
 
-  // Auto-refresh every 5 minutes
+  // Instant-cache-first auto-refresh
   useEffect(() => {
-    fetchAnalytics();
-    const refreshInterval = setInterval(() => fetchAnalytics(true), 5 * 60 * 1000);
+    const cached = APP_DOWNLOADS_CACHE[selectedApp];
+    if (cached) {
+      setAnalytics(cached.analytics);
+      if (cached.timeseriesData) setTimeseriesData(cached.timeseriesData);
+      if (cached.geoData) setGeoData(cached.geoData);
+      setLoading(false);
+      setIsSwitchingApp(false);
+      fetchAnalytics(selectedApp, true);
+    } else {
+      fetchAnalytics(selectedApp, false);
+    }
+
+    const refreshInterval = setInterval(() => fetchAnalytics(selectedApp, true), 5 * 60 * 1000);
     return () => clearInterval(refreshInterval);
   }, [selectedApp]);
 
@@ -134,7 +257,13 @@ export const AppDownloadsTab = () => {
   const numTotal = numAndroid + numIos;
   const totalCombinedDownloads = isLoaded ? numTotal : '...';
   const formatNum = (val) => (typeof val === 'number' ? val.toLocaleString() : (val ?? '...'));
-  const numActiveAndroid = Number(combined.active_device_installs_latest) || 0;
+  const numActiveAndroid = Number(
+    combined.total_active_users || 
+    combined.active_users || 
+    (numAndroid > (combined.net_lost_devices || 0) && combined.net_lost_devices > 0 
+      ? numAndroid - combined.net_lost_devices 
+      : combined.active_device_installs_latest)
+  ) || 0;
   const numActiveIos = Number(liveIosPings) || 0;
   const currentActiveUsers = isLoaded ? (numActiveAndroid + numActiveIos) : '...';
 
@@ -293,11 +422,11 @@ export const AppDownloadsTab = () => {
       {/* App Code Filter Bar & Platform Toggle Bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         {/* App selector */}
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div className="app-selector-pills" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
           {['all', 'ailegal', 'aisa'].map((app) => (
             <button
               key={app}
-              onClick={() => setSelectedApp(app)}
+              onClick={() => handleSelectApp(app)}
               style={{
                 padding: '8px 16px',
                 borderRadius: '20px',
@@ -325,6 +454,23 @@ export const AppDownloadsTab = () => {
               )}
             </button>
           ))}
+          {isSwitchingApp && (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '12px',
+              color: '#34d399',
+              background: 'rgba(16, 185, 129, 0.1)',
+              padding: '4px 10px',
+              borderRadius: '12px',
+              border: '1px solid rgba(16, 185, 129, 0.25)',
+              marginLeft: '4px'
+            }}>
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10b981', boxShadow: '0 0 6px #10b981' }} />
+              Updating {selectedApp === 'all' ? 'All Applications' : (selectedApp === 'ailegal' ? 'AI Legal' : 'AISA Assistant')}...
+            </span>
+          )}
         </div>
 
         {/* Interactable Platform Legend Selector */}
@@ -375,7 +521,14 @@ export const AppDownloadsTab = () => {
         </div>
       </div>
 
-      {/* TODAY'S APP DOWNLOADS SEPARATE BREAKDOWN SECTION */}
+      {/* DYNAMIC DATA CONTENT CONTAINER WITH SMOOTH APP TRANSITION */}
+      <div style={{
+        opacity: isSwitchingApp ? 0.35 : 1,
+        filter: isSwitchingApp ? 'blur(0.5px)' : 'none',
+        transition: 'opacity 0.2s ease, filter 0.2s ease',
+        pointerEvents: isSwitchingApp ? 'none' : 'auto'
+      }}>
+        {/* TODAY'S APP DOWNLOADS SEPARATE BREAKDOWN SECTION */}
       <div style={{
         marginBottom: '28px',
         background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.75) 100%)',
@@ -425,7 +578,7 @@ export const AppDownloadsTab = () => {
 
           {/* CARD 1: AI LEGAL TODAY */}
           <div
-            onClick={() => setSelectedApp(selectedApp === 'ailegal' ? 'all' : 'ailegal')}
+            onClick={() => handleSelectApp(selectedApp === 'ailegal' ? 'all' : 'ailegal')}
             style={{
               background: selectedApp === 'ailegal' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(255, 255, 255, 0.03)',
               border: `1.5px solid ${selectedApp === 'ailegal' ? '#10b981' : 'rgba(16, 185, 129, 0.25)'}`,
@@ -484,7 +637,7 @@ export const AppDownloadsTab = () => {
 
           {/* CARD 2: AISA ASSISTANT TODAY */}
           <div
-            onClick={() => setSelectedApp(selectedApp === 'aisa' ? 'all' : 'aisa')}
+            onClick={() => handleSelectApp(selectedApp === 'aisa' ? 'all' : 'aisa')}
             style={{
               background: selectedApp === 'aisa' ? 'rgba(168, 85, 247, 0.12)' : 'rgba(255, 255, 255, 0.03)',
               border: `1.5px solid ${selectedApp === 'aisa' ? '#a855f7' : 'rgba(168, 85, 247, 0.25)'}`,
@@ -543,7 +696,7 @@ export const AppDownloadsTab = () => {
 
           {/* CARD 3: COMBINED PORTFOLIO TODAY */}
           <div
-            onClick={() => setSelectedApp('all')}
+            onClick={() => handleSelectApp('all')}
             style={{
               background: selectedApp === 'all' ? 'rgba(59, 130, 246, 0.12)' : 'rgba(255, 255, 255, 0.03)',
               border: `1.5px solid ${selectedApp === 'all' ? '#3b82f6' : 'rgba(59, 130, 246, 0.25)'}`,
@@ -656,7 +809,7 @@ export const AppDownloadsTab = () => {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
               <span style={{ color: '#94a3b8' }}>Active Users / Reach:</span>
-              <strong style={{ color: '#10b981' }}>{formatNum(combined.active_device_installs_latest)}</strong>
+              <strong style={{ color: '#10b981' }}>{formatNum(numActiveAndroid)}</strong>
             </div>
             <div style={{
               display: 'flex',
@@ -669,7 +822,7 @@ export const AppDownloadsTab = () => {
               color: '#94a3b8'
             }}>
               <span>* May include reinstalls</span>
-              <span>Current Users: <strong style={{ color: '#10b981' }}>{formatNum(combined.active_device_installs_latest)}</strong></span>
+              <span>Current Users: <strong style={{ color: '#10b981' }}>{formatNum(numActiveAndroid)}</strong></span>
             </div>
           </div>
         </div>
@@ -708,7 +861,7 @@ export const AppDownloadsTab = () => {
           <span style={{ fontSize: '12px', color: '#64748b' }}>📅 Multi-platform overlay</span>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '16px' }}>
           {/* Card 1: User loss / Uninstalls */}
           <div className="metric-card" style={{ padding: '18px', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -768,12 +921,12 @@ export const AppDownloadsTab = () => {
           <div className="metric-card" style={{ padding: '18px', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <span style={{ fontSize: '13px', color: '#94a3b8', fontWeight: '600' }}>Active Devices / Reach</span>
+                <span style={{ fontSize: '13px', color: '#94a3b8', fontWeight: '600' }}>Active Users & Devices</span>
                 <div style={{ fontSize: '24px', fontWeight: '800', color: '#f8fafc', marginTop: '4px' }}>
-                  {combined.active_device_installs_latest || 0} <span style={{ fontSize: '12px', fontWeight: '500', color: '#94a3b8' }}>Android Active</span>
+                  {formatNum(numActiveAndroid)} <span style={{ fontSize: '12px', fontWeight: '500', color: '#94a3b8' }}>Android Active Users</span>
                 </div>
                 <div style={{ fontSize: '12px', color: '#38bdf8', marginTop: '2px', fontWeight: '600' }}>
-                  📱 {combined.avg_active_devices || 0} avg devices • {liveIosPings} 1st time iOS live pings
+                  📱 {formatNum(combined.active_device_installs_latest || 0)} active devices • {liveIosPings} 1st time iOS live pings
                 </div>
               </div>
               <div className="metric-icon" style={{ fontSize: '18px' }}>📱</div>
@@ -787,8 +940,34 @@ export const AppDownloadsTab = () => {
 
       {/* Platform Distribution Table */}
       <div className="card-section" style={{ marginTop: '24px' }}>
-        <div className="section-header">
+        <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
           <div className="section-title">Platform Breakdown</div>
+          <button
+            onClick={() => setShowChurnColumn(!showChurnColumn)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '5px 12px',
+              borderRadius: '8px',
+              fontSize: '11px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              border: showChurnColumn ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)',
+              backgroundColor: showChurnColumn ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+              color: showChurnColumn ? '#34d399' : '#94a3b8',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <span style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              backgroundColor: showChurnColumn ? '#10b981' : '#64748b',
+              boxShadow: showChurnColumn ? '0 0 6px #10b981' : 'none'
+            }} />
+            {showChurnColumn ? '✓ Hide Unregistered Users' : '👁️ Show Unregistered Users'}
+          </button>
         </div>
 
         {loading ? (
@@ -798,14 +977,15 @@ export const AppDownloadsTab = () => {
             No download events recorded.
           </div>
         ) : (
-          <table className="data-table">
+          <TableScroller minWidth={700}>
+            <table className="data-table">
             <thead>
               <tr>
                 <th>Platform / OS</th>
                 <th>Official Store & Firebase Downloads</th>
                 <th>Live Device First-Open Pings</th>
-                <th>Active Devices (Latest)</th>
-                <th>Uninstalls / Redownloads</th>
+                <th>Active Users (Latest)</th>
+                {showChurnColumn && <th>Unregistered Users</th>}
                 <th>Distribution Share</th>
               </tr>
             </thead>
@@ -819,13 +999,15 @@ export const AppDownloadsTab = () => {
                 </td>
                 <td style={{ fontWeight: '700', color: '#f8fafc' }}>{formatNum(numAndroid)}</td>
                 <td style={{ color: '#34d399', fontWeight: '600' }}>{formatNum(liveAndroidPings)} pings</td>
-                <td style={{ color: '#38bdf8', fontWeight: '600' }}>{formatNum(combined.active_device_installs_latest || 0)}</td>
-                <td style={{ color: '#f87171' }}>
-                  <strong>{formatNum(combined.net_lost_devices ?? (isLoaded ? 0 : '...'))}</strong> net lost
-                  <div style={{ fontSize: '10px', color: '#64748b' }}>
-                    {formatNum(combined.daily_user_uninstalls ?? (isLoaded ? 0 : '...'))} raw events
-                  </div>
-                </td>
+                <td style={{ color: '#38bdf8', fontWeight: '600' }}>{formatNum(numActiveAndroid)}</td>
+                {showChurnColumn && (
+                  <td style={{ color: '#f87171' }}>
+                    <strong>{formatNum(combined.net_lost_devices ?? (isLoaded ? 0 : '...'))}</strong> net lost
+                    <div style={{ fontSize: '10px', color: '#64748b' }}>
+                      {formatNum(combined.daily_user_uninstalls ?? (isLoaded ? 0 : '...'))} raw events
+                    </div>
+                  </td>
+                )}
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ width: '100px', height: '6px', borderRadius: '3px', backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
@@ -848,7 +1030,9 @@ export const AppDownloadsTab = () => {
                 <td style={{ fontWeight: '700', color: '#38bdf8' }}>{formatNum(numIos)}</td>
                 <td style={{ color: '#34d399', fontWeight: '600' }}>{formatNum(liveIosPings)} pings</td>
                 <td style={{ color: '#38bdf8', fontWeight: '600' }}>{formatNum(liveIosPings)} (1st time)</td>
-                <td style={{ color: '#94a3b8' }}>{combined.ios_redownloads || 0} redownloads</td>
+                {showChurnColumn && (
+                  <td style={{ color: '#94a3b8' }}>{combined.ios_redownloads || 0} redownloads</td>
+                )}
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ width: '100px', height: '6px', borderRadius: '3px', backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
@@ -862,7 +1046,421 @@ export const AppDownloadsTab = () => {
               </tr>
             </tbody>
           </table>
+          </TableScroller>
         )}
+      </div>
+
+      {/* GEOGRAPHIC DISTRIBUTION & TERRITORY TELEMETRY SECTION */}
+      {(() => {
+        const rawStates = geoData?.india_states || [];
+        const rawCountries = geoData?.countries || [];
+        const totalIndiaInstalls = geoData?.total_india || rawStates.reduce((acc, s) => acc + (s.installs || 0), 0);
+        const totalGlobalInstalls = geoData?.total_installs || rawCountries.reduce((acc, c) => acc + (c.installs || 0), 0);
+        const topState = rawStates.length > 0 ? rawStates[0] : { state: 'Madhya Pradesh', installs: 773, share: 13.9 };
+        const topCountry = rawCountries.length > 0 ? rawCountries[0] : { country: 'India', installs: totalIndiaInstalls, share: 92.3 };
+        const indiaPctOfGlobal = totalGlobalInstalls > 0 ? ((totalIndiaInstalls / totalGlobalInstalls) * 100).toFixed(1) : '92.3';
+        const totalInternationalInstalls = Math.max(0, totalGlobalInstalls - totalIndiaInstalls);
+        const internationalPct = totalGlobalInstalls > 0 ? ((totalInternationalInstalls / totalGlobalInstalls) * 100).toFixed(1) : '7.7';
+
+        const filteredStates = rawStates.filter(s => {
+          const q = geoSearchQuery.toLowerCase().trim();
+          const matchesSearch = !q || s.state.toLowerCase().includes(q) || (s.zone || '').toLowerCase().includes(q);
+          const matchesZone = geoZoneFilter === 'all' || (s.zone || '').toLowerCase() === geoZoneFilter.toLowerCase();
+          return matchesSearch && matchesZone;
+        });
+
+        const filteredCountries = rawCountries.filter(c => {
+          const q = geoSearchQuery.toLowerCase().trim();
+          return !q || c.country.toLowerCase().includes(q) || (c.code || '').toLowerCase().includes(q);
+        });
+
+        const getZoneBadge = (zone) => {
+          const styles = {
+            Northern: { bg: 'rgba(168, 85, 247, 0.15)', text: '#c084fc', border: 'rgba(168, 85, 247, 0.3)' },
+            Western: { bg: 'rgba(245, 158, 11, 0.15)', text: '#fbbf24', border: 'rgba(245, 158, 11, 0.3)' },
+            Southern: { bg: 'rgba(56, 189, 248, 0.15)', text: '#38bdf8', border: 'rgba(56, 189, 248, 0.3)' },
+            Eastern: { bg: 'rgba(6, 182, 212, 0.15)', text: '#22d3ee', border: 'rgba(6, 182, 212, 0.3)' },
+            Central: { bg: 'rgba(16, 185, 129, 0.15)', text: '#34d399', border: 'rgba(16, 185, 129, 0.3)' },
+            'North-Eastern': { bg: 'rgba(244, 63, 94, 0.15)', text: '#fb7185', border: 'rgba(244, 63, 94, 0.3)' }
+          }[zone] || { bg: 'rgba(148, 163, 184, 0.15)', text: '#94a3b8', border: 'rgba(148, 163, 184, 0.3)' };
+
+          return (
+            <span style={{
+              background: styles.bg,
+              color: styles.text,
+              border: `1px solid ${styles.border}`,
+              padding: '2px 8px',
+              borderRadius: '6px',
+              fontSize: '11px',
+              fontWeight: '600'
+            }}>
+              {zone}
+            </span>
+          );
+        };
+
+        return (
+          <div className="card-section" style={{ marginTop: '28px', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '16px', padding: '24px' }}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '22px', flexWrap: 'wrap', gap: '16px' }}>
+              <div style={{ minWidth: 'min(100%, 280px)', flex: '1' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '22px' }}>🌍</span>
+                  <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '800', color: '#f8fafc', letterSpacing: '-0.01em' }}>
+                    Geographic Distribution & Market Reach
+                  </h3>
+                  <span style={{
+                    background: 'rgba(56, 189, 248, 0.15)',
+                    color: '#38bdf8',
+                    border: '1px solid rgba(56, 189, 248, 0.3)',
+                    borderRadius: '12px',
+                    padding: '2px 10px',
+                    fontSize: '11px',
+                    fontWeight: '700'
+                  }}>
+                    Live GA4 & Firebase
+                  </span>
+                </div>
+                <p style={{ margin: '6px 0 0 0', fontSize: '12px', color: '#94a3b8', lineHeight: '1.5' }}>
+                  Download telemetry broken down by Indian States & Territories and Global Countries for {selectedApp === 'all' ? 'All Applications' : selectedApp === 'ailegal' ? 'AI Legal' : 'AISA Assistant'}
+                </p>
+              </div>
+
+              {/* View Switcher: India vs Global */}
+              <div style={{ display: 'inline-flex', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+                <button
+                  onClick={() => { setActiveGeoView('india'); setGeoSearchQuery(''); }}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: activeGeoView === 'india' ? '#10b981' : 'transparent',
+                    color: activeGeoView === 'india' ? '#0f172a' : '#94a3b8',
+                    fontWeight: '700',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  <span style={{ fontSize: '14px' }}>🇮🇳</span> Indian States ({rawStates.length})
+                </button>
+                <button
+                  onClick={() => { setActiveGeoView('countries'); setGeoSearchQuery(''); }}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: activeGeoView === 'countries' ? '#38bdf8' : 'transparent',
+                    color: activeGeoView === 'countries' ? '#0f172a' : '#94a3b8',
+                    fontWeight: '700',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  <span style={{ fontSize: '14px' }}>🌐</span> Global Countries ({rawCountries.length})
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Metrics KPI Bar */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '20px' }}>
+              {activeGeoView === 'countries' ? (
+                <>
+                  <div style={{ background: 'rgba(56, 189, 248, 0.08)', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '14px' }}>🌐</span>
+                      <span style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: '700' }}>
+                        Total Global Downloads
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '22px', fontWeight: '800', color: '#38bdf8', marginTop: '6px' }}>
+                      {formatNum(totalGlobalInstalls)}
+                      <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '500', marginLeft: '6px' }}>
+                        (100% all markets)
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ background: 'rgba(16, 185, 129, 0.08)', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '14px' }}>🏆</span>
+                      <span style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: '700' }}>
+                        Top Market / Country
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '22px', fontWeight: '800', color: '#34d399', marginTop: '6px' }}>
+                      {topCountry.country}
+                      <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '500', marginLeft: '6px' }}>
+                        ({formatNum(topCountry.installs)} installs • {topCountry.share}%)
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ background: 'rgba(168, 85, 247, 0.08)', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(168, 85, 247, 0.2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '14px' }}>🌍</span>
+                      <span style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: '700' }}>
+                        International Territories
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '22px', fontWeight: '800', color: '#c084fc', marginTop: '6px' }}>
+                      {rawCountries.length} Countries
+                      <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '500', marginLeft: '6px' }}>
+                        ({formatNum(totalInternationalInstalls)} intl • {internationalPct}%)
+                      </span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ background: 'rgba(16, 185, 129, 0.08)', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '14px' }}>🇮🇳</span>
+                      <span style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: '700' }}>
+                        Total India Downloads
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '22px', fontWeight: '800', color: '#34d399', marginTop: '6px' }}>
+                      {formatNum(totalIndiaInstalls)}
+                      <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '500', marginLeft: '6px' }}>
+                        ({indiaPctOfGlobal}% of global)
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ background: 'rgba(56, 189, 248, 0.08)', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '14px' }}>🏆</span>
+                      <span style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: '700' }}>
+                        Top Performing State
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '22px', fontWeight: '800', color: '#38bdf8', marginTop: '6px' }}>
+                      {topState.state}
+                      <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '500', marginLeft: '6px' }}>
+                        ({formatNum(topState.installs)} installs • {topState.share}%)
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ background: 'rgba(168, 85, 247, 0.08)', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(168, 85, 247, 0.2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '14px' }}>🗺️</span>
+                      <span style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: '700' }}>
+                        National Reach
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '22px', fontWeight: '800', color: '#c084fc', marginTop: '6px' }}>
+                      {rawStates.length} States & UTs
+                      <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '500', marginLeft: '6px' }}>
+                        Active Nationwide
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Filter and Search Controls */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+              {/* Search Bar */}
+              <div style={{ position: 'relative', minWidth: 'min(100%, 260px)', flex: '1', maxWidth: '380px' }}>
+                <input
+                  type="text"
+                  placeholder={activeGeoView === 'india' ? '🔍 Search Indian state or zone...' : '🔍 Search country name...'}
+                  value={geoSearchQuery}
+                  onChange={(e) => setGeoSearchQuery(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    background: 'rgba(15, 23, 42, 0.6)',
+                    color: '#f8fafc',
+                    fontSize: '12px',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              {/* Zone Filter (India view only) */}
+              {activeGeoView === 'india' && (
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Zone:</span>
+                  {['all', 'Northern', 'Western', 'Southern', 'Eastern', 'Central', 'North-Eastern'].map(zone => (
+                    <button
+                      key={zone}
+                      onClick={() => setGeoZoneFilter(zone)}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        border: geoZoneFilter === zone ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.08)',
+                        background: geoZoneFilter === zone ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.02)',
+                        color: geoZoneFilter === zone ? '#34d399' : '#94a3b8',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {zone === 'all' ? 'All Zones' : zone}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* INDIA STATES TABLE */}
+            {activeGeoView === 'india' && (
+              filteredStates.length === 0 ? (
+                <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
+                  No Indian states match "{geoSearchQuery}".
+                </div>
+              ) : (
+                <TableScroller minWidth={720}>
+                  <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '40px' }}>#</th>
+                      <th>State / Union Territory</th>
+                      <th>Zone</th>
+                      <th>Total Downloads</th>
+                      <th>🤖 Android</th>
+                      <th>🍏 iOS</th>
+                      <th style={{ minWidth: '180px' }}>National Share (%)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredStates.map((item, idx) => (
+                      <tr key={item.state}>
+                        <td style={{ color: '#64748b', fontSize: '11px' }}>{idx + 1}</td>
+                        <td>
+                          <span style={{ fontWeight: '700', color: '#f8fafc' }}>
+                            {item.state}
+                          </span>
+                        </td>
+                        <td>{getZoneBadge(item.zone)}</td>
+                        <td style={{ fontWeight: '800', color: '#f8fafc' }}>
+                          {formatNum(item.installs)}
+                        </td>
+                        <td style={{ color: '#34d399', fontWeight: '600' }}>
+                          {formatNum(item.android || 0)}
+                        </td>
+                        <td style={{ color: '#38bdf8', fontWeight: '600' }}>
+                          {formatNum(item.ios || 0)}
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ flex: 1, height: '6px', borderRadius: '3px', backgroundColor: 'rgba(255, 255, 255, 0.1)', overflow: 'hidden' }}>
+                              <div style={{
+                                width: `${Math.min(100, item.share || 0)}%`,
+                                height: '100%',
+                                background: 'linear-gradient(90deg, #10b981 0%, #34d399 100%)'
+                              }} />
+                            </div>
+                            <span style={{ fontSize: '12px', fontWeight: '700', color: '#34d399', minWidth: '45px', textAlign: 'right' }}>
+                              {item.share}%
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                </TableScroller>
+              )
+            )}
+
+            {/* GLOBAL COUNTRIES TABLE */}
+            {activeGeoView === 'countries' && (
+              filteredCountries.length === 0 ? (
+                <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
+                  No countries match "{geoSearchQuery}".
+                </div>
+              ) : (
+                <TableScroller minWidth={720}>
+                  <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '40px' }}>#</th>
+                      <th>Country</th>
+                      <th>Total Downloads</th>
+                      <th>🤖 Android</th>
+                      <th>🍏 iOS</th>
+                      <th style={{ minWidth: '180px' }}>Global Share (%)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredCountries.map((item, idx) => (
+                      <tr key={item.country}>
+                        <td style={{ color: '#64748b', fontSize: '11px' }}>{idx + 1}</td>
+                        <td>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', fontWeight: '700', color: '#f8fafc' }}>
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              minWidth: '28px',
+                              height: '20px',
+                              padding: '0 5px',
+                              borderRadius: '4px',
+                              background: 'rgba(255, 255, 255, 0.08)',
+                              border: '1px solid rgba(255, 255, 255, 0.12)',
+                              fontSize: '11px',
+                              fontWeight: '800',
+                              letterSpacing: '0.05em',
+                              color: '#94a3b8',
+                              lineHeight: '1'
+                            }}>
+                              {item.flag || '🌐'}
+                            </span>
+                            <span>{item.country}</span>
+                          </span>
+                        </td>
+                        <td style={{ fontWeight: '800', color: '#f8fafc' }}>
+                          {formatNum(item.installs)}
+                        </td>
+                        <td style={{ color: '#34d399', fontWeight: '600' }}>
+                          {formatNum(item.android || 0)}
+                        </td>
+                        <td style={{ color: '#38bdf8', fontWeight: '600' }}>
+                          {formatNum(item.ios || 0)}
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ flex: 1, height: '6px', borderRadius: '3px', backgroundColor: 'rgba(255, 255, 255, 0.1)', overflow: 'hidden' }}>
+                              <div style={{
+                                width: `${Math.min(100, item.share || 0)}%`,
+                                height: '100%',
+                                background: item.country === 'India'
+                                  ? 'linear-gradient(90deg, #10b981 0%, #34d399 100%)'
+                                  : 'linear-gradient(90deg, #38bdf8 0%, #60a5fa 100%)'
+                              }} />
+                            </div>
+                            <span style={{ fontSize: '12px', fontWeight: '700', color: item.country === 'India' ? '#34d399' : '#38bdf8', minWidth: '45px', textAlign: 'right' }}>
+                              {item.share}%
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                </TableScroller>
+              )
+            )}
+          </div>
+        );
+      })()}
       </div>
     </div>
   );

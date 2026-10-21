@@ -139,7 +139,7 @@ export default function PartnerLoginPage() {
             backdropFilter: 'blur(25px)',
             border: '1.5px solid rgba(214, 165, 89, 0.25)',
             borderRadius: '32px',
-            padding: '45px 35px',
+            padding: 'clamp(26px, 5vw, 45px) clamp(18px, 4vw, 35px)',
             boxShadow: '0 40px 100px rgba(0, 0, 0, 0.8)',
             textAlign: 'center'
           }}

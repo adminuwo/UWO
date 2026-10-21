@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { TableScroller } from './TableScroller';
 
 export const CentralLogs = () => {
   const { authFetch } = useAuth();
@@ -50,7 +51,7 @@ export const CentralLogs = () => {
       {loading ? (
         <div style={{ color: 'var(--text-muted)' }}>Loading audit logs...</div>
       ) : (
-        <div className="table-responsive">
+        <TableScroller minWidth={700}>
           <table className="data-table">
             <thead>
               <tr>
@@ -91,7 +92,7 @@ export const CentralLogs = () => {
               )}
             </tbody>
           </table>
-        </div>
+        </TableScroller>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { UserReferralsView } from './UserReferralsView';
+import { TableScroller } from './TableScroller';
 
 export const MarketingCampaignsTab = () => {
   const { token } = useAuth();
@@ -705,16 +706,7 @@ export const MarketingCampaignsTab = () => {
         }}
       >
         {/* Section Switcher Tabs */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '8px',
-            background: '#0F172A',
-            padding: '5px',
-            borderRadius: '14px',
-            border: '1px solid #1E293B',
-          }}
-        >
+        <div className="marketing-main-tabs">
           <button
             onClick={() => setActiveSection('user_referrals')}
             style={{
@@ -1097,7 +1089,7 @@ export const MarketingCampaignsTab = () => {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
             gap: '18px',
             marginBottom: '28px',
           }}
@@ -1197,7 +1189,7 @@ export const MarketingCampaignsTab = () => {
           justifyContent: 'space-between',
         }}
       >
-        <div style={{ display: 'flex', gap: '12px', flex: 1, minWidth: '280px' }}>
+        <div style={{ display: 'flex', gap: '12px', flex: 1, minWidth: 'min(100%, 260px)' }}>
           <input
             type="text"
             placeholder="🔍 Search post name, campaign or slug..."
@@ -1275,8 +1267,8 @@ export const MarketingCampaignsTab = () => {
           boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
         }}
       >
-        <div style={{ width: '100%', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '11px', tableLayout: 'auto' }}>
+        <TableScroller minWidth={1250} hintText="Swipe or scroll to view all campaign telemetry">
+          <table className="data-table" style={{ width: '100%', minWidth: '1250px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '11px', tableLayout: 'auto' }}>
             <thead>
               <tr style={{ backgroundColor: '#1E293B', color: '#94A3B8', borderBottom: '1px solid #334155', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
                 <th style={{ padding: '8px 8px', fontWeight: '800' }}>Post / Campaign</th>
@@ -1291,7 +1283,12 @@ export const MarketingCampaignsTab = () => {
                 >
                   Downloads*
                 </th>
-                <th style={{ padding: '8px 4px', fontWeight: '800', textAlign: 'center' }}>Conv.</th>
+                <th
+                  style={{ padding: '8px 4px', fontWeight: '800', textAlign: 'center' }}
+                  title="Conversion Rate: Unique Installs / Unique Reach (Max 100%)"
+                >
+                  Conv.
+                </th>
                 <th style={{ padding: '8px 4px', fontWeight: '800', textAlign: 'center' }}>Status</th>
                 <th style={{ padding: '8px 8px', fontWeight: '800', textAlign: 'right' }}>Actions</th>
               </tr>
@@ -1523,22 +1520,31 @@ export const MarketingCampaignsTab = () => {
                         </div>
                       </td>
 
-                      {/* Conversion Rate */}
+                      {/* Conversion Rate (Unique-to-Unique Standard) */}
                       <td style={{ padding: '8px 4px', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                        <span
-                          style={{
-                            fontWeight: '800',
-                            fontSize: '10.5px',
-                            padding: '2px 5px',
-                            borderRadius: '4px',
-                            backgroundColor: (link.total_downloads || 0) > 0 ? 'rgba(168, 85, 247, 0.18)' : 'rgba(100, 116, 139, 0.1)',
-                            color: (link.total_downloads || 0) > 0 ? '#C084FC' : '#64748B',
-                          }}
-                        >
-                          {link.total_clicks > 0
-                            ? `${(((link.total_downloads || 0) / link.total_clicks) * 100).toFixed(1)}%`
-                            : '0.0%'}
-                        </span>
+                        {(() => {
+                          const uReach = Number(link.unique_clicks || link.total_clicks || 0);
+                          const uDownloads = Number(link.unique_installs !== undefined ? link.unique_installs : (link.total_downloads || 0));
+                          const convPct = uReach > 0 
+                            ? Math.min(100, (uDownloads / uReach) * 100).toFixed(1)
+                            : (link.total_clicks > 0 ? Math.min(100, ((link.total_downloads || 0) / link.total_clicks) * 100).toFixed(1) : '0.0');
+                          const hasConversions = uDownloads > 0 || (link.total_downloads || 0) > 0;
+                          return (
+                            <span
+                              title={`Unique Conversion: ${uDownloads} unique installs / ${uReach} unique reach (${convPct}%)`}
+                              style={{
+                                fontWeight: '800',
+                                fontSize: '10.5px',
+                                padding: '2px 5px',
+                                borderRadius: '4px',
+                                backgroundColor: hasConversions ? 'rgba(168, 85, 247, 0.18)' : 'rgba(100, 116, 139, 0.1)',
+                                color: hasConversions ? '#C084FC' : '#64748B',
+                              }}
+                            >
+                              {convPct}%
+                            </span>
+                          );
+                        })()}
                       </td>
 
                       {/* Status */}
@@ -1642,7 +1648,7 @@ export const MarketingCampaignsTab = () => {
               )}
             </tbody>
           </table>
-        </div>
+        </TableScroller>
       </div>
       <div style={{ fontSize: '10.5px', color: '#64748B', marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px', flexWrap: 'wrap', gap: '6px' }}>
         <span>* <strong>Downloads:</strong> Primary number denotes verified unique device installs. <strong style={{ color: '#94A3B8' }}>total</strong> denotes cumulative store downloads (including reinstalls).</span>
