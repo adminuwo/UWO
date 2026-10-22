@@ -77,7 +77,7 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
   const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const yesterdayStr = yesterday.toISOString().slice(0, 10);
 
-  // 3. Process Google Play Console records (for baseline before Firebase)
+  // 3. Process Google Play Console records (for baseline before live leading edge)
   let playDailyMap = {};
   let dedupedPlayRecords = [];
   let playMaxDate = null;
@@ -85,7 +85,10 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
   if (playRecords.length > 0) {
     const dedupedRecordsMap = {};
     for (const r of playRecords) {
-      if (!dedupedRecordsMap[r.metric_date] || (r.daily_user_installs || 0) >= (dedupedRecordsMap[r.metric_date].daily_user_installs || 0)) {
+      const existing = dedupedRecordsMap[r.metric_date];
+      const rScore = Math.max(r.install_events || 0, r.daily_device_installs || 0, r.daily_user_installs || 0);
+      const exScore = existing ? Math.max(existing.install_events || 0, existing.daily_device_installs || 0, existing.daily_user_installs || 0) : -1;
+      if (!existing || rScore >= exScore) {
         dedupedRecordsMap[r.metric_date] = r;
       }
     }
@@ -94,49 +97,104 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
 
     let runningPlayTotal = 0;
     for (const r of dedupedPlayRecords) {
-      runningPlayTotal += (r.daily_user_installs || r.daily_device_installs || 0);
+      const count = (r.install_events || r.daily_device_installs || r.daily_user_installs || 0);
+      runningPlayTotal += count;
       playDailyMap[r.metric_date] = {
         date: r.metric_date,
-        daily_user_installs: r.daily_user_installs || 0,
+        daily_user_installs: r.daily_user_installs || count,
         daily_user_uninstalls: r.daily_user_uninstalls || 0,
-        daily_device_installs: r.daily_device_installs || 0,
+        daily_device_installs: r.daily_device_installs || count,
         installs_on_active_devices: r.installs_on_active_devices || 0,
-        total_user_installs: r.total_user_installs > 0 ? r.total_user_installs : runningPlayTotal,
+        total_user_installs: runningPlayTotal,
         source: 'google_play_console'
       };
     }
   }
 
+  // 3b. Query Live Incoming Store Telemetry from MongoDB (for real-time live edge dates > playMaxDate)
+  let liveDbDaily = {};
+  if (db) {
+    try {
+      const matchCriteria = {
+        $or: [
+          { app_code: appCode },
+          { product_id: appCode },
+          { app: appCode }
+        ]
+      };
+      if (appCode === 'ailegal') {
+        matchCriteria.$or.push({ product_id: { $exists: false }, platform: 'android' });
+      }
+
+      const [mktRows, dlRows] = await Promise.all([
+        db.collection('marketing_installs').aggregate([
+          { $match: matchCriteria },
+          {
+            $group: {
+              _id: {
+                date: { $substr: [{ $ifNull: ['$timestamp', '$installed_at'] }, 0, 10] },
+                plat: { $toLower: '$platform' }
+              },
+              count: { $sum: 1 }
+            }
+          }
+        ]).toArray().catch(() => []),
+        db.collection('app_downloads').aggregate([
+          { $match: { app_code: appCode } },
+          {
+            $group: {
+              _id: {
+                date: { $substr: [{ $ifNull: ['$created_at', '$installed_at'] }, 0, 10] },
+                plat: { $toLower: '$platform' }
+              },
+              count: { $sum: 1 }
+            }
+          }
+        ]).toArray().catch(() => [])
+      ]);
+
+      for (const r of [...mktRows, ...dlRows]) {
+        const d = r._id?.date;
+        if (!d || d.length !== 10) continue;
+        const plat = (r._id?.plat || 'android').includes('ios') ? 'ios' : 'android';
+        if (!liveDbDaily[d]) liveDbDaily[d] = { android: 0, ios: 0, total: 0 };
+        liveDbDaily[d][plat] += r.count;
+        liveDbDaily[d].total += r.count;
+      }
+    } catch (e) {
+      console.warn('[HybridTelemetry] Live DB aggregate warning:', e.message);
+    }
+  }
+
   // 4. Determine Hybrid Watermark & Totals
   // Google Play Console is the authoritative historical ground truth up to playMaxDate.
-  // Firebase SDK provides the real-time forward leading edge for dates strictly after playMaxDate.
+  // Live Store Telemetry (marketing_installs & app_downloads) + Firebase SDK provide the real-time forward leading edge.
   let playInstallsTotal = 0;
   let playLatestActive = 0;
 
   for (const r of dedupedPlayRecords) {
-    playInstallsTotal += (r.daily_user_installs || r.daily_device_installs || 0);
+    playInstallsTotal += (r.install_events || r.daily_device_installs || r.daily_user_installs || 0);
     playLatestActive = r.installs_on_active_devices || playLatestActive;
   }
 
   const fbDaily = appFb?.daily_metrics || {};
   const fbDates = Object.keys(fbDaily).sort();
-  let postPlayFbInstalls = 0;
 
-  for (const d of fbDates) {
-    if (!playMaxDate || d > playMaxDate) {
-      const dayData = fbDaily[d];
-      postPlayFbInstalls += (dayData.android || dayData.installs || 0);
-    }
-  }
+  const postDatesSet = new Set([
+    ...fbDates.filter(d => !playMaxDate || d > playMaxDate),
+    ...Object.keys(liveDbDaily).filter(d => !playMaxDate || d > playMaxDate)
+  ]);
+  const postDates = Array.from(postDatesSet).sort();
 
-  const totalAndroidInstalls = playInstallsTotal + postPlayFbInstalls;
+  let postPlayInstalls = 0;
+
   // 5. Construct Unified Spliced Timeline
-  // Google Play Console official records (dates <= playMaxDate) + Firebase leading edge (dates > playMaxDate)
+  // Google Play Console official records (dates <= playMaxDate) + Live Telemetry / Firebase edge (dates > playMaxDate)
   const mergedTimeline = [];
   let runningCum = 0;
 
   for (const r of dedupedPlayRecords) {
-    const dailyInstalls = r.daily_user_installs || r.daily_device_installs || 0;
+    const dailyInstalls = r.install_events || r.daily_device_installs || r.daily_user_installs || 0;
     runningCum += dailyInstalls;
     mergedTimeline.push({
       ...playDailyMap[r.metric_date],
@@ -145,32 +203,34 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
   }
 
   let runningActive = playLatestActive;
-  for (const d of fbDates) {
-    if (!playMaxDate || d > playMaxDate) {
-      const dayData = fbDaily[d];
-      const dayInstalls = dayData.android || dayData.installs || 0;
-      const dayUninstalls = dayData.uninstalls || 0;
-      runningCum += dayInstalls;
+  for (const d of postDates) {
+    const fbDay = fbDaily[d] || {};
+    const dbDay = liveDbDaily[d] || {};
+    const dayAndroid = Math.max(dbDay.android || 0, fbDay.android || fbDay.installs || 0);
+    const dayUninstalls = fbDay.uninstalls || 0;
 
-      // Realistic net active devices flow: smoothly evolves from the official Google Play Console baseline
-      if (dayData.active > 0) {
-        runningActive = dayData.active;
-      } else {
-        runningActive = Math.max(0, runningActive + dayInstalls - dayUninstalls);
-      }
+    postPlayInstalls += dayAndroid;
+    runningCum += dayAndroid;
 
-      mergedTimeline.push({
-        date: d,
-        daily_user_installs: dayInstalls,
-        daily_user_uninstalls: dayUninstalls,
-        daily_device_installs: dayInstalls,
-        installs_on_active_devices: runningActive,
-        total_user_installs: runningCum,
-        source: 'firebase_sdk_ga4_live_edge'
-      });
+    // Realistic net active devices flow: smoothly evolves from the official Google Play Console baseline
+    if (fbDay.active > 0) {
+      runningActive = fbDay.active;
+    } else {
+      runningActive = Math.max(0, runningActive + dayAndroid - dayUninstalls);
     }
+
+    mergedTimeline.push({
+      date: d,
+      daily_user_installs: dayAndroid,
+      daily_user_uninstalls: dayUninstalls,
+      daily_device_installs: dayAndroid,
+      installs_on_active_devices: runningActive,
+      total_user_installs: runningCum,
+      source: 'live_store_telemetry_and_firebase_edge'
+    });
   }
 
+  const totalAndroidInstalls = playInstallsTotal + postPlayInstalls;
   const activeDevices = runningActive > 0 ? runningActive : (appFb?.active_users || playLatestActive || 0);
 
   // 6. Query Apple App Store Metrics for iOS Store Downloads
@@ -195,36 +255,24 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
     }
   }
 
-  let totalIosInstalls = iosBaselineTotal;
+  let postIosInstalls = 0;
+  for (const d of postDates) {
+    if (!iosMaxDate || d > iosMaxDate) {
+      const fbDay = fbDaily[d] || {};
+      const dbDay = liveDbDaily[d] || {};
+      postIosInstalls += Math.max(dbDay.ios || 0, fbDay.ios || 0);
+    }
+  }
+  const totalIosInstalls = iosBaselineTotal + postIosInstalls;
 
   // Today & Yesterday installs
-  let todayInstalls = 0;
-  let yesterdayInstalls = 0;
-  let todayAndroid = 0;
-  let todayIos = 0;
-  let yesterdayAndroid = 0;
-  let yesterdayIos = 0;
+  const todayAndroid = Math.max(liveDbDaily[todayStr]?.android || 0, fbDaily[todayStr]?.android || 0);
+  const todayIos = Math.max(liveDbDaily[todayStr]?.ios || 0, fbDaily[todayStr]?.ios || 0);
+  const todayInstalls = todayAndroid + todayIos;
 
-  if (fbDaily[todayStr]) {
-    todayAndroid = fbDaily[todayStr].android || 0;
-    todayIos = fbDaily[todayStr].ios || 0;
-    todayInstalls = fbDaily[todayStr].installs || (todayAndroid + todayIos);
-  } else if (appFb?.today_installs !== undefined) {
-    todayInstalls = appFb.today_installs;
-    todayAndroid = appFb.today_installs;
-  }
-
-  if (fbDaily[yesterdayStr]) {
-    yesterdayAndroid = fbDaily[yesterdayStr].android || 0;
-    yesterdayIos = fbDaily[yesterdayStr].ios || 0;
-    yesterdayInstalls = fbDaily[yesterdayStr].installs || (yesterdayAndroid + yesterdayIos);
-  } else if (appFb?.yesterday_installs !== undefined) {
-    yesterdayInstalls = appFb.yesterday_installs;
-    yesterdayAndroid = appFb.yesterday_installs;
-  } else if (playDailyMap[yesterdayStr]) {
-    yesterdayInstalls = playDailyMap[yesterdayStr].daily_user_installs;
-    yesterdayAndroid = yesterdayInstalls;
-  }
+  const yesterdayAndroid = Math.max(liveDbDaily[yesterdayStr]?.android || 0, fbDaily[yesterdayStr]?.android || playDailyMap[yesterdayStr]?.daily_user_installs || 0);
+  const yesterdayIos = Math.max(liveDbDaily[yesterdayStr]?.ios || 0, fbDaily[yesterdayStr]?.ios || 0);
+  const yesterdayInstalls = yesterdayAndroid + yesterdayIos;
 
   const realtimeActive = appFb?.realtime_android ?? appFb?.realtime_active ?? 0;
   const realtimeIos = appFb?.realtime_ios ?? 0;
