@@ -430,6 +430,64 @@ router.get('/transactions', async (req, res) => {
       ];
     }
 
+    // Optional subscription match filter: 'all' | 'active' | 'matched' | 'unmatched'
+    const subFilterParam = (req.query.subscription || req.query.subscription_status || 'all').toLowerCase().trim();
+
+    // Fetch subscriptions for cross-reference and dynamic matching
+    const allSubs = await db.collection('subscriptions').find({}).toArray().catch(() => []);
+    const now = new Date();
+    const enrichedSubs = allSubs.map(s => subscriptionRepository.computeDynamicStatus(s, now));
+
+    if (subFilterParam === 'active') {
+      const activeSubs = enrichedSubs.filter(s => s && s.is_active);
+      const activeTxIds = activeSubs.map(s => s.transaction_id).filter(Boolean);
+      const activeEmails = activeSubs.map(s => s.customer_email).filter(Boolean);
+      const activeSubIds = activeSubs.map(s => s.subscription_id || String(s._id)).filter(Boolean);
+      const activeOr = [];
+      if (activeTxIds.length) {
+        activeOr.push({ external_transaction_id: { $in: activeTxIds } });
+        activeOr.push({ transaction_id: { $in: activeTxIds } });
+      }
+      if (activeEmails.length) activeOr.push({ customer_email: { $in: activeEmails } });
+      if (activeSubIds.length) activeOr.push({ subscription_id: { $in: activeSubIds } });
+
+      if (activeOr.length > 0) {
+        if (filter.$or) {
+          filter.$and = [{ $or: filter.$or }, { $or: activeOr }];
+          delete filter.$or;
+        } else {
+          filter.$or = activeOr;
+        }
+      }
+    } else if (subFilterParam === 'matched') {
+      const allTxIds = enrichedSubs.map(s => s.transaction_id).filter(Boolean);
+      const allEmails = enrichedSubs.map(s => s.customer_email).filter(Boolean);
+      const allSubIds = enrichedSubs.map(s => s.subscription_id || String(s._id)).filter(Boolean);
+      const matchedOr = [];
+      if (allTxIds.length) {
+        matchedOr.push({ external_transaction_id: { $in: allTxIds } });
+        matchedOr.push({ transaction_id: { $in: allTxIds } });
+      }
+      if (allEmails.length) matchedOr.push({ customer_email: { $in: allEmails } });
+      if (allSubIds.length) matchedOr.push({ subscription_id: { $in: allSubIds } });
+
+      if (matchedOr.length > 0) {
+        if (filter.$or) {
+          filter.$and = [{ $or: filter.$or }, { $or: matchedOr }];
+          delete filter.$or;
+        } else {
+          filter.$or = matchedOr;
+        }
+      }
+    } else if (subFilterParam === 'unmatched') {
+      const allTxIds = enrichedSubs.map(s => s.transaction_id).filter(Boolean);
+      const allEmails = enrichedSubs.map(s => s.customer_email).filter(Boolean);
+      const allSubIds = enrichedSubs.map(s => s.subscription_id || String(s._id)).filter(Boolean);
+      if (allTxIds.length) filter.external_transaction_id = { $nin: allTxIds };
+      if (allEmails.length) filter.customer_email = { $nin: allEmails };
+      if (allSubIds.length) filter.subscription_id = { $nin: allSubIds };
+    }
+
     const [txs, totalCount] = await Promise.all([
       db.collection('revenue_transactions')
         .find(filter)
@@ -440,31 +498,110 @@ router.get('/transactions', async (req, res) => {
       db.collection('revenue_transactions').countDocuments(filter)
     ]);
 
-    const formatted = txs.map(t => ({
-      id: String(t._id || t.id),
-      _id: String(t._id || t.id),
-      transaction_id: t.external_transaction_id || t.transaction_id || String(t._id),
-      external_transaction_id: t.external_transaction_id || t.transaction_id || String(t._id),
-      external_order_id: t.external_order_id || t.order_id || '',
-      provider: t.provider || 'razorpay',
-      product_code: t.product_code || 'ailegal',
-      platform: t.platform || 'web',
-      transaction_type: t.transaction_type || 'payment',
-      gross_amount: Number(t.gross_amount || t.reporting_amount || t.amount || 0),
-      net_amount: Number(t.net_amount || t.gross_amount || 0),
-      fee_amount: Number(t.fee_amount || 0),
-      tax_amount: Number(t.tax_amount || 0),
-      refund_amount: Number(t.refund_amount || 0),
-      reporting_amount: Number(t.reporting_amount || t.gross_amount || 0),
-      currency: t.currency || 'INR',
-      status: t.status || 'completed',
-      customer_email: t.customer_email || t.user_email || 'client@ailegal.app',
-      customer_name: t.customer_name || 'Verified User',
-      customer_id: t.customer_id || '',
-      plan_id: t.plan_id || 'pro_monthly',
-      transaction_date: t.transaction_date || t.created_at || new Date().toISOString(),
-      created_at: t.created_at || t.transaction_date || new Date().toISOString()
-    }));
+    // Build lookup maps for fast matching
+    const subByTxId = new Map();
+    const subByOrderId = new Map();
+    const subById = new Map();
+    const subByEmailProd = new Map();
+    const subByEmail = new Map();
+
+    for (const s of enrichedSubs) {
+      if (!s) continue;
+      const sId = s.subscription_id || String(s._id);
+      subById.set(sId, s);
+      if (s._id) subById.set(String(s._id), s);
+      if (s.transaction_id) subByTxId.set(s.transaction_id, s);
+      if (s.order_id) subByOrderId.set(s.order_id, s);
+      if (s.customer_email) {
+        const emailLower = String(s.customer_email).toLowerCase().trim();
+        const prodLower = String(s.product_code || '').toLowerCase().trim();
+        if (!subByEmailProd.has(`${emailLower}_${prodLower}`) || s.is_active) {
+          subByEmailProd.set(`${emailLower}_${prodLower}`, s);
+        }
+        if (!subByEmail.has(emailLower) || s.is_active) {
+          subByEmail.set(emailLower, s);
+        }
+      }
+    }
+
+    const formatted = txs.map(t => {
+      const extTxId = t.external_transaction_id || t.transaction_id || String(t._id);
+      const extOrderId = t.external_order_id || t.order_id || '';
+      const emailLower = String(t.customer_email || t.user_email || '').toLowerCase().trim();
+      const prodLower = String(t.product_code || '').toLowerCase().trim();
+      const storedSubId = t.subscription_id;
+
+      let matchedSub = null;
+      let matchType = null;
+
+      if (storedSubId && subById.has(storedSubId)) {
+        matchedSub = subById.get(storedSubId);
+        matchType = 'direct_subscription_id';
+      } else if (extTxId && subByTxId.has(extTxId)) {
+        matchedSub = subByTxId.get(extTxId);
+        matchType = 'direct_transaction_id';
+      } else if (extOrderId && subByOrderId.has(extOrderId)) {
+        matchedSub = subByOrderId.get(extOrderId);
+        matchType = 'order_id';
+      } else if (emailLower && subByEmailProd.has(`${emailLower}_${prodLower}`)) {
+        matchedSub = subByEmailProd.get(`${emailLower}_${prodLower}`);
+        matchType = 'customer_email_product';
+      } else if (emailLower && subByEmail.has(emailLower)) {
+        matchedSub = subByEmail.get(emailLower);
+        matchType = 'customer_email';
+      }
+
+      const subscriptionMatch = matchedSub ? {
+        matched: true,
+        match_type: matchType,
+        subscription_id: matchedSub.subscription_id || String(matchedSub._id),
+        plan_name: matchedSub.plan_name || 'Advocate Plan',
+        tier: matchedSub.tier || 'BASIC',
+        status: matchedSub.computed_status || matchedSub.status || 'active',
+        status_label: matchedSub.status_label || (matchedSub.is_active ? 'Active' : 'Expired'),
+        is_active: Boolean(matchedSub.is_active),
+        is_paid: Boolean(matchedSub.is_paid),
+        is_manually_assigned: Boolean(matchedSub.is_manually_assigned),
+        amount: Number(matchedSub.amount || matchedSub.plan_amount || 0),
+        billing_cycle: matchedSub.billing_cycle || 'monthly',
+        start_date: matchedSub.start_date,
+        expiry_date: matchedSub.expiry_date,
+        auto_renew: Boolean(matchedSub.auto_renew),
+        platform: matchedSub.platform,
+        provider: matchedSub.provider,
+        product_code: matchedSub.product_code,
+        product_name: matchedSub.product_name || subscriptionRepository.resolveProductName(matchedSub.product_code),
+        customer_name: matchedSub.customer_name
+      } : null;
+
+      return {
+        id: String(t._id || t.id),
+        _id: String(t._id || t.id),
+        transaction_id: extTxId,
+        external_transaction_id: extTxId,
+        external_order_id: extOrderId,
+        provider: t.provider || 'razorpay',
+        product_code: t.product_code || 'ailegal',
+        platform: t.platform || 'web',
+        transaction_type: t.transaction_type || 'payment',
+        gross_amount: Number(t.gross_amount || t.reporting_amount || t.amount || 0),
+        net_amount: Number(t.net_amount || t.gross_amount || 0),
+        fee_amount: Number(t.fee_amount || 0),
+        tax_amount: Number(t.tax_amount || 0),
+        refund_amount: Number(t.refund_amount || 0),
+        reporting_amount: Number(t.reporting_amount || t.gross_amount || 0),
+        currency: t.currency || 'INR',
+        status: t.status || 'completed',
+        customer_email: t.customer_email || t.user_email || 'client@ailegal.app',
+        customer_name: t.customer_name || 'Verified User',
+        customer_id: t.customer_id || '',
+        plan_id: t.plan_id || 'pro_monthly',
+        subscription_id: matchedSub ? (matchedSub.subscription_id || String(matchedSub._id)) : (t.subscription_id || null),
+        subscription_match: subscriptionMatch,
+        transaction_date: t.transaction_date || t.created_at || new Date().toISOString(),
+        created_at: t.created_at || t.transaction_date || new Date().toISOString()
+      };
+    });
 
     return res.json({
       total_count: totalCount,
@@ -503,8 +640,54 @@ router.get('/transactions/:id', async (req, res) => {
       return res.status(404).json({ detail: 'Transaction not found.' });
     }
 
+    // Lookup matching subscription
+    const extTxId = tx.external_transaction_id || tx.transaction_id || String(tx._id);
+    const extOrderId = tx.external_order_id || tx.order_id || '';
+    const emailLower = String(tx.customer_email || tx.user_email || '').toLowerCase().trim();
+    const prodLower = String(tx.product_code || '').toLowerCase().trim();
+
+    let matchedSubDoc = await db.collection('subscriptions').findOne({
+      $or: [
+        { transaction_id: extTxId },
+        ...(extOrderId ? [{ order_id: extOrderId }] : []),
+        ...(tx.subscription_id ? [{ subscription_id: tx.subscription_id }, { _id: tx.subscription_id }] : []),
+        ...(emailLower ? [{ customer_email: new RegExp(`^${emailLower}$`, 'i') }] : [])
+      ]
+    }).catch(() => null);
+
+    let subscriptionMatch = null;
+    if (matchedSubDoc) {
+      const enriched = subscriptionRepository.computeDynamicStatus(matchedSubDoc);
+      subscriptionMatch = {
+        matched: true,
+        subscription_id: enriched.subscription_id || String(enriched._id),
+        plan_name: enriched.plan_name || 'Advocate Plan',
+        tier: enriched.tier || 'BASIC',
+        status: enriched.computed_status || enriched.status || 'active',
+        status_label: enriched.status_label || (enriched.is_active ? 'Active' : 'Expired'),
+        is_active: Boolean(enriched.is_active),
+        is_paid: Boolean(enriched.is_paid),
+        is_manually_assigned: Boolean(enriched.is_manually_assigned),
+        amount: Number(enriched.amount || enriched.plan_amount || 0),
+        billing_cycle: enriched.billing_cycle || 'monthly',
+        start_date: enriched.start_date,
+        expiry_date: enriched.expiry_date,
+        auto_renew: Boolean(enriched.auto_renew),
+        platform: enriched.platform,
+        provider: enriched.provider,
+        product_code: enriched.product_code,
+        product_name: enriched.product_name || subscriptionRepository.resolveProductName(enriched.product_code),
+        customer_name: enriched.customer_name
+      };
+    }
+
     return res.json({
-      transaction: { ...tx, id: String(tx._id) },
+      transaction: {
+        ...tx,
+        id: String(tx._id),
+        subscription_match: subscriptionMatch,
+        subscription_id: subscriptionMatch ? subscriptionMatch.subscription_id : (tx.subscription_id || null)
+      },
       raw_event: null
     });
   } catch (err) {

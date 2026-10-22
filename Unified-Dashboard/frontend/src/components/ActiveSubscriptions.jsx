@@ -8,7 +8,7 @@ const CANONICAL_PRODUCTS = [
   { product_code: 'aisa', name: 'AISA Assistant', icon: '/images/aisa-logo.png', isLogo: true, active_count: 0, total_count: 0, mrr: 0, arr: 0, renewal_rate: 0, primary_platform: 'Razorpay Web', description: 'AISA Executive Virtual AI Assistant & Productivity Tools' }
 ];
 
-export const ActiveSubscriptions = () => {
+export const ActiveSubscriptions = ({ initialSearch = '', onJumpToTx = null }) => {
   const { authFetch } = useAuth();
 
   // State
@@ -58,6 +58,15 @@ export const ActiveSubscriptions = () => {
     }, 300);
     return () => clearTimeout(handler);
   }, [searchQuery]);
+
+  // Handle external search target from Live Transactions Explorer
+  useEffect(() => {
+    if (initialSearch) {
+      setSearchQuery(initialSearch);
+      setDebouncedSearch(initialSearch);
+      setPage(1);
+    }
+  }, [initialSearch]);
 
   // Fetch subscriptions and metrics
   const fetchSubscriptionsData = useCallback(async (isBackground = false) => {
@@ -1236,8 +1245,28 @@ export const ActiveSubscriptions = () => {
                               {s.customer_email || '—'}
                             </div>
                             {s.transaction_id && (
-                              <div style={{ fontSize: '11px', color: '#60a5fa', marginTop: '2px', fontFamily: 'monospace' }}>
-                                🔗 {s.transaction_id}
+                              <div
+                                onClick={(e) => {
+                                  if (onJumpToTx) {
+                                    e.stopPropagation();
+                                    onJumpToTx(s.transaction_id);
+                                  }
+                                }}
+                                title={onJumpToTx ? "Click to view live transaction in Live Transactions Explorer" : undefined}
+                                style={{
+                                  fontSize: '11px',
+                                  color: '#60a5fa',
+                                  marginTop: '2px',
+                                  fontFamily: 'monospace',
+                                  cursor: onJumpToTx ? 'pointer' : 'default',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px'
+                                }}
+                              >
+                                <span>🔗</span>
+                                <span style={{ textDecoration: onJumpToTx ? 'underline' : 'none' }}>{s.transaction_id}</span>
+                                {onJumpToTx && <span style={{ fontSize: '9px', opacity: 0.8 }}>➔</span>}
                               </div>
                             )}
                           </div>
@@ -1525,6 +1554,29 @@ export const ActiveSubscriptions = () => {
                 <div style={{ fontSize: '12px', fontWeight: '600', color: '#cbd5e1', marginTop: '4px', wordBreak: 'break-all' }}>
                   {selectedSub.transaction_id || '—'}
                 </div>
+                {selectedSub.transaction_id && onJumpToTx && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const txId = selectedSub.transaction_id;
+                      setSelectedSub(null);
+                      onJumpToTx(txId);
+                    }}
+                    style={{
+                      marginTop: '8px',
+                      background: 'rgba(59, 130, 246, 0.2)',
+                      border: '1px solid rgba(59, 130, 246, 0.4)',
+                      color: '#60a5fa',
+                      borderRadius: '6px',
+                      padding: '4px 10px',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    💳 Match Live Transaction ➔
+                  </button>
+                )}
               </div>
 
               <div style={{ background: 'rgba(0,0,0,0.25)', padding: '14px', borderRadius: '10px' }}>

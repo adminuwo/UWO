@@ -37,6 +37,8 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
   const [txPage, setTxPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTxStatus, setSelectedTxStatus] = useState('all');
+  const [selectedSubFilter, setSelectedSubFilter] = useState('all'); // 'all' | 'active' | 'matched' | 'unmatched'
+  const [subSearchTarget, setSubSearchTarget] = useState('');
   const [syncHealth, setSyncHealth] = useState([]);
   const [reconData, setReconData] = useState([]);
   
@@ -66,7 +68,7 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
         authFetch(`/api/admin/revenue/providers?period=${period}`),
         authFetch(`/api/admin/revenue/platforms?period=${period}`),
         authFetch(`/api/admin/revenue/trend?period=${period}&product=${selectedProduct}&provider=${selectedProvider}`),
-        authFetch(`/api/admin/revenue/transactions?page=${txPage}&page_size=25&product=${selectedProduct}&provider=${selectedProvider}&platform=${selectedPlatform}&status=${selectedTxStatus}&search=${encodeURIComponent(searchQuery)}`),
+        authFetch(`/api/admin/revenue/transactions?page=${txPage}&page_size=25&product=${selectedProduct}&provider=${selectedProvider}&platform=${selectedPlatform}&status=${selectedTxStatus}&subscription=${selectedSubFilter}&search=${encodeURIComponent(searchQuery)}`),
         authFetch(`/api/admin/revenue/health`),
         authFetch(`/api/admin/revenue/reconciliation`)
       ]);
@@ -111,7 +113,7 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
 
   useEffect(() => {
     fetchRevenueData();
-  }, [period, selectedProduct, selectedProvider, selectedPlatform, selectedTxStatus, txPage]);
+  }, [period, selectedProduct, selectedProvider, selectedPlatform, selectedTxStatus, selectedSubFilter, txPage]);
 
   // Periodic Auto-refresh every 30 seconds for live updates
   useEffect(() => {
@@ -119,7 +121,13 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
       fetchRevenueData(true);
     }, 30000);
     return () => clearInterval(interval);
-  }, [period, selectedProduct, selectedProvider, selectedPlatform, selectedTxStatus, txPage, searchQuery]);
+  }, [period, selectedProduct, selectedProvider, selectedPlatform, selectedTxStatus, selectedSubFilter, txPage, searchQuery]);
+
+  const handleJumpToSubscription = (subMatch) => {
+    if (!subMatch) return;
+    setSubSearchTarget(subMatch.subscription_id || subMatch.customer_name || subMatch.customer_email || '');
+    setActiveSubTab('subscriptions');
+  };
 
   // Handle Search
   const handleSearchSubmit = (e) => {
@@ -345,6 +353,7 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
         ].map((tab) => (
           <button
             key={tab.id}
+            id={`revenue-subtab-${tab.id}`}
             onClick={() => setActiveSubTab(tab.id)}
             style={{
               background: activeSubTab === tab.id ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
@@ -956,7 +965,14 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
 
       {/* TAB: ACTIVE SUBSCRIPTIONS INTELLIGENCE */}
       {activeSubTab === 'subscriptions' && (
-        <ActiveSubscriptions />
+        <ActiveSubscriptions
+          initialSearch={subSearchTarget}
+          onJumpToTx={(txId) => {
+            setActiveSubTab('transactions');
+            setSearchQuery(txId);
+            setTxPage(1);
+          }}
+        />
       )}
 
       {/* TAB 2: LIVE TRANSACTIONS EXPLORER */}
@@ -1075,12 +1091,31 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
                 <option value="failed">Failed / Timed Out</option>
                 <option value="refunded">Refunded</option>
               </select>
+
+              <select
+                value={selectedSubFilter}
+                onChange={(e) => { setSelectedSubFilter(e.target.value); setTxPage(1); }}
+                style={{
+                  background: 'rgba(15, 23, 42, 0.85)',
+                  border: '1px solid rgba(59, 130, 246, 0.3)',
+                  borderRadius: '10px',
+                  padding: '10px 12px',
+                  color: '#60a5fa',
+                  fontSize: '13px',
+                  fontWeight: '700'
+                }}
+              >
+                <option value="all">🔄 Subscriptions: All</option>
+                <option value="active">✓ Matched Active Sub</option>
+                <option value="matched">🔗 Any Matched Sub</option>
+                <option value="unmatched">⚪ Standalone / Unmatched</option>
+              </select>
             </div>
           </div>
 
           {/* Transactions Table */}
-          <TableScroller minWidth={950} hintText="Swipe or scroll to view transaction breakdown">
-            <table className="data-table" style={{ width: '100%', minWidth: '950px', borderCollapse: 'collapse' }}>
+          <TableScroller minWidth={1150} hintText="Swipe or scroll to view transaction breakdown and active subscription match">
+            <table className="data-table" style={{ width: '100%', minWidth: '1150px', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)', textAlign: 'left', color: '#94a3b8', fontSize: '12px' }}>
                   <th style={{ padding: '14px 14px' }}>Transaction ID</th>
@@ -1090,6 +1125,7 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
                   <th style={{ padding: '14px 14px' }}>Gateway Fee</th>
                   <th style={{ padding: '14px 14px' }}>Net Proceeds</th>
                   <th style={{ padding: '14px 14px' }}>Status</th>
+                  <th style={{ padding: '14px 14px' }}>Linked Subscription</th>
                   <th style={{ padding: '14px 14px' }}>Date</th>
                   <th style={{ padding: '14px 14px' }}>Action</th>
                 </tr>
@@ -1097,7 +1133,7 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
               <tbody>
                 {transactions.length === 0 ? (
                   <tr>
-                    <td colSpan="9" style={{ textAlign: 'center', padding: '36px', color: '#94a3b8' }}>
+                    <td colSpan="10" style={{ textAlign: 'center', padding: '36px', color: '#94a3b8' }}>
                       {loading ? '🔄 Loading real live transactions...' : 'No transactions found matching your filter criteria.'}
                     </td>
                   </tr>
@@ -1140,6 +1176,48 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
                         }}>
                           {tx.status}
                         </span>
+                      </td>
+                      <td style={{ padding: '12px 14px' }}>
+                        {tx.subscription_match ? (
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleJumpToSubscription(tx.subscription_match);
+                            }}
+                            title={`Subscription ID: ${tx.subscription_match.subscription_id}\nPlan: ${tx.subscription_match.plan_name}\nStatus: ${tx.subscription_match.status_label}\nClick to view in Active Subscriptions tab`}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              background: tx.subscription_match.is_active ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                              border: `1px solid ${tx.subscription_match.is_active ? 'rgba(16, 185, 129, 0.35)' : 'rgba(239, 68, 68, 0.35)'}`,
+                              color: tx.subscription_match.is_active ? '#34d399' : '#f87171',
+                              padding: '4px 10px',
+                              borderRadius: '12px',
+                              fontSize: '11px',
+                              fontWeight: '700',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease',
+                              whiteSpace: 'nowrap'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.transform = 'translateY(-1px)';
+                              e.currentTarget.style.boxShadow = tx.subscription_match.is_active ? '0 0 10px rgba(52, 211, 153, 0.3)' : '0 0 10px rgba(248, 113, 113, 0.3)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.boxShadow = 'none';
+                            }}
+                          >
+                            <span>{tx.subscription_match.is_active ? '🔄' : '⏳'}</span>
+                            <span>{tx.subscription_match.is_active ? 'Active' : 'Expired'}: {tx.subscription_match.plan_name}</span>
+                            <span style={{ fontSize: '10px', opacity: 0.8 }}>➔</span>
+                          </div>
+                        ) : (
+                          <span style={{ color: '#64748b', fontSize: '11px', fontStyle: 'italic' }}>
+                            — Standalone
+                          </span>
+                        )}
                       </td>
                       <td style={{ padding: '12px 14px', color: '#94a3b8', fontSize: '12px' }}>
                         {new Date(tx.transaction_date).toLocaleString()}
@@ -1583,6 +1661,71 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
                 {selectedTx.raw_reference || selectedTx.external_transaction_id}
               </div>
             </div>
+
+            {/* Matched Active Subscription Section */}
+            {selectedTx.subscription_match ? (
+              <div style={{
+                marginTop: '18px',
+                padding: '16px',
+                background: 'rgba(15, 23, 42, 0.9)',
+                border: '1px solid rgba(59, 130, 246, 0.35)',
+                borderRadius: '12px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '16px' }}>🔄</span>
+                    <strong style={{ color: '#60a5fa', fontSize: '14px' }}>Matched Active Subscription</strong>
+                  </div>
+                  <span style={{
+                    background: selectedTx.subscription_match.is_active ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                    color: selectedTx.subscription_match.is_active ? '#34d399' : '#f87171',
+                    padding: '2px 8px',
+                    borderRadius: '8px',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    textTransform: 'uppercase'
+                  }}>
+                    {selectedTx.subscription_match.status_label}
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '12px', color: '#cbd5e1' }}>
+                  <div><strong>Plan:</strong> {selectedTx.subscription_match.plan_name}</div>
+                  <div><strong>Tier:</strong> {selectedTx.subscription_match.tier}</div>
+                  <div><strong>Subscription ID:</strong> <span style={{ fontFamily: 'monospace', color: '#38bdf8' }}>{selectedTx.subscription_match.subscription_id}</span></div>
+                  <div><strong>Cycle:</strong> {selectedTx.subscription_match.billing_cycle}</div>
+                  <div><strong>Expiry Date:</strong> {selectedTx.subscription_match.expiry_date ? new Date(selectedTx.subscription_match.expiry_date).toLocaleDateString() : 'Perpetual'}</div>
+                  <div><strong>Match Source:</strong> {selectedTx.subscription_match.match_type}</div>
+                </div>
+
+                <div style={{ marginTop: '14px', textAlign: 'right' }}>
+                  <button
+                    onClick={() => {
+                      const match = selectedTx.subscription_match;
+                      setSelectedTx(null);
+                      handleJumpToSubscription(match);
+                    }}
+                    style={{
+                      background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '7px 16px',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 8px rgba(37, 99, 235, 0.4)'
+                    }}
+                  >
+                    View in Active Subscriptions Tab ➔
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ marginTop: '14px', padding: '12px', background: 'rgba(15, 23, 42, 0.5)', borderRadius: '8px', fontSize: '12px', color: '#94a3b8' }}>
+                ℹ️ No active recurring subscription record matched to this transaction.
+              </div>
+            )}
 
             <div style={{ marginTop: '20px', textAlign: 'right' }}>
               <button

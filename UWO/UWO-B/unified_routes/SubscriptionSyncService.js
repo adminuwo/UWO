@@ -168,6 +168,7 @@ class SubscriptionSyncService {
         else if (tierRaw.includes('ENTERPRISE')) tierNormalized = 'ENTERPRISE';
         else if (tierRaw.includes('FREE')) tierNormalized = 'FREE';
         else if (tierRaw.includes('BASIC')) tierNormalized = 'BASIC';
+        else if (tierRaw.includes('STARTER')) tierNormalized = 'STARTER';
 
         const isFreeTier = tierNormalized === 'FREE' || String(s.plan_name || '').toLowerCase().includes('free');
         const txId = String(s.transactionId || s.paymentId || s.transaction_id || '').trim();
@@ -186,7 +187,8 @@ class SubscriptionSyncService {
         const isPaid = !isManuallyAssigned;
 
         // Nominal plan amount
-        const planAmount = Number(s.plan_amount) || (tierNormalized === 'ENTERPRISE' ? 2399 : (tierNormalized === 'PROFESSIONAL' ? 999 : 499));
+        const defaultTierAmount = tierNormalized === 'ENTERPRISE' ? 2399 : (tierNormalized === 'PROFESSIONAL' ? 999 : (tierNormalized === 'STARTER' ? 99 : 499));
+        const planAmount = (tierNormalized === 'STARTER' && Number(s.plan_amount) > 99) ? 99 : (Number(s.plan_amount) || defaultTierAmount);
         // Effective revenue amount is 0 for manually assigned plans; paid plans keep verified amount
         const amount = isPaid ? (Number(s.amount) > 0 ? Number(s.amount) : planAmount) : 0;
 

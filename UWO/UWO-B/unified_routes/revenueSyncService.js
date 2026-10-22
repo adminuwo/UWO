@@ -316,6 +316,33 @@ async function runRevenueSync(options = {}) {
       console.warn('[RevenueSyncService] Notice running subscription sync:', sErr.message);
     }
 
+    // 7. Match and correlate live revenue transactions with subscriptions
+    try {
+      const activeSubs = await unifiedDb.collection('subscriptions').find({}).toArray();
+      const matchOps = [];
+      for (const s of activeSubs) {
+        const subId = s.subscription_id || String(s._id);
+        if (s.transaction_id) {
+          matchOps.push({
+            updateMany: {
+              filter: {
+                $or: [
+                  { external_transaction_id: s.transaction_id },
+                  { transaction_id: s.transaction_id }
+                ]
+              },
+              update: { $set: { subscription_id: subId } }
+            }
+          });
+        }
+      }
+      if (matchOps.length > 0) {
+        await unifiedDb.collection('revenue_transactions').bulkWrite(matchOps, { ordered: false });
+      }
+    } catch (mErr) {
+      console.warn('[RevenueSyncService] Notice matching transactions with subscriptions:', mErr.message);
+    }
+
     const totalTx = await unifiedDb.collection('revenue_transactions').countDocuments().catch(() => 0);
     const totalSubs = await unifiedDb.collection('subscriptions').countDocuments().catch(() => 0);
 
