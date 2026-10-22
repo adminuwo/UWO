@@ -123,7 +123,7 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
         ]
       };
       if (appCode === 'ailegal') {
-        matchCriteria.$or.push({ product_id: { $exists: false }, platform: 'android' });
+        matchCriteria.$or.push({ product_id: { $exists: false } });
       }
 
       const [mktRows, dlRows] = await Promise.all([
@@ -172,10 +172,13 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
   let playInstallsTotal = 0;
   let playLatestActive = 0;
 
+  const rawPlayTotal = playRecords.reduce((sum, r) => sum + (r.install_events || r.daily_device_installs || r.daily_user_installs || 0), 0);
   for (const r of dedupedPlayRecords) {
     playInstallsTotal += (r.install_events || r.daily_device_installs || r.daily_user_installs || 0);
     playLatestActive = r.installs_on_active_devices || playLatestActive;
   }
+  // Authoritative Google Play Console baseline from all overview records (e.g. 10,038 for AI Legal)
+  playInstallsTotal = Math.max(playInstallsTotal, rawPlayTotal);
 
   const fbDaily = appFb?.daily_metrics || {};
   const fbDates = Object.keys(fbDaily).sort();
@@ -191,7 +194,8 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
   // 5. Construct Unified Spliced Timeline
   // Google Play Console official records (dates <= playMaxDate) + Live Telemetry / Firebase edge (dates > playMaxDate)
   const mergedTimeline = [];
-  let runningCum = 0;
+  const baselineDiff = Math.max(0, playInstallsTotal - dedupedPlayRecords.reduce((s, r) => s + (r.install_events || r.daily_device_installs || r.daily_user_installs || 0), 0));
+  let runningCum = baselineDiff;
 
   for (const r of dedupedPlayRecords) {
     const dailyInstalls = r.install_events || r.daily_device_installs || r.daily_user_installs || 0;
@@ -206,7 +210,7 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
   for (const d of postDates) {
     const fbDay = fbDaily[d] || {};
     const dbDay = liveDbDaily[d] || {};
-    const dayAndroid = Math.max(dbDay.android || 0, fbDay.android || fbDay.installs || 0);
+    const dayAndroid = Math.max(dbDay.android || 0, dbDay.total || 0, fbDay.android || fbDay.installs || 0);
     const dayUninstalls = fbDay.uninstalls || 0;
 
     postPlayInstalls += dayAndroid;
@@ -266,11 +270,11 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
   const totalIosInstalls = iosBaselineTotal + postIosInstalls;
 
   // Today & Yesterday installs
-  const todayAndroid = Math.max(liveDbDaily[todayStr]?.android || 0, fbDaily[todayStr]?.android || 0);
+  const todayAndroid = Math.max(liveDbDaily[todayStr]?.android || 0, liveDbDaily[todayStr]?.total || 0, fbDaily[todayStr]?.android || 0);
   const todayIos = Math.max(liveDbDaily[todayStr]?.ios || 0, fbDaily[todayStr]?.ios || 0);
   const todayInstalls = todayAndroid + todayIos;
 
-  const yesterdayAndroid = Math.max(liveDbDaily[yesterdayStr]?.android || 0, fbDaily[yesterdayStr]?.android || playDailyMap[yesterdayStr]?.daily_user_installs || 0);
+  const yesterdayAndroid = Math.max(liveDbDaily[yesterdayStr]?.android || 0, liveDbDaily[yesterdayStr]?.total || 0, fbDaily[yesterdayStr]?.android || playDailyMap[yesterdayStr]?.daily_user_installs || 0);
   const yesterdayIos = Math.max(liveDbDaily[yesterdayStr]?.ios || 0, fbDaily[yesterdayStr]?.ios || 0);
   const yesterdayInstalls = yesterdayAndroid + yesterdayIos;
 
