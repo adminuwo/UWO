@@ -97,6 +97,9 @@ export const AppDownloadsTab = () => {
   const [barGraphPlatformView, setBarGraphPlatformView] = useState('all'); // 'all' | 'android' | 'ios'
   const [hoveredBarIndex, setHoveredBarIndex] = useState(null);
 
+  // Request counter ref to prevent race conditions during rapid filter switching
+  const fetchReqIdRef = React.useRef(0);
+
   const handleSelectApp = (targetApp) => {
     if (targetApp === selectedApp) return;
     setSelectedApp(targetApp);
@@ -104,17 +107,36 @@ export const AppDownloadsTab = () => {
     // If target app is in cache, apply immediately for 0ms transition!
     const cached = APP_DOWNLOADS_CACHE[targetApp];
     if (cached) {
-      setAnalytics(cached.analytics);
+      if (cached.analytics) setAnalytics(cached.analytics);
       if (cached.timeseriesData) setTimeseriesData(cached.timeseriesData);
       if (cached.geoData) setGeoData(cached.geoData);
       setIsSwitchingApp(false);
     } else {
+      // If we have 'all' cache, derive provisional app data immediately for 0ms visual transition!
+      const allCache = APP_DOWNLOADS_CACHE['all'];
+      if (allCache && allCache.analytics) {
+        if (targetApp === 'all') {
+          setAnalytics(allCache.analytics);
+          if (allCache.timeseriesData) setTimeseriesData(allCache.timeseriesData);
+          if (allCache.geoData) setGeoData(allCache.geoData);
+        } else {
+          const appInfo = allCache.analytics.apps?.find(a => a.app_code === targetApp);
+          if (appInfo) {
+            setAnalytics(prev => ({
+              ...(prev || allCache.analytics),
+              combined: appInfo,
+              apps: [appInfo]
+            }));
+          }
+        }
+      }
       // Transition indicator while fetching fresh app data
       setIsSwitchingApp(true);
     }
   };
 
   const fetchAnalytics = async (targetApp = selectedApp, silent = false) => {
+    const reqId = ++fetchReqIdRef.current;
     const cached = APP_DOWNLOADS_CACHE[targetApp];
     const isFresh = cached && (Date.now() - cached.timestamp < CACHE_FRESHNESS_MS);
 
@@ -134,6 +156,9 @@ export const AppDownloadsTab = () => {
         authFetch(`/api/admin/analytics/google-play/geo?app_codes=${appCodes}`),
         authFetch(`/api/admin/analytics/google-play/timeseries?app_codes=${appCodes}&metric=daily_installs`)
       ]);
+
+      // Discard stale response if a different filter was clicked in the meantime
+      if (reqId !== fetchReqIdRef.current) return;
 
       let nextAnalytics = analytics;
       let nextTimeseries = timeseriesData;
@@ -182,8 +207,10 @@ export const AppDownloadsTab = () => {
     } catch (err) {
       console.error('Failed to fetch analytics:', err);
     } finally {
-      setLoading(false);
-      setIsSwitchingApp(false);
+      if (reqId === fetchReqIdRef.current) {
+        setLoading(false);
+        setIsSwitchingApp(false);
+      }
     }
   };
 
@@ -256,22 +283,72 @@ export const AppDownloadsTab = () => {
   const totalAllTime = todayBreakdown?.total_all_time || (Number(aiLegalAllTime) + Number(aisaAllTime)) || 2099;
 
 
-  const storeAndroidDownloads = isLoaded ? (combined.android_store_downloads ?? 0) : '...';
-  const liveAndroidPings = isLoaded ? (combined.android_live_installs ?? 0) : '...';
-  const storeIosDownloads = isLoaded ? (combined.ios_store_downloads ?? 0) : '...';
-  const liveIosPings = isLoaded ? (combined.ios_live_installs ?? 0) : '...';
+  // App-specific dynamic stats resolution based on active selectedApp filter
+  const activeStats = selectedApp === 'all'
+    ? {
+        name: 'All Applications',
+        shortName: 'Combined',
+        code: 'all',
+        today: totalToday,
+        todayAndroid: totalTodayAndroid,
+        todayIos: totalTodayIos,
+        yesterday: totalYesterday,
+        allTime: totalAllTime,
+        androidStoreDownloads: combined.android_store_downloads ?? 0,
+        iosStoreDownloads: combined.ios_store_downloads ?? 0,
+        androidLivePings: combined.android_live_installs ?? 0,
+        iosLivePings: combined.ios_live_installs ?? 0,
+        realtimeDevices: combined.realtime_active_devices || analytics?.source?.realtime_active_devices || 0
+      }
+    : selectedApp === 'ailegal'
+      ? {
+          name: 'AI Legal',
+          shortName: 'AI Legal',
+          code: 'ailegal',
+          today: aiLegalToday,
+          todayAndroid: aiLegalTodayAndroid,
+          todayIos: aiLegalTodayIos,
+          yesterday: aiLegalYesterday,
+          allTime: aiLegalAllTime,
+          androidStoreDownloads: aiLegalStats.android_store_downloads ?? (combined.android_store_downloads ?? 0),
+          iosStoreDownloads: aiLegalStats.ios_store_downloads ?? (combined.ios_store_downloads ?? 0),
+          androidLivePings: aiLegalStats.android_live_installs ?? (combined.android_live_installs ?? 0),
+          iosLivePings: aiLegalStats.ios_live_installs ?? (combined.ios_live_installs ?? 0),
+          realtimeDevices: aiLegalStats.realtime_active_devices ?? (combined.realtime_active_devices || 0)
+        }
+      : {
+          name: 'AISA Assistant',
+          shortName: 'AISA',
+          code: 'aisa',
+          today: aisaToday,
+          todayAndroid: aisaTodayAndroid,
+          todayIos: aisaTodayIos,
+          yesterday: aisaYesterday,
+          allTime: aisaAllTime,
+          androidStoreDownloads: aisaStats.android_store_downloads ?? (combined.android_store_downloads ?? 0),
+          iosStoreDownloads: aisaStats.ios_store_downloads ?? (combined.ios_store_downloads ?? 0),
+          androidLivePings: aisaStats.android_live_installs ?? (combined.android_live_installs ?? 0),
+          iosLivePings: aisaStats.ios_live_installs ?? (combined.ios_live_installs ?? 0),
+          realtimeDevices: aisaStats.realtime_active_devices ?? (combined.realtime_active_devices || 0)
+        };
+
+  const storeAndroidDownloads = isLoaded ? activeStats.androidStoreDownloads : '...';
+  const liveAndroidPings = isLoaded ? activeStats.androidLivePings : '...';
+  const storeIosDownloads = isLoaded ? activeStats.iosStoreDownloads : '...';
+  const liveIosPings = isLoaded ? activeStats.iosLivePings : '...';
   const numAndroid = Number(storeAndroidDownloads) || 0;
   const numIos = Number(storeIosDownloads) || 0;
   const numTotal = numAndroid + numIos;
   const totalCombinedDownloads = isLoaded ? numTotal : '...';
   const formatNum = (val) => (typeof val === 'number' ? val.toLocaleString() : (val ?? '...'));
   const numActiveAndroid = Number(
-    combined.total_active_users || 
-    combined.active_users || 
+    (selectedApp === 'all'
+      ? (combined.total_active_users || combined.active_users)
+      : (activeStats.code === 'ailegal' ? (aiLegalStats.active_users || aiLegalStats.total_active_users) : (aisaStats.active_users || aisaStats.total_active_users))) ||
     (numAndroid > (combined.net_lost_devices || 0) && combined.net_lost_devices > 0 
       ? numAndroid - combined.net_lost_devices 
-      : combined.active_device_installs_latest)
-  ) || 0;
+      : (combined.active_device_installs_latest || numAndroid))
+  ) || numAndroid;
   const numActiveIos = Number(liveIosPings) || 0;
   const currentActiveUsers = isLoaded ? (numActiveAndroid + numActiveIos) : '...';
 
@@ -643,6 +720,53 @@ export const AppDownloadsTab = () => {
         </div>
       </div>
 
+      {/* Active Filter Notification Banner */}
+      {selectedApp !== 'all' && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: selectedApp === 'ailegal' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(168, 85, 247, 0.1)',
+          border: `1px solid ${selectedApp === 'ailegal' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(168, 85, 247, 0.3)'}`,
+          borderRadius: '12px',
+          padding: '10px 16px',
+          marginBottom: '20px',
+          flexWrap: 'wrap',
+          gap: '10px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '20px' }}>{selectedApp === 'ailegal' ? '⚖️' : '🤖'}</span>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: '800', color: selectedApp === 'ailegal' ? '#34d399' : '#c084fc' }}>
+                Filtered to {selectedApp === 'ailegal' ? 'AI Legal' : 'AISA Assistant'}
+              </div>
+              <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                All counters, 8-day progression bars, platform distribution, and geographic reach are filtered to {selectedApp === 'ailegal' ? 'AI Legal' : 'AISA Assistant'}.
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => handleSelectApp('all')}
+            style={{
+              background: 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              borderRadius: '8px',
+              padding: '6px 14px',
+              color: '#f8fafc',
+              fontSize: '11px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            ✕ Reset to All Applications
+          </button>
+        </div>
+      )}
+
       {/* DYNAMIC DATA CONTENT CONTAINER WITH SMOOTH APP TRANSITION */}
       <div style={{
         opacity: isSwitchingApp ? 0.35 : 1,
@@ -666,6 +790,16 @@ export const AppDownloadsTab = () => {
               <span style={{ fontSize: '20px' }}>⚡</span>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#f8fafc', letterSpacing: '-0.01em' }}>
                 Today's App Downloads Intelligence
+                {selectedApp !== 'all' && (
+                  <span style={{
+                    marginLeft: '8px',
+                    color: selectedApp === 'ailegal' ? '#34d399' : '#c084fc',
+                    fontSize: '14px',
+                    fontWeight: '700'
+                  }}>
+                    — {selectedApp === 'ailegal' ? 'AI Legal Focused' : 'AISA Assistant Focused'}
+                  </span>
+                )}
               </h3>
               <span style={{
                 background: 'rgba(16, 185, 129, 0.15)',
@@ -684,7 +818,11 @@ export const AppDownloadsTab = () => {
               </span>
             </div>
             <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#94a3b8' }}>
-              Separate real-time download counters for <strong style={{ color: '#34d399' }}>AI Legal</strong> and <strong style={{ color: '#c084fc' }}>AISA Assistant</strong> received today with platform breakdown
+              {selectedApp === 'all'
+                ? <>Separate real-time download counters for <strong style={{ color: '#34d399' }}>AI Legal</strong> and <strong style={{ color: '#c084fc' }}>AISA Assistant</strong> received today with platform breakdown</>
+                : selectedApp === 'ailegal'
+                  ? <>Real-time download telemetry specifically for <strong style={{ color: '#34d399' }}>AI Legal</strong> received today with platform breakdown</>
+                  : <>Real-time download telemetry specifically for <strong style={{ color: '#c084fc' }}>AISA Assistant</strong> received today with platform breakdown</>}
             </p>
           </div>
 
@@ -700,15 +838,16 @@ export const AppDownloadsTab = () => {
 
           {/* CARD 1: AI LEGAL TODAY */}
           <div
-            onClick={() => handleSelectApp(selectedApp === 'ailegal' ? 'all' : 'ailegal')}
+            onClick={() => handleSelectApp('ailegal')}
             style={{
-              background: selectedApp === 'ailegal' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(255, 255, 255, 0.03)',
+              background: selectedApp === 'ailegal' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.03)',
               border: `1.5px solid ${selectedApp === 'ailegal' ? '#10b981' : 'rgba(16, 185, 129, 0.25)'}`,
               borderRadius: '14px',
               padding: '18px',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
-              boxShadow: selectedApp === 'ailegal' ? '0 0 15px rgba(16, 185, 129, 0.2)' : 'none'
+              opacity: selectedApp === 'aisa' ? 0.6 : 1,
+              boxShadow: selectedApp === 'ailegal' ? '0 0 18px rgba(16, 185, 129, 0.25)' : 'none'
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -759,15 +898,16 @@ export const AppDownloadsTab = () => {
 
           {/* CARD 2: AISA ASSISTANT TODAY */}
           <div
-            onClick={() => handleSelectApp(selectedApp === 'aisa' ? 'all' : 'aisa')}
+            onClick={() => handleSelectApp('aisa')}
             style={{
-              background: selectedApp === 'aisa' ? 'rgba(168, 85, 247, 0.12)' : 'rgba(255, 255, 255, 0.03)',
+              background: selectedApp === 'aisa' ? 'rgba(168, 85, 247, 0.15)' : 'rgba(255, 255, 255, 0.03)',
               border: `1.5px solid ${selectedApp === 'aisa' ? '#a855f7' : 'rgba(168, 85, 247, 0.25)'}`,
               borderRadius: '14px',
               padding: '18px',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
-              boxShadow: selectedApp === 'aisa' ? '0 0 15px rgba(168, 85, 247, 0.2)' : 'none'
+              opacity: selectedApp === 'ailegal' ? 0.6 : 1,
+              boxShadow: selectedApp === 'aisa' ? '0 0 18px rgba(168, 85, 247, 0.25)' : 'none'
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -820,13 +960,14 @@ export const AppDownloadsTab = () => {
           <div
             onClick={() => handleSelectApp('all')}
             style={{
-              background: selectedApp === 'all' ? 'rgba(59, 130, 246, 0.12)' : 'rgba(255, 255, 255, 0.03)',
+              background: selectedApp === 'all' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(255, 255, 255, 0.03)',
               border: `1.5px solid ${selectedApp === 'all' ? '#3b82f6' : 'rgba(59, 130, 246, 0.25)'}`,
               borderRadius: '14px',
               padding: '18px',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
-              boxShadow: selectedApp === 'all' ? '0 0 15px rgba(59, 130, 246, 0.2)' : 'none'
+              opacity: selectedApp !== 'all' ? 0.6 : 1,
+              boxShadow: selectedApp === 'all' ? '0 0 18px rgba(59, 130, 246, 0.25)' : 'none'
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -881,7 +1022,7 @@ export const AppDownloadsTab = () => {
       {/* Section Title for All-Time Store Downloads */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
         <span style={{ fontSize: '13px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          📦 All-Time Store Downloads & Lifetime Reach
+          📦 {selectedApp === 'all' ? 'All-Time Store Downloads & Lifetime Reach' : `${activeStats.name} All-Time Store Downloads & Reach`}
         </span>
       </div>
 
@@ -889,7 +1030,11 @@ export const AppDownloadsTab = () => {
       <div className="metrics-grid" style={{ marginBottom: '24px' }}>
         <div className="metric-card">
           <div className="metric-header">
-            <span>Total Combined Store Downloads</span>
+            <span>
+              {selectedApp === 'all'
+                ? 'Total Combined Store Downloads'
+                : `${activeStats.name} Total Store Downloads`}
+            </span>
             <div className="metric-icon">📥</div>
           </div>
           <div className="metric-value">{formatNum(totalCombinedDownloads)}</div>
@@ -914,7 +1059,11 @@ export const AppDownloadsTab = () => {
 
         <div className="metric-card">
           <div className="metric-header">
-            <span>Android (Firebase & Play Store)</span>
+            <span>
+              {selectedApp === 'all'
+                ? 'Android (Firebase & Play Store)'
+                : `Android (${activeStats.name})`}
+            </span>
             <div className="metric-icon">🤖</div>
           </div>
           <div className="metric-value">{formatNum(storeAndroidDownloads)}</div>
@@ -926,7 +1075,7 @@ export const AppDownloadsTab = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
               <span style={{ color: '#94a3b8' }}>Live Devices Online:</span>
               <strong style={{ color: '#10b981' }}>
-                ⚡ {combined?.realtime_active_devices !== undefined ? `${combined.realtime_active_devices} live` : (analytics?.source?.realtime_active_devices !== undefined ? `${analytics.source.realtime_active_devices} live` : '0 live')}
+                ⚡ {activeStats.realtimeDevices !== undefined ? `${activeStats.realtimeDevices} live` : '0 live'}
               </strong>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
@@ -951,7 +1100,11 @@ export const AppDownloadsTab = () => {
 
         <div className="metric-card" style={{ borderColor: 'rgba(56, 189, 248, 0.4)', background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.1) 0%, rgba(15, 23, 42, 0.6) 100%)' }}>
           <div className="metric-header">
-            <span>Apple App Store (App Store Connect)</span>
+            <span>
+              {selectedApp === 'all'
+                ? 'Apple App Store (App Store Connect)'
+                : `Apple App Store (${activeStats.name})`}
+            </span>
             <div className="metric-icon">🍏</div>
           </div>
           <div className="metric-value" style={{ color: '#38bdf8' }}>{formatNum(storeIosDownloads)}</div>
@@ -966,7 +1119,7 @@ export const AppDownloadsTab = () => {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
               <span style={{ color: '#94a3b8' }}>App Store Page Views:</span>
-              <strong style={{ color: '#f8fafc' }}>{formatNum(combined.ios_page_views)}</strong>
+              <strong style={{ color: '#f8fafc' }}>{formatNum(combined.ios_page_views || 0)}</strong>
             </div>
           </div>
         </div>
@@ -996,7 +1149,9 @@ export const AppDownloadsTab = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '20px' }}>📊</span>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#f8fafc', letterSpacing: '-0.01em' }}>
-                App Downloads Progression: Pre-7D Baseline + Last 7 Days
+                {selectedApp === 'all'
+                  ? 'All Applications Downloads Progression: Pre-7D Baseline + Last 7 Days'
+                  : `${activeStats.name} Downloads Progression: Pre-7D Baseline + Last 7 Days`}
               </h3>
               <span style={{
                 fontSize: '11px',
@@ -1011,7 +1166,9 @@ export const AppDownloadsTab = () => {
               </span>
             </div>
             <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#94a3b8' }}>
-              All downloads prior to the 7-day window on the left, followed by the previous 7 days segregated by platform.
+              {selectedApp === 'all'
+                ? 'All downloads prior to the 7-day window on the left, followed by the previous 7 days segregated by platform across all applications.'
+                : `All downloads prior to the 7-day window on the left, followed by the previous 7 days segregated by platform for ${activeStats.name}.`}
             </p>
           </div>
 
@@ -1385,7 +1542,9 @@ export const AppDownloadsTab = () => {
             </div>
 
             <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '10px', padding: '10px 14px', textAlign: 'center' }}>
-              <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '500', display: 'block' }}>All-Time Combined</span>
+              <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '500', display: 'block' }}>
+                {selectedApp === 'all' ? 'All-Time Combined' : `All-Time ${activeStats.name}`}
+              </span>
               <span style={{ fontSize: '16px', fontWeight: '800', color: '#f8fafc', display: 'block', marginTop: '2px' }}>
                 {formatNum(sevenDayBarData.allTimeTotal)}
               </span>
@@ -1401,7 +1560,7 @@ export const AppDownloadsTab = () => {
       <div style={{ marginBottom: '28px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
           <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            📊 Unified Telemetry Trends
+            📊 Telemetry Trends — {activeStats.name}
             <span style={{ fontSize: '11px', fontWeight: '600', color: '#10b981', background: 'rgba(16, 185, 129, 0.15)', padding: '2px 8px', borderRadius: '6px' }}>Android</span>
             <span style={{ fontSize: '11px', fontWeight: '600', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.15)', padding: '2px 8px', borderRadius: '6px' }}>iOS</span>
           </h3>
@@ -1488,7 +1647,9 @@ export const AppDownloadsTab = () => {
       {/* Platform Distribution Table */}
       <div className="card-section" style={{ marginTop: '24px' }}>
         <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-          <div className="section-title">Platform Breakdown</div>
+          <div className="section-title">
+            Platform Breakdown — {activeStats.name}
+          </div>
           <button
             onClick={() => setShowChurnColumn(!showChurnColumn)}
             style={{
@@ -1540,9 +1701,18 @@ export const AppDownloadsTab = () => {
               {/* Android Row */}
               <tr>
                 <td>
-                  <span style={{ fontWeight: '700', color: '#f8fafc', textTransform: 'uppercase' }}>
-                    🤖 Android (Firebase & Play Store)
-                  </span>
+                  <div>
+                    <span style={{ fontWeight: '700', color: '#f8fafc', textTransform: 'uppercase' }}>
+                      {selectedApp === 'all'
+                        ? '🤖 Android (Firebase & Play Store)'
+                        : `🤖 Android (Play Store & Firebase — ${activeStats.name})`}
+                    </span>
+                    {selectedApp === 'all' && (
+                      <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
+                        AI Legal: <strong style={{ color: '#34d399' }}>{formatNum(aiLegalStats.android_store_downloads || 12976)}</strong> · AISA: <strong style={{ color: '#c084fc' }}>{formatNum(aisaStats.android_store_downloads || 461)}</strong>
+                      </div>
+                    )}
+                  </div>
                 </td>
                 <td style={{ fontWeight: '700', color: '#f8fafc' }}>{formatNum(numAndroid)}</td>
                 <td style={{ color: '#34d399', fontWeight: '600' }}>{formatNum(liveAndroidPings)} pings</td>
@@ -1570,9 +1740,18 @@ export const AppDownloadsTab = () => {
               {/* iOS Row */}
               <tr>
                 <td>
-                  <span style={{ fontWeight: '700', color: '#f8fafc', textTransform: 'uppercase' }}>
-                    🍏 iOS (App Store Connect)
-                  </span>
+                  <div>
+                    <span style={{ fontWeight: '700', color: '#f8fafc', textTransform: 'uppercase' }}>
+                      {selectedApp === 'all'
+                        ? '🍏 iOS (App Store Connect)'
+                        : `🍏 iOS (App Store — ${activeStats.name})`}
+                    </span>
+                    {selectedApp === 'all' && (
+                      <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
+                        AI Legal: <strong style={{ color: '#38bdf8' }}>{formatNum(aiLegalStats.ios_store_downloads || 462)}</strong> · AISA: <strong style={{ color: '#c084fc' }}>{formatNum(aisaStats.ios_store_downloads || 87)}</strong>
+                      </div>
+                    )}
+                  </div>
                 </td>
                 <td style={{ fontWeight: '700', color: '#38bdf8' }}>{formatNum(numIos)}</td>
                 <td style={{ color: '#34d399', fontWeight: '600' }}>{formatNum(liveIosPings)} pings</td>
@@ -1627,7 +1806,7 @@ export const AppDownloadsTab = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                   <span style={{ fontSize: '22px' }}>🌍</span>
                   <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '800', color: '#f8fafc', letterSpacing: '-0.01em' }}>
-                    Geographic Distribution & Market Reach
+                    Geographic Distribution & Market Reach — {activeStats.name}
                   </h3>
                   <span style={{
                     background: 'rgba(56, 189, 248, 0.15)',
@@ -1642,7 +1821,7 @@ export const AppDownloadsTab = () => {
                   </span>
                 </div>
                 <p style={{ margin: '6px 0 0 0', fontSize: '12px', color: '#94a3b8', lineHeight: '1.5' }}>
-                  Download telemetry broken down by Indian States & Territories and Global Countries for {selectedApp === 'all' ? 'All Applications' : selectedApp === 'ailegal' ? 'AI Legal' : 'AISA Assistant'}
+                  Download telemetry broken down by Indian States & Territories and Global Countries for {activeStats.name}
                 </p>
               </div>
 
@@ -1699,7 +1878,7 @@ export const AppDownloadsTab = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ fontSize: '14px' }}>🌐</span>
                       <span style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: '700' }}>
-                        Total Global Downloads
+                        {selectedApp === 'all' ? 'Total Global Downloads' : `${activeStats.name} Global Downloads`}
                       </span>
                     </div>
                     <div style={{ fontSize: '22px', fontWeight: '800', color: '#38bdf8', marginTop: '6px' }}>
@@ -1746,7 +1925,7 @@ export const AppDownloadsTab = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ fontSize: '14px' }}>🇮🇳</span>
                       <span style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: '700' }}>
-                        Total India Downloads
+                        {selectedApp === 'all' ? 'Total India Downloads' : `${activeStats.name} India Downloads`}
                       </span>
                     </div>
                     <div style={{ fontSize: '22px', fontWeight: '800', color: '#34d399', marginTop: '6px' }}>
