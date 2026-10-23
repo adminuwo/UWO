@@ -94,6 +94,8 @@ export const AppDownloadsTab = () => {
   const [activeGeoView, setActiveGeoView] = useState('india'); // 'india' | 'countries'
   const [geoSearchQuery, setGeoSearchQuery] = useState('');
   const [showChurnColumn, setShowChurnColumn] = useState(false);
+  const [barGraphPlatformView, setBarGraphPlatformView] = useState('all'); // 'all' | 'android' | 'ios'
+  const [hoveredBarIndex, setHoveredBarIndex] = useState(null);
 
   const handleSelectApp = (targetApp) => {
     if (targetApp === selectedApp) return;
@@ -124,12 +126,13 @@ export const AppDownloadsTab = () => {
     try {
       const appCodes = targetApp === 'all' ? 'aisa,ailegal' : targetApp;
       
-      const [overviewRes, lossRes, installsRes, activeRes, geoRes] = await Promise.all([
+      const [overviewRes, lossRes, installsRes, activeRes, geoRes, dailyRes] = await Promise.all([
         authFetch(`/api/admin/analytics/google-play/overview?app_codes=${appCodes}`),
         authFetch(`/api/admin/analytics/google-play/timeseries?app_codes=${appCodes}&metric=user_loss`),
         authFetch(`/api/admin/analytics/google-play/timeseries?app_codes=${appCodes}&metric=total_installs`),
         authFetch(`/api/admin/analytics/google-play/timeseries?app_codes=${appCodes}&metric=active_devices`),
-        authFetch(`/api/admin/analytics/google-play/geo?app_codes=${appCodes}`)
+        authFetch(`/api/admin/analytics/google-play/geo?app_codes=${appCodes}`),
+        authFetch(`/api/admin/analytics/google-play/timeseries?app_codes=${appCodes}&metric=daily_installs`)
       ]);
 
       let nextAnalytics = analytics;
@@ -146,10 +149,12 @@ export const AppDownloadsTab = () => {
         const installsData = await installsRes.json();
         const activeData = await activeRes.json();
 
+        const dailyData = dailyRes && dailyRes.ok ? await dailyRes.json().catch(() => ({})) : {};
         nextTimeseries = {
           user_loss: { android: lossData.data?.android || [], ios: lossData.data?.ios || [] },
           total_installs: { android: installsData.data?.android || [], ios: installsData.data?.ios || [] },
-          active_devices: { android: activeData.data?.android || [], ios: activeData.data?.ios || [] }
+          active_devices: { android: activeData.data?.android || [], ios: activeData.data?.ios || [] },
+          daily_installs: { android: dailyData.data?.android || [], ios: dailyData.data?.ios || [] }
         };
         setTimeseriesData(nextTimeseries);
       }
@@ -270,6 +275,120 @@ export const AppDownloadsTab = () => {
   const numActiveIos = Number(liveIosPings) || 0;
   const currentActiveUsers = isLoaded ? (numActiveAndroid + numActiveIos) : '...';
 
+
+  // 7-Day & Historical Segregated Bar Graph Data
+  const sevenDayBarData = React.useMemo(() => {
+    const totalAndroidPts = timeseriesData.total_installs?.android || [];
+    const totalIosPts = timeseriesData.total_installs?.ios || [];
+    const dailyAndroidPts = timeseriesData.daily_installs?.android || [];
+    const dailyIosPts = timeseriesData.daily_installs?.ios || [];
+
+    if (!totalAndroidPts || totalAndroidPts.length === 0) return null;
+
+    const totalLen = totalAndroidPts.length;
+    const windowSliceA = totalAndroidPts.slice(Math.max(0, totalLen - 8));
+    const windowSliceI = totalIosPts.slice(Math.max(0, totalIosPts.length - 8));
+
+    if (windowSliceA.length < 2) return null;
+
+    // Anchor point: point right before the last 7 days (all downloads before last 7 days)
+    const anchorA = windowSliceA[0];
+    const anchorI = windowSliceI[0] || { value: 0 };
+    const pre7Android = anchorA.value || 0;
+    const pre7Ios = anchorI.value || 0;
+    const pre7Total = pre7Android + pre7Ios;
+
+    const bars = [
+      {
+        id: 'pre7',
+        label: 'Pre-7D',
+        sub: 'Historical',
+        date: anchorA.date,
+        isPre: true,
+        android: pre7Android,
+        ios: pre7Ios,
+        total: pre7Total
+      }
+    ];
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const yesterdayDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+    const dailyMapA = {};
+    dailyAndroidPts.forEach(p => { dailyMapA[p.date] = p.value; });
+    const dailyMapI = {};
+    dailyIosPts.forEach(p => { dailyMapI[p.date] = p.value; });
+
+    for (let i = 1; i < windowSliceA.length; i++) {
+      const curA = windowSliceA[i];
+      const prevA = windowSliceA[i - 1];
+      const curI = windowSliceI[i] || { value: 0 };
+      const prevI = windowSliceI[i - 1] || { value: 0 };
+      const d = curA.date;
+
+      const dAndroid = dailyMapA[d] !== undefined ? dailyMapA[d] : Math.max(0, (curA.value || 0) - (prevA.value || 0));
+      const dIos = dailyMapI[d] !== undefined ? dailyMapI[d] : Math.max(0, (curI.value || 0) - (prevI.value || 0));
+      const dTotal = dAndroid + dIos;
+
+      let sub = '';
+      const isToday = (d === todayStr || i === windowSliceA.length - 1);
+      const isYesterday = (d === yesterdayDate);
+
+      if (isToday) {
+        sub = 'Today Live ⚡';
+      } else if (isYesterday) {
+        sub = 'Yesterday';
+      } else {
+        try {
+          const dt = new Date(d + 'T00:00:00Z');
+          sub = dt.toLocaleDateString('en-US', { weekday: 'short' });
+        } catch (e) {
+          sub = d.slice(5);
+        }
+      }
+
+      let formattedDate = d;
+      try {
+        const dt = new Date(d + 'T00:00:00Z');
+        formattedDate = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      } catch (e) {
+        formattedDate = d.slice(5);
+      }
+
+      bars.push({
+        id: `day-${d}`,
+        label: isToday ? 'Today' : formattedDate,
+        sub,
+        date: d,
+        isToday,
+        isYesterday,
+        android: dAndroid,
+        ios: dIos,
+        total: dTotal
+      });
+    }
+
+    const last7Bars = bars.slice(1);
+    const sum7Android = last7Bars.reduce((s, b) => s + b.android, 0);
+    const sum7Ios = last7Bars.reduce((s, b) => s + b.ios, 0);
+    const sum7Total = sum7Android + sum7Ios;
+    const allTimeAndroid = pre7Android + sum7Android;
+    const allTimeIos = pre7Ios + sum7Ios;
+    const allTimeTotal = allTimeAndroid + allTimeIos;
+
+    return {
+      bars,
+      pre7Total,
+      pre7Android,
+      pre7Ios,
+      sum7Android,
+      sum7Ios,
+      sum7Total,
+      allTimeAndroid,
+      allTimeIos,
+      allTimeTotal
+    };
+  }, [timeseriesData]);
 
   // Chart configs helper that combines Android & iOS in the same chart with legend toggles
   const makeCombinedChart = (seriesObj) => {
@@ -851,6 +970,431 @@ export const AppDownloadsTab = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* 8-Bar Segregated Downloads Timeline (Historical Pre-7D + Last 7 Days) */}
+      <div className="card-section" style={{
+        marginTop: '24px',
+        marginBottom: '28px',
+        background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.75) 0%, rgba(15, 23, 42, 0.45) 100%)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: '16px',
+        padding: '22px 24px',
+        position: 'relative'
+      }}>
+        {/* Section Header */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '14px',
+          paddingBottom: '16px',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)'
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '20px' }}>📊</span>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#f8fafc', letterSpacing: '-0.01em' }}>
+                App Downloads Progression: Pre-7D Baseline + Last 7 Days
+              </h3>
+              <span style={{
+                fontSize: '11px',
+                fontWeight: '700',
+                padding: '2px 8px',
+                borderRadius: '12px',
+                background: 'rgba(16, 185, 129, 0.15)',
+                color: '#34d399',
+                border: '1px solid rgba(16, 185, 129, 0.3)'
+              }}>
+                Live Sync ⚡
+              </span>
+            </div>
+            <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#94a3b8' }}>
+              All downloads prior to the 7-day window on the left, followed by the previous 7 days segregated by platform.
+            </p>
+          </div>
+
+          {/* Platform Segregation Filter Toggles */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            background: 'rgba(15, 23, 42, 0.8)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '10px',
+            padding: '3px',
+            gap: '4px'
+          }}>
+            <button
+              onClick={() => setBarGraphPlatformView('all')}
+              style={{
+                padding: '5px 12px',
+                borderRadius: '7px',
+                border: barGraphPlatformView === 'all' ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid transparent',
+                background: barGraphPlatformView === 'all' ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
+                color: barGraphPlatformView === 'all' ? '#34d399' : '#94a3b8',
+                fontSize: '11px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              Stacked (All)
+            </button>
+            <button
+              onClick={() => setBarGraphPlatformView('android')}
+              style={{
+                padding: '5px 12px',
+                borderRadius: '7px',
+                border: barGraphPlatformView === 'android' ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid transparent',
+                background: barGraphPlatformView === 'android' ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
+                color: barGraphPlatformView === 'android' ? '#34d399' : '#94a3b8',
+                fontSize: '11px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              🤖 Android
+            </button>
+            <button
+              onClick={() => setBarGraphPlatformView('ios')}
+              style={{
+                padding: '5px 12px',
+                borderRadius: '7px',
+                border: barGraphPlatformView === 'ios' ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid transparent',
+                background: barGraphPlatformView === 'ios' ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
+                color: barGraphPlatformView === 'ios' ? '#38bdf8' : '#94a3b8',
+                fontSize: '11px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              🍏 iOS
+            </button>
+          </div>
+        </div>
+
+        {/* Legend */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          alignItems: 'center',
+          gap: '18px',
+          marginTop: '12px',
+          marginBottom: '8px',
+          fontSize: '11px',
+          fontWeight: '600'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{
+              width: '12px',
+              height: '12px',
+              borderRadius: '3px',
+              background: 'linear-gradient(to top, #059669, #34d399)',
+              border: '1px solid rgba(52, 211, 153, 0.4)'
+            }}></span>
+            <span style={{ color: '#34d399' }}>🤖 Android Store</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{
+              width: '12px',
+              height: '12px',
+              borderRadius: '3px',
+              background: 'linear-gradient(to top, #0284c7, #38bdf8)',
+              border: '1px solid rgba(56, 189, 248, 0.4)'
+            }}></span>
+            <span style={{ color: '#38bdf8' }}>🍏 Apple App Store (iOS)</span>
+          </div>
+        </div>
+
+        {/* Chart Canvas Area */}
+        <div style={{ position: 'relative', marginTop: '16px', padding: '10px 0 6px 0' }}>
+          {/* Subtle Grid Lines */}
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            pointerEvents: 'none',
+            opacity: 0.15
+          }}>
+            <div style={{ borderBottom: '1px dashed #94a3b8', width: '100%' }}></div>
+            <div style={{ borderBottom: '1px dashed #94a3b8', width: '100%' }}></div>
+            <div style={{ borderBottom: '1px dashed #94a3b8', width: '100%' }}></div>
+            <div style={{ borderBottom: '1px solid #475569', width: '100%' }}></div>
+          </div>
+
+          {/* 8-Bars Grid */}
+          <div style={{
+            position: 'relative',
+            zIndex: 1,
+            display: 'grid',
+            gridTemplateColumns: 'repeat(8, minmax(0, 1fr))',
+            gap: '8px',
+            alignItems: 'flex-end',
+            height: '240px',
+            padding: '0 8px'
+          }}>
+            {sevenDayBarData ? (() => {
+              const maxDaily = Math.max(1, ...sevenDayBarData.bars.slice(1).map(b => {
+                if (barGraphPlatformView === 'android') return b.android;
+                if (barGraphPlatformView === 'ios') return b.ios;
+                return b.total;
+              }));
+
+              return sevenDayBarData.bars.map((b, idx) => {
+                const val = barGraphPlatformView === 'android' ? b.android : (barGraphPlatformView === 'ios' ? b.ios : b.total);
+                const isHovered = hoveredBarIndex === idx;
+
+                let heightPct = 0;
+                if (b.isPre) {
+                  heightPct = 92; // Baseline anchors on the left
+                } else {
+                  heightPct = Math.max(14, Math.round((val / maxDaily) * 80));
+                }
+
+                const iosRatio = b.total > 0 ? (b.ios / b.total) : 0;
+                const iosHeightPct = (b.ios > 0 && barGraphPlatformView === 'all')
+                  ? Math.min(100, Math.max(8, Math.round(iosRatio * 100)))
+                  : 0;
+
+                const displayNum = b.isPre
+                  ? (val >= 1000 ? `${(val / 1000).toFixed(1)}k` : val)
+                  : formatNum(val);
+
+                return (
+                  <div
+                    key={b.id || idx}
+                    onMouseEnter={() => setHoveredBarIndex(idx)}
+                    onMouseLeave={() => setHoveredBarIndex(null)}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      height: '100%',
+                      justifyContent: 'flex-end',
+                      position: 'relative',
+                      cursor: 'pointer',
+                      transform: isHovered ? 'translateY(-3px)' : 'none',
+                      transition: 'transform 0.18s ease'
+                    }}
+                  >
+                    {/* Tooltip Card */}
+                    {isHovered && (
+                      <div style={{
+                        position: 'absolute',
+                        bottom: 'calc(100% + 10px)',
+                        zIndex: 30,
+                        background: 'rgba(15, 23, 42, 0.95)',
+                        border: '1px solid rgba(255, 255, 255, 0.18)',
+                        borderRadius: '10px',
+                        padding: '8px 12px',
+                        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.6)',
+                        whiteSpace: 'nowrap',
+                        pointerEvents: 'none',
+                        textAlign: 'center'
+                      }}>
+                        <div style={{ fontSize: '11px', fontWeight: '800', color: '#f8fafc', marginBottom: '2px' }}>
+                          {b.label} {b.date ? `(${b.date})` : ''}
+                        </div>
+                        <div style={{ fontSize: '13px', fontWeight: '800', color: b.isPre ? '#c084fc' : '#34d399' }}>
+                          {formatNum(b.total)} downloads
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#cbd5e1', marginTop: '3px' }}>
+                          🤖 {formatNum(b.android)} ({b.total > 0 ? ((b.android / b.total) * 100).toFixed(1) : 0}%) · 🍏 {formatNum(b.ios)} ({b.total > 0 ? ((b.ios / b.total) * 100).toFixed(1) : 0}%)
+                        </div>
+                        <div style={{ fontSize: '9px', color: '#94a3b8', marginTop: '2px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          {b.isPre ? 'Historical Aggregate' : (b.isToday ? 'Live Leading Edge' : 'Daily Volume')}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Value text above bar */}
+                    <span style={{
+                      fontSize: '11px',
+                      fontWeight: '800',
+                      marginBottom: '6px',
+                      color: b.isPre ? '#c084fc' : (b.isToday ? '#38bdf8' : '#e2e8f0'),
+                      filter: isHovered ? 'drop-shadow(0 0 6px rgba(52, 211, 153, 0.6))' : 'none',
+                      transition: 'all 0.15s ease'
+                    }}>
+                      {displayNum}
+                    </span>
+
+                    {/* Bar Pillar */}
+                    <div style={{
+                      width: '100%',
+                      maxWidth: '44px',
+                      height: `${heightPct}%`,
+                      borderRadius: '8px 8px 0 0',
+                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'flex-end',
+                      boxShadow: isHovered
+                        ? (b.isPre ? '0 0 16px rgba(168, 85, 247, 0.4)' : '0 0 16px rgba(16, 185, 129, 0.4)')
+                        : '0 4px 10px rgba(0, 0, 0, 0.25)',
+                      transition: 'height 0.4s ease, filter 0.2s ease',
+                      filter: isHovered ? 'brightness(1.15)' : 'none',
+                      background: b.isPre
+                        ? 'linear-gradient(to top, #4338ca, #6366f1, #a855f7)'
+                        : (barGraphPlatformView === 'android'
+                          ? 'linear-gradient(to top, #059669, #10b981, #34d399)'
+                          : (barGraphPlatformView === 'ios'
+                            ? 'linear-gradient(to top, #0284c7, #0ea5e9, #38bdf8)'
+                            : 'transparent'))
+                    }}>
+                      {b.isPre ? (
+                        barGraphPlatformView === 'all' ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
+                            {/* iOS Slice in Pre-7D */}
+                            <div
+                              title={`iOS: ${formatNum(b.ios)}`}
+                              style={{
+                                height: '6%',
+                                background: 'linear-gradient(to right, #0284c7, #38bdf8)',
+                                borderBottom: '1px solid rgba(255, 255, 255, 0.2)'
+                              }}
+                            />
+                            {/* Android Slice in Pre-7D */}
+                            <div style={{
+                              flex: 1,
+                              background: 'linear-gradient(to top, #4338ca, #6366f1, #a855f7)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}>
+                              <span style={{
+                                fontSize: '9px',
+                                fontWeight: '800',
+                                color: '#ede9fe',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.06em',
+                                opacity: 0.85
+                              }}>
+                                All Prior
+                              </span>
+                            </div>
+                          </div>
+                        ) : null
+                      ) : (
+                        barGraphPlatformView === 'all' ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
+                            {/* iOS Segment Cap */}
+                            {iosHeightPct > 0 && (
+                              <div
+                                title={`🍏 iOS: ${formatNum(b.ios)}`}
+                                style={{
+                                  height: `${iosHeightPct}%`,
+                                  background: 'linear-gradient(to top, #0284c7, #38bdf8)',
+                                  borderBottom: '1px solid rgba(255, 255, 255, 0.3)'
+                                }}
+                              />
+                            )}
+                            {/* Android Segment Base */}
+                            <div
+                              title={`🤖 Android: ${formatNum(b.android)}`}
+                              style={{
+                                flex: 1,
+                                background: b.isToday
+                                  ? 'linear-gradient(to top, #0d9488, #14b8a6, #2dd4bf)'
+                                  : 'linear-gradient(to top, #059669, #10b981, #34d399)'
+                              }}
+                            />
+                          </div>
+                        ) : null
+                      )}
+                    </div>
+
+                    {/* Bottom Day Label */}
+                    <div style={{ textAlign: 'center', marginTop: '10px' }}>
+                      <span style={{
+                        display: 'block',
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        color: b.isPre ? '#c084fc' : (b.isToday ? '#38bdf8' : '#f1f5f9')
+                      }}>
+                        {b.label}
+                      </span>
+                      <span style={{
+                        display: 'block',
+                        fontSize: '9px',
+                        fontWeight: b.isToday ? '700' : '500',
+                        color: b.isToday ? '#38bdf8' : '#64748b',
+                        marginTop: '1px'
+                      }}>
+                        {b.sub}
+                      </span>
+                    </div>
+                  </div>
+                );
+              });
+            })() : (
+              // Loading Skeleton Placeholder
+              Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
+                  <div style={{ width: '36px', height: `${30 + (i * 7)}%`, background: 'rgba(255, 255, 255, 0.05)', borderRadius: '6px 6px 0 0' }} />
+                  <div style={{ width: '28px', height: '10px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '3px', marginTop: '8px' }} />
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Summary Footer Cards */}
+        {sevenDayBarData && (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))',
+            gap: '12px',
+            marginTop: '20px',
+            paddingTop: '16px',
+            borderTop: '1px solid rgba(255, 255, 255, 0.08)'
+          }}>
+            <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '10px', padding: '10px 14px', textAlign: 'center' }}>
+              <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '500', display: 'block' }}>Pre-7D Baseline</span>
+              <span style={{ fontSize: '16px', fontWeight: '800', color: '#c084fc', display: 'block', marginTop: '2px' }}>
+                {formatNum(sevenDayBarData.pre7Total)}
+              </span>
+              <span style={{ fontSize: '10px', color: '#64748b' }}>
+                {formatNum(sevenDayBarData.pre7Android)} 🤖 · {formatNum(sevenDayBarData.pre7Ios)} 🍏
+              </span>
+            </div>
+
+            <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '10px', padding: '10px 14px', textAlign: 'center' }}>
+              <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '500', display: 'block' }}>Last 7D Android</span>
+              <span style={{ fontSize: '16px', fontWeight: '800', color: '#34d399', display: 'block', marginTop: '2px' }}>
+                +{formatNum(sevenDayBarData.sum7Android)}
+              </span>
+              <span style={{ fontSize: '10px', color: '#64748b' }}>
+                {sevenDayBarData.sum7Total > 0 ? ((sevenDayBarData.sum7Android / sevenDayBarData.sum7Total) * 100).toFixed(1) : 0}% of 7D volume
+              </span>
+            </div>
+
+            <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '10px', padding: '10px 14px', textAlign: 'center' }}>
+              <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '500', display: 'block' }}>Last 7D iOS</span>
+              <span style={{ fontSize: '16px', fontWeight: '800', color: '#38bdf8', display: 'block', marginTop: '2px' }}>
+                +{formatNum(sevenDayBarData.sum7Ios)}
+              </span>
+              <span style={{ fontSize: '10px', color: '#64748b' }}>
+                {sevenDayBarData.sum7Total > 0 ? ((sevenDayBarData.sum7Ios / sevenDayBarData.sum7Total) * 100).toFixed(1) : 0}% of 7D volume
+              </span>
+            </div>
+
+            <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '10px', padding: '10px 14px', textAlign: 'center' }}>
+              <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '500', display: 'block' }}>All-Time Combined</span>
+              <span style={{ fontSize: '16px', fontWeight: '800', color: '#f8fafc', display: 'block', marginTop: '2px' }}>
+                {formatNum(sevenDayBarData.allTimeTotal)}
+              </span>
+              <span style={{ fontSize: '10px', color: '#34d399', fontWeight: '600' }}>
+                Historical + 7D
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Unified Telemetry Trend Graphs Section with Multi-platform curves */}
