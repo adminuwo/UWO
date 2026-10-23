@@ -264,7 +264,9 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
     if (!iosMaxDate || d > iosMaxDate) {
       const fbDay = fbDaily[d] || {};
       const dbDay = liveDbDaily[d] || {};
-      postIosInstalls += Math.max(dbDay.ios || 0, fbDay.ios || 0);
+      const dIos = Math.max(dbDay.ios || 0, fbDay.ios || 0);
+      postIosInstalls += dIos;
+      iosDailyMap[d] = dIos;
     }
   }
   const totalIosInstalls = iosBaselineTotal + postIosInstalls;
@@ -277,6 +279,16 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
   const yesterdayAndroid = Math.max(liveDbDaily[yesterdayStr]?.android || 0, liveDbDaily[yesterdayStr]?.total || 0, fbDaily[yesterdayStr]?.android || playDailyMap[yesterdayStr]?.daily_user_installs || 0);
   const yesterdayIos = Math.max(liveDbDaily[yesterdayStr]?.ios || 0, fbDaily[yesterdayStr]?.ios || 0);
   const yesterdayInstalls = yesterdayAndroid + yesterdayIos;
+
+  if (todayStr) iosDailyMap[todayStr] = Math.max(iosDailyMap[todayStr] || 0, todayIos);
+  if (yesterdayStr) iosDailyMap[yesterdayStr] = Math.max(iosDailyMap[yesterdayStr] || 0, yesterdayIos);
+
+  // Attach iOS daily count to mergedTimeline entries
+  for (const entry of mergedTimeline) {
+    if (entry && entry.date) {
+      entry.daily_ios_installs = iosDailyMap[entry.date] || 0;
+    }
+  }
 
   const realtimeActive = appFb?.realtime_android ?? appFb?.realtime_active ?? 0;
   const realtimeIos = appFb?.realtime_ios ?? 0;
@@ -324,6 +336,7 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
     anrs: playCrash?.anrs || 0,
     store_visitors: playPerf?.visitors || 0,
     store_installers: playPerf?.installers || 0,
+    ios_daily: iosDailyMap,
     timeline: mergedTimeline
   };
 

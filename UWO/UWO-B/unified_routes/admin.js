@@ -1255,6 +1255,8 @@ router.get(['/analytics/google-play/overview', '/google-play/overview'], verifyA
       total_all_time: aiLegalBreakdown.total_all_time + aisaBreakdown.total_all_time,
       combined_android_today: aiLegalBreakdown.today_android + aisaBreakdown.today_android,
       combined_ios_today: aiLegalBreakdown.today_ios + aisaBreakdown.today_ios,
+      combined_android_yesterday: aiLegalBreakdown.yesterday_android + aisaBreakdown.yesterday_android,
+      combined_ios_yesterday: aiLegalBreakdown.yesterday_ios + aisaBreakdown.yesterday_ios,
       apps: {
         ailegal: aiLegalBreakdown,
         aisa: aisaBreakdown
@@ -1301,6 +1303,7 @@ router.get(['/analytics/google-play/timeseries', '/google-play/timeseries'], ver
     const endDate = req.query.end_date;
     const granularity = req.query.granularity || 'day';
     const todayStr = new Date().toISOString().slice(0, 10);
+    const yesterdayStr = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
     const mergedByApp = {};
     for (const code of codes) {
@@ -1319,6 +1322,25 @@ router.get(['/analytics/google-play/timeseries', '/google-play/timeseries'], ver
       if (!d) continue;
       if (!iosHistByDate[d]) iosHistByDate[d] = 0;
       iosHistByDate[d] += (r.total_downloads || 0);
+    }
+
+    const iosMergedDaily = {};
+    let totalMergedIosTarget = 0;
+    let mergedTodayIos = 0;
+    let mergedYesterdayIos = 0;
+
+    for (const code of codes) {
+      const merged = mergedByApp[code];
+      if (merged) {
+        totalMergedIosTarget += (merged.total_ios_installs || 0);
+        mergedTodayIos += (merged.today_ios || 0);
+        mergedYesterdayIos += (merged.yesterday_ios || 0);
+        if (merged.ios_daily) {
+          for (const [d, count] of Object.entries(merged.ios_daily)) {
+            iosMergedDaily[d] = (iosMergedDaily[d] || 0) + (count || 0);
+          }
+        }
+      }
     }
 
     const dateMap = {};
@@ -1342,22 +1364,53 @@ router.get(['/analytics/google-play/timeseries', '/google-play/timeseries'], ver
       }
     }
 
-    const sortedDates = Object.keys(dateMap).sort();
+    const allDateSet = new Set([
+      ...Object.keys(dateMap),
+      ...Object.keys(iosHistByDate),
+      ...Object.keys(iosMergedDaily)
+    ]);
+    if (yesterdayStr) allDateSet.add(yesterdayStr);
+    if (todayStr) allDateSet.add(todayStr);
+    const sortedDates = Array.from(allDateSet).sort();
+
     let androidPoints = [];
     let iosPoints = [];
     let iosCum = 0;
+    let lastAndroidCum = 0;
+    let lastAndroidActive = 0;
 
     for (const d of sortedDates) {
       const data = dateMap[d];
-      let aVal = data.daily_user_installs;
-      if (metric === 'total_installs') aVal = data.total_user_installs;
-      else if (metric === 'active_devices' || metric === 'active_device_installs') aVal = data.installs_on_active_devices;
-      else if (metric === 'user_loss' || metric === 'daily_user_uninstalls') aVal = data.daily_user_uninstalls;
+      if (data && data.total_user_installs > 0) {
+        lastAndroidCum = data.total_user_installs;
+      }
+      if (data && data.installs_on_active_devices > 0) {
+        lastAndroidActive = data.installs_on_active_devices;
+      }
+      let aVal = data?.daily_user_installs || 0;
+      if (metric === 'total_installs') aVal = (data?.total_user_installs || lastAndroidCum);
+      else if (metric === 'active_devices' || metric === 'active_device_installs') aVal = (data?.installs_on_active_devices || lastAndroidActive);
+      else if (metric === 'user_loss' || metric === 'daily_user_uninstalls') aVal = data?.daily_user_uninstalls || 0;
 
       androidPoints.push({ date: d, value: aVal });
 
-      const dayIos = iosHistByDate[d] || 0;
+      let dayIos = 0;
+      if (iosMergedDaily[d] !== undefined) {
+        dayIos = iosMergedDaily[d];
+      } else if (iosHistByDate[d] !== undefined) {
+        dayIos = iosHistByDate[d];
+      }
+      if (d === yesterdayStr && mergedYesterdayIos > 0) {
+        dayIos = Math.max(dayIos, mergedYesterdayIos);
+      } else if (d === todayStr && mergedTodayIos > 0) {
+        dayIos = Math.max(dayIos, mergedTodayIos);
+      }
+
       iosCum += dayIos;
+      if (d === todayStr && totalMergedIosTarget > 0 && iosCum < totalMergedIosTarget) {
+        iosCum = totalMergedIosTarget;
+      }
+
       let iosVal = dayIos;
       if (metric === 'total_installs') iosVal = iosCum;
       else if (metric === 'active_devices' || metric === 'active_device_installs') iosVal = dayIos;
@@ -1374,7 +1427,6 @@ router.get(['/analytics/google-play/timeseries', '/google-play/timeseries'], ver
       androidPoints = androidPoints.filter(p => p.date <= endDate);
       iosPoints = iosPoints.filter(p => p.date <= endDate);
     }
-
     return res.json({
       data: {
         metric,

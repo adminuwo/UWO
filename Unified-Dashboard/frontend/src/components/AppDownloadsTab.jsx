@@ -272,6 +272,12 @@ export const AppDownloadsTab = () => {
   const aisaTodayAndroid = Number(aisaStats.today_android ?? aisaStats.today_android_installs ?? 0);
   const aisaTodayIos = Number(aisaStats.today_ios ?? aisaStats.today_ios_installs ?? 0);
   const aisaYesterday = Number(aisaStats.yesterday_total ?? aisaStats.yesterday_installs ?? 0);
+  const aiLegalYesterdayAndroid = Number(aiLegalStats.yesterday_android ?? 0);
+  const aiLegalYesterdayIos = Number(aiLegalStats.yesterday_ios ?? 0);
+  const aisaYesterdayAndroid = Number(aisaStats.yesterday_android ?? 0);
+  const aisaYesterdayIos = Number(aisaStats.yesterday_ios ?? 0);
+  const totalYesterdayAndroid = isLoaded ? (aiLegalYesterdayAndroid + aisaYesterdayAndroid) : '...';
+  const totalYesterdayIos = isLoaded ? (aiLegalYesterdayIos + aisaYesterdayIos) : '...';
 
   const totalToday = isLoaded ? (aiLegalToday + aisaToday) : '...';
   const totalYesterday = isLoaded ? (aiLegalYesterday + aisaYesterday) : '...';
@@ -293,6 +299,8 @@ export const AppDownloadsTab = () => {
         todayAndroid: totalTodayAndroid,
         todayIos: totalTodayIos,
         yesterday: totalYesterday,
+        yesterdayAndroid: totalYesterdayAndroid,
+        yesterdayIos: totalYesterdayIos,
         allTime: totalAllTime,
         androidStoreDownloads: combined.android_store_downloads ?? 0,
         iosStoreDownloads: combined.ios_store_downloads ?? 0,
@@ -309,6 +317,8 @@ export const AppDownloadsTab = () => {
           todayAndroid: aiLegalTodayAndroid,
           todayIos: aiLegalTodayIos,
           yesterday: aiLegalYesterday,
+          yesterdayAndroid: aiLegalYesterdayAndroid,
+          yesterdayIos: aiLegalYesterdayIos,
           allTime: aiLegalAllTime,
           androidStoreDownloads: aiLegalStats.android_store_downloads ?? (combined.android_store_downloads ?? 0),
           iosStoreDownloads: aiLegalStats.ios_store_downloads ?? (combined.ios_store_downloads ?? 0),
@@ -324,6 +334,8 @@ export const AppDownloadsTab = () => {
           todayAndroid: aisaTodayAndroid,
           todayIos: aisaTodayIos,
           yesterday: aisaYesterday,
+          yesterdayAndroid: aisaYesterdayAndroid,
+          yesterdayIos: aisaYesterdayIos,
           allTime: aisaAllTime,
           androidStoreDownloads: aisaStats.android_store_downloads ?? (combined.android_store_downloads ?? 0),
           iosStoreDownloads: aisaStats.ios_store_downloads ?? (combined.ios_store_downloads ?? 0),
@@ -403,13 +415,32 @@ export const AppDownloadsTab = () => {
       const prevI = windowSliceI[i - 1] || { value: 0 };
       const d = curA.date;
 
-      const dAndroid = dailyMapA[d] !== undefined ? dailyMapA[d] : Math.max(0, (curA.value || 0) - (prevA.value || 0));
-      const dIos = dailyMapI[d] !== undefined ? dailyMapI[d] : Math.max(0, (curI.value || 0) - (prevI.value || 0));
+      let dAndroid = dailyMapA[d] !== undefined ? dailyMapA[d] : Math.max(0, (curA.value || 0) - (prevA.value || 0));
+      let dIos = dailyMapI[d] !== undefined ? dailyMapI[d] : Math.max(0, (curI.value || 0) - (prevI.value || 0));
+
+      const isToday = (d === todayStr || i === windowSliceA.length - 1);
+      const isYesterday = (d === yesterdayDate);
+
+      // Real-time telemetry edge fusion for today and yesterday if timeseries has reporting lag
+      if (isToday) {
+        if (typeof activeStats.todayIos === 'number' && activeStats.todayIos > 0) {
+          dIos = Math.max(dIos, activeStats.todayIos);
+        }
+        if (typeof activeStats.todayAndroid === 'number' && activeStats.todayAndroid > 0) {
+          dAndroid = Math.max(dAndroid, activeStats.todayAndroid);
+        }
+      } else if (isYesterday) {
+        if (typeof activeStats.yesterdayIos === 'number' && activeStats.yesterdayIos > 0) {
+          dIos = Math.max(dIos, activeStats.yesterdayIos);
+        }
+        if (typeof activeStats.yesterdayAndroid === 'number' && activeStats.yesterdayAndroid > 0) {
+          dAndroid = Math.max(dAndroid, activeStats.yesterdayAndroid);
+        }
+      }
+
       const dTotal = dAndroid + dIos;
 
       let sub = '';
-      const isToday = (d === todayStr || i === windowSliceA.length - 1);
-      const isYesterday = (d === yesterdayDate);
 
       if (isToday) {
         sub = 'Today Live ⚡';
@@ -449,9 +480,17 @@ export const AppDownloadsTab = () => {
     const sum7Android = last7Bars.reduce((s, b) => s + b.android, 0);
     const sum7Ios = last7Bars.reduce((s, b) => s + b.ios, 0);
     const sum7Total = sum7Android + sum7Ios;
-    const allTimeAndroid = pre7Android + sum7Android;
-    const allTimeIos = pre7Ios + sum7Ios;
+
+    const lifetimeAndroid = Number(activeStats.androidStoreDownloads) || (pre7Android + sum7Android);
+    const lifetimeIos = Number(activeStats.iosStoreDownloads) || (pre7Ios + sum7Ios);
+    const allTimeAndroid = Math.max(lifetimeAndroid, pre7Android + sum7Android);
+    const allTimeIos = Math.max(lifetimeIos, pre7Ios + sum7Ios);
     const allTimeTotal = allTimeAndroid + allTimeIos;
+
+    // Harmonize Pre-7D Baseline so Pre-7D + Last 7D matches all-time lifetime counts exactly
+    bars[0].android = Math.max(0, allTimeAndroid - sum7Android);
+    bars[0].ios = Math.max(0, allTimeIos - sum7Ios);
+    bars[0].total = bars[0].android + bars[0].ios;
 
     return {
       bars,
@@ -465,7 +504,7 @@ export const AppDownloadsTab = () => {
       allTimeIos,
       allTimeTotal
     };
-  }, [timeseriesData]);
+  }, [timeseriesData, activeStats]);
 
   // Chart configs helper that combines Android & iOS in the same chart with legend toggles
   const makeCombinedChart = (seriesObj) => {
