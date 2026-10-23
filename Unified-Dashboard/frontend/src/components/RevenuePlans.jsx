@@ -1028,8 +1028,34 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
               </button>
             </form>
 
-            {/* Dropdown Filters */}
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            {/* Live Gateway Action & Dropdown Filters */}
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <button
+                id="fetch-live-transactions-btn"
+                onClick={() => handleTriggerSync('razorpay')}
+                disabled={syncing}
+                title="Fetch latest real-time transactions directly from live payment gateways (Razorpay, StoreKit) and update database ledger"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '7px',
+                  background: syncing ? '#334155' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: '#ffffff',
+                  border: '1px solid rgba(16, 185, 129, 0.4)',
+                  borderRadius: '10px',
+                  padding: '10px 16px',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: syncing ? 'not-allowed' : 'pointer',
+                  boxShadow: '0 2px 10px rgba(16, 185, 129, 0.35)',
+                  transition: 'all 0.2s ease',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <span style={{ fontSize: '13px' }}>{syncing ? '🔄' : '⚡'}</span>
+                <span>{syncing ? 'Fetching Live...' : 'Fetch Live Transactions'}</span>
+              </button>
+
               <select
                 value={selectedProduct}
                 onChange={(e) => { setSelectedProduct(e.target.value); setTxPage(1); }}
@@ -1153,7 +1179,10 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
                         <span style={{ marginLeft: '6px', fontSize: '11px', color: '#94a3b8' }}>({tx.platform} · {tx.provider})</span>
                       </td>
                       <td style={{ padding: '12px 14px', color: '#cbd5e1' }}>
-                        {tx.customer_email || 'Direct User'}
+                        {tx.customer_name && tx.customer_name !== 'Advocate User' && tx.customer_name !== 'Verified User' && tx.customer_name !== 'Valued Customer' && (
+                          <div style={{ fontWeight: '600', color: '#f8fafc', fontSize: '13px', marginBottom: '2px' }}>{tx.customer_name}</div>
+                        )}
+                        <div style={{ fontSize: '12px', color: '#94a3b8' }}>{tx.customer_email || 'Direct User'}</div>
                       </td>
                       <td style={{ padding: '12px 14px', fontWeight: '700', color: '#f8fafc' }}>
                         {formatCurrency(tx.gross_amount, tx.currency)}
@@ -1166,13 +1195,35 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
                       </td>
                       <td style={{ padding: '12px 14px' }}>
                         <span style={{
-                          background: tx.status === 'completed' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                          color: tx.status === 'completed' ? '#34d399' : '#f87171',
+                          background: (tx.status === 'completed' || tx.status === 'captured' || tx.status === 'paid' || tx.status === 'success')
+                            ? 'rgba(16, 185, 129, 0.15)'
+                            : (tx.status === 'pending' || tx.status === 'authorized')
+                            ? 'rgba(245, 158, 11, 0.15)'
+                            : (tx.status === 'refunded')
+                            ? 'rgba(168, 85, 247, 0.15)'
+                            : 'rgba(239, 68, 68, 0.15)',
+                          color: (tx.status === 'completed' || tx.status === 'captured' || tx.status === 'paid' || tx.status === 'success')
+                            ? '#34d399'
+                            : (tx.status === 'pending' || tx.status === 'authorized')
+                            ? '#fbbf24'
+                            : (tx.status === 'refunded')
+                            ? '#c084fc'
+                            : '#f87171',
+                          border: `1px solid ${
+                            (tx.status === 'completed' || tx.status === 'captured' || tx.status === 'paid' || tx.status === 'success')
+                              ? 'rgba(16, 185, 129, 0.3)'
+                              : (tx.status === 'pending' || tx.status === 'authorized')
+                              ? 'rgba(245, 158, 11, 0.3)'
+                              : (tx.status === 'refunded')
+                              ? 'rgba(168, 85, 247, 0.3)'
+                              : 'rgba(239, 68, 68, 0.3)'
+                          }`,
                           padding: '4px 10px',
                           borderRadius: '12px',
                           fontSize: '11px',
                           fontWeight: '700',
-                          textTransform: 'uppercase'
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.04em'
                         }}>
                           {tx.status}
                         </span>

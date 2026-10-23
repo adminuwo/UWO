@@ -25,7 +25,7 @@ if (!process.env.K_SERVICE && process.env.NODE_ENV !== 'test') {
 const { getUnifiedDb } = require('./db');
 const { subscriptionRepository } = require('./SubscriptionRepository');
 
-const AISA_URI = process.env.AISA_MONGODB_URI || 'mongodb+srv://admin_db_user:ailegal050804@cluster0.265idhx.mongodb.net/AISA?appName=Cluster0';
+const AISA_URI = process.env.AISA_MONGODB_URI || 'mongodb+srv://uwo_admin:uwo%4012345@cluster0.selr4is.mongodb.net/AISA?retryWrites=true&w=majority';
 const RAZORPAY_WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET || 'affiliate-payment';
 
 // Helper function to format customer name from email
@@ -319,12 +319,14 @@ class SubscriptionSyncService {
       }
 
       // 5. Direct Razorpay Reconciler: Auto-ingest any captured AI-Legal payments missing from DB
-      if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+      const rzpKeyId = process.env.RAZORPAY_KEY_ID || 'rzp_live_SBFlInxBiRfOGd';
+      const rzpKeySecret = process.env.RAZORPAY_KEY_SECRET || 'GQYnxmOl910sC76rShXhRk3o';
+      if (rzpKeyId && rzpKeySecret) {
         try {
           const Razorpay = require('razorpay');
           const rzp = new Razorpay({
-            key_id: process.env.RAZORPAY_KEY_ID,
-            key_secret: process.env.RAZORPAY_KEY_SECRET
+            key_id: rzpKeyId,
+            key_secret: rzpKeySecret
           });
 
           const rzpPayments = await rzp.payments.all({ count: 50 });

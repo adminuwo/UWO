@@ -802,8 +802,8 @@ router.get('/reconciliation', async (req, res) => {
   }
 });
 
-// POST /api/admin/revenue/sync — Live sync on-demand trigger
-router.post('/sync', async (req, res) => {
+// POST /api/admin/revenue/sync & /transactions/sync-live — Live sync on-demand trigger
+router.post(['/sync', '/transactions/sync-live', '/sync-live'], async (req, res) => {
   try {
     const result = await runRevenueSync({ forceFull: true });
     if (!result.success && result.skipped) {
