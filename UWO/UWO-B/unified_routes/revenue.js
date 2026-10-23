@@ -39,7 +39,10 @@ function resolvePeriodDates(period, fromDateStr, toDateStr) {
 
 function buildMatchStage(query) {
   const match = {
-    status: { $in: ['completed', 'captured', 'paid', 'success', 'succeeded'] }
+    status: { $in: ['completed', 'captured', 'paid', 'success', 'succeeded'] },
+    is_test: { $ne: true },
+    external_transaction_id: { $not: /^(txn_admin_|pay_fake|pay_mock|manual_|test_)/i },
+    'metadata.gateway': { $ne: 'Admin Direct Assignment' }
   };
 
   const product = query.product || query.product_code;
@@ -54,7 +57,13 @@ function buildMatchStage(query) {
     // Exclude manual admin grants and direct manual invoices from verified gateway revenue
     match.provider = { $nin: ['direct_invoice', 'admin', 'manual'] };
     match.source = { $nin: ['direct_invoice', 'admin', 'manual'] };
-    match.external_transaction_id = { $not: /^txn_admin_/i };
+  }
+
+  if (query.include_manual !== 'true') {
+    match.source = { $nin: ['direct_invoice', 'admin', 'manual'] };
+    if (!match.provider) {
+      match.provider = { $nin: ['direct_invoice', 'admin', 'manual'] };
+    }
   }
 
   const platform = query.platform;
@@ -430,6 +439,30 @@ router.get('/transactions', async (req, res) => {
       ];
     }
 
+    // Transaction classification filter: 'verified' (default real customer revenue) | 'all' | 'test'
+    const txType = (req.query.tx_type || req.query.type || (req.query.include_test === 'true' ? 'all' : (req.query.exclude_test === 'false' ? 'all' : 'verified'))).toLowerCase().trim();
+    if (txType === 'verified') {
+      filter.is_test = { $ne: true };
+      filter.external_transaction_id = { $not: /^(txn_admin_|pay_fake|pay_mock|manual_|test_)/i };
+      filter.provider = filter.provider || { $nin: ['direct_invoice', 'admin', 'manual'] };
+      filter.source = { $nin: ['direct_invoice', 'admin', 'manual'] };
+      filter['metadata.gateway'] = { $ne: 'Admin Direct Assignment' };
+    } else if (txType === 'test') {
+      const testMatchOr = [
+        { is_test: true },
+        { external_transaction_id: { $regex: '^(txn_admin_|pay_fake|pay_mock|manual_|test_)', $options: 'i' } },
+        { provider: { $in: ['direct_invoice', 'admin', 'manual'] } },
+        { source: { $in: ['direct_invoice', 'admin', 'manual'] } },
+        { 'metadata.gateway': { $regex: 'admin|direct|manual', $options: 'i' } }
+      ];
+      if (filter.$or) {
+        filter.$and = [{ $or: filter.$or }, { $or: testMatchOr }];
+        delete filter.$or;
+      } else {
+        filter.$or = testMatchOr;
+      }
+    }
+
     // Optional subscription match filter: 'all' | 'active' | 'matched' | 'unmatched'
     const subFilterParam = (req.query.subscription || req.query.subscription_status || 'all').toLowerCase().trim();
 
@@ -574,6 +607,15 @@ router.get('/transactions', async (req, res) => {
         customer_name: matchedSub.customer_name
       } : null;
 
+      const isTestTx = Boolean(
+        t.is_test === true ||
+        /^(txn_admin_|pay_fake|pay_mock|manual_|test_)/i.test(extTxId) ||
+        ['direct_invoice', 'admin', 'manual'].includes(String(t.provider || '').toLowerCase()) ||
+        ['direct_invoice', 'admin', 'manual'].includes(String(t.source || '').toLowerCase()) ||
+        String(t.metadata?.gateway || '').toLowerCase().includes('admin') ||
+        String(t.metadata?.gateway || '').toLowerCase().includes('direct')
+      );
+
       return {
         id: String(t._id || t.id),
         _id: String(t._id || t.id),
@@ -592,6 +634,7 @@ router.get('/transactions', async (req, res) => {
         reporting_amount: Number(t.reporting_amount || t.gross_amount || 0),
         currency: t.currency || 'INR',
         status: t.status || 'completed',
+        is_test: isTestTx,
         customer_email: t.customer_email || t.user_email || 'client@ailegal.app',
         customer_name: t.customer_name || 'Verified User',
         customer_id: t.customer_id || '',
@@ -759,7 +802,14 @@ router.get('/reconciliation', async (req, res) => {
   try {
     const db = await getUnifiedDb();
     const agg = await db.collection('revenue_transactions').aggregate([
-      { $match: { status: { $in: ['completed', 'captured', 'paid', 'success', 'succeeded'] } } },
+      {
+        $match: {
+          status: { $in: ['completed', 'captured', 'paid', 'success', 'succeeded'] },
+          is_test: { $ne: true },
+          external_transaction_id: { $not: /^(txn_admin_|pay_fake|pay_mock|manual_|test_)/i },
+          'metadata.gateway': { $ne: 'Admin Direct Assignment' }
+        }
+      },
       {
         $group: {
           _id: { $toLower: { $ifNull: ['$provider', 'razorpay'] } },

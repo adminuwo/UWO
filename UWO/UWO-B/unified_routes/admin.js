@@ -180,11 +180,20 @@ router.get('/stats', verifyAdminToken, async (req, res) => {
       db.collection('logs').countDocuments({}).catch(() => 0),
     ]);
 
-    // Aggregate total revenue
+    // Aggregate total revenue (strictly excluding test/mock/admin transactions)
     let totalRevenue = 0;
     try {
       const revAgg = await db.collection('revenue_transactions').aggregate([
-        { $match: { status: { $in: ['completed', 'captured', 'paid', 'success', 'succeeded'] } } },
+        {
+          $match: {
+            status: { $in: ['completed', 'captured', 'paid', 'success', 'succeeded'] },
+            is_test: { $ne: true },
+            external_transaction_id: { $not: /^(txn_admin_|pay_fake|pay_mock|manual_|test_)/i },
+            provider: { $nin: ['direct_invoice', 'admin', 'manual'] },
+            source: { $nin: ['direct_invoice', 'admin', 'manual'] },
+            'metadata.gateway': { $ne: 'Admin Direct Assignment' }
+          }
+        },
         { $group: { _id: null, total: { $sum: { $ifNull: ['$reporting_amount', '$gross_amount', '$amount', 0] } } } }
       ]).toArray();
       if (revAgg.length > 0 && revAgg[0].total) {
@@ -385,7 +394,17 @@ router.get('/unified-analytics/overview', verifyAdminToken, async (req, res) => 
       db.collection('users').countDocuments({}).catch(() => 0),
       db.collection('users').countDocuments({ updated_at: { $gte: cutoff } }).catch(() => 0),
       db.collection('revenue_transactions').aggregate([
-        { $match: { status: { $in: ['completed', 'captured', 'paid', 'success'] }, transaction_date: { $gte: cutoff } } },
+        {
+          $match: {
+            status: { $in: ['completed', 'captured', 'paid', 'success'] },
+            transaction_date: { $gte: cutoff },
+            is_test: { $ne: true },
+            external_transaction_id: { $not: /^(txn_admin_|pay_fake|pay_mock|manual_|test_)/i },
+            provider: { $nin: ['direct_invoice', 'admin', 'manual'] },
+            source: { $nin: ['direct_invoice', 'admin', 'manual'] },
+            'metadata.gateway': { $ne: 'Admin Direct Assignment' }
+          }
+        },
         { $group: { _id: null, total: { $sum: { $ifNull: ['$reporting_amount', '$gross_amount', 0] } } } }
       ]).toArray().catch(() => []),
       db.collection('marketing_events').countDocuments({ timestamp: { $gte: cutoff } }).catch(() => 0),

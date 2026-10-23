@@ -359,9 +359,10 @@ class SubscriptionRepository {
     // Fetch verified gateway transactions cache to cross-reference payment status and paid amounts
     const verifiedTxs = await db.collection('revenue_transactions').find({
       status: { $in: ['completed', 'captured', 'paid', 'success', 'succeeded'] },
+      is_test: { $ne: true },
       provider: { $in: ['razorpay', 'app_store', 'google_play', 'cashfree', 'apple_iap', 'stripe', 'razorpay_efv'] },
       source: { $nin: ['direct_invoice', 'admin', 'manual'] },
-      external_transaction_id: { $not: /^txn_admin_/i },
+      external_transaction_id: { $not: /^(txn_admin_|pay_fake|pay_mock|manual_|test_)/i },
       'metadata.gateway': { $ne: 'Admin Direct Assignment' }
     }).project({ external_transaction_id: 1, gross_amount: 1, reporting_amount: 1, amount: 1 }).toArray().catch(() => []);
     const verifiedTxMap = new Map();
@@ -441,9 +442,10 @@ class SubscriptionRepository {
     // Fetch verified gateway transactions cache to cross-reference payment status and amounts
     const verifiedTxs = await db.collection('revenue_transactions').find({
       status: { $in: ['completed', 'captured', 'paid', 'success', 'succeeded'] },
+      is_test: { $ne: true },
       provider: { $in: ['razorpay', 'app_store', 'google_play', 'cashfree', 'apple_iap', 'stripe', 'razorpay_efv'] },
       source: { $nin: ['direct_invoice', 'admin', 'manual'] },
-      external_transaction_id: { $not: /^txn_admin_/i },
+      external_transaction_id: { $not: /^(txn_admin_|pay_fake|pay_mock|manual_|test_)/i },
       'metadata.gateway': { $ne: 'Admin Direct Assignment' }
     }).project({ external_transaction_id: 1, gross_amount: 1, reporting_amount: 1, amount: 1 }).toArray().catch(() => []);
     const verifiedTxMap = new Map();
@@ -565,9 +567,10 @@ class SubscriptionRepository {
     // Fetch verified gateway transactions cache
     const verifiedTxs = await db.collection('revenue_transactions').find({
       status: { $in: ['completed', 'captured', 'paid', 'success', 'succeeded'] },
+      is_test: { $ne: true },
       provider: { $in: ['razorpay', 'app_store', 'google_play', 'cashfree', 'apple_iap', 'stripe', 'razorpay_efv'] },
       source: { $nin: ['direct_invoice', 'admin', 'manual'] },
-      external_transaction_id: { $not: /^txn_admin_/i },
+      external_transaction_id: { $not: /^(txn_admin_|pay_fake|pay_mock|manual_|test_)/i },
       'metadata.gateway': { $ne: 'Admin Direct Assignment' }
     }).project({ external_transaction_id: 1, gross_amount: 1, reporting_amount: 1, amount: 1 }).toArray().catch(() => []);
     const verifiedTxMap = new Map();

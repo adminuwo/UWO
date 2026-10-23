@@ -214,6 +214,18 @@ async function runRevenueSync(options = {}) {
                           p.gateway === 'AppleStoreKit';
           const productCode = isLegal ? 'ailegal' : 'aisa';
 
+          const isTestTx = Boolean(
+            (extTxId && /^(txn_admin_|pay_fake|pay_mock|manual_|test_)/i.test(extTxId)) ||
+            provider === 'direct_invoice' ||
+            provider === 'admin' ||
+            provider === 'manual' ||
+            String(p.gateway || '').toLowerCase().includes('admin') ||
+            String(p.gateway || '').toLowerCase().includes('direct') ||
+            String(p.gateway || '').toLowerCase().includes('manual') ||
+            p.is_test === true ||
+            p.isTest === true
+          );
+
           const existing = await unifiedDb.collection('revenue_transactions').findOne({
             $or: [{ external_transaction_id: extTxId }, { _id: `aisa_pay_${pid}` }]
           });
@@ -228,6 +240,7 @@ async function runRevenueSync(options = {}) {
                   net_amount: net,
                   tax_amount: gst,
                   status: (p.status === 'success' || p.status === 'paid') ? 'completed' : String(p.status || 'completed'),
+                  is_test: isTestTx,
                   updated_at: new Date()
                 }
               }
@@ -255,7 +268,7 @@ async function runRevenueSync(options = {}) {
               transaction_date: date,
               country: 'IN',
               status: (p.status === 'success' || p.status === 'paid') ? 'completed' : String(p.status || 'completed'),
-              is_test: false,
+              is_test: isTestTx,
               customer_id: uId,
               customer_email: user.email,
               customer_name: user.name,
@@ -296,6 +309,17 @@ async function runRevenueSync(options = {}) {
           const date = ph.paidAt || ph.createdAt ? new Date(ph.paidAt || ph.createdAt) : new Date();
           const provider = normalizeProvider(ph.gateway);
 
+          const isTestHist = Boolean(
+            (extTxId && /^(txn_admin_|pay_fake|pay_mock|manual_|test_)/i.test(extTxId)) ||
+            provider === 'direct_invoice' ||
+            provider === 'admin' ||
+            provider === 'manual' ||
+            String(ph.gateway || '').toLowerCase().includes('admin') ||
+            String(ph.gateway || '').toLowerCase().includes('direct') ||
+            String(ph.gateway || '').toLowerCase().includes('manual') ||
+            ph.is_test === true
+          );
+
           const existing = await unifiedDb.collection('revenue_transactions').findOne({
             $or: [{ external_transaction_id: extTxId }, { _id: `aisa_ph_${phid}` }]
           });
@@ -309,6 +333,7 @@ async function runRevenueSync(options = {}) {
                   fee_amount: fee,
                   net_amount: net,
                   status: (ph.status === 'paid' || ph.status === 'success') ? 'completed' : String(ph.status || 'completed'),
+                  is_test: isTestHist,
                   updated_at: new Date()
                 }
               }
@@ -336,7 +361,7 @@ async function runRevenueSync(options = {}) {
               transaction_date: date,
               country: 'IN',
               status: (ph.status === 'paid' || ph.status === 'success') ? 'completed' : String(ph.status || 'completed'),
-              is_test: false,
+              is_test: isTestHist,
               customer_id: accId,
               customer_email: user.email,
               customer_name: user.name,

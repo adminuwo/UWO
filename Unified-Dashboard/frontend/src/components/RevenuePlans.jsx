@@ -38,6 +38,7 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTxStatus, setSelectedTxStatus] = useState('all');
   const [selectedSubFilter, setSelectedSubFilter] = useState('all'); // 'all' | 'active' | 'matched' | 'unmatched'
+  const [selectedTxType, setSelectedTxType] = useState('verified'); // 'verified' (excludes test transactions) | 'all' | 'test'
   const [subSearchTarget, setSubSearchTarget] = useState('');
   const [syncHealth, setSyncHealth] = useState([]);
   const [reconData, setReconData] = useState([]);
@@ -68,7 +69,7 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
         authFetch(`/api/admin/revenue/providers?period=${period}`),
         authFetch(`/api/admin/revenue/platforms?period=${period}`),
         authFetch(`/api/admin/revenue/trend?period=${period}&product=${selectedProduct}&provider=${selectedProvider}`),
-        authFetch(`/api/admin/revenue/transactions?page=${txPage}&page_size=25&product=${selectedProduct}&provider=${selectedProvider}&platform=${selectedPlatform}&status=${selectedTxStatus}&subscription=${selectedSubFilter}&search=${encodeURIComponent(searchQuery)}`),
+        authFetch(`/api/admin/revenue/transactions?page=${txPage}&page_size=25&product=${selectedProduct}&provider=${selectedProvider}&platform=${selectedPlatform}&status=${selectedTxStatus}&subscription=${selectedSubFilter}&tx_type=${selectedTxType}&search=${encodeURIComponent(searchQuery)}`),
         authFetch(`/api/admin/revenue/health`),
         authFetch(`/api/admin/revenue/reconciliation`)
       ]);
@@ -113,7 +114,7 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
 
   useEffect(() => {
     fetchRevenueData();
-  }, [period, selectedProduct, selectedProvider, selectedPlatform, selectedTxStatus, selectedSubFilter, txPage]);
+  }, [period, selectedProduct, selectedProvider, selectedPlatform, selectedTxStatus, selectedSubFilter, selectedTxType, txPage]);
 
   // Periodic Auto-refresh every 30 seconds for live updates
   useEffect(() => {
@@ -121,7 +122,7 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
       fetchRevenueData(true);
     }, 30000);
     return () => clearInterval(interval);
-  }, [period, selectedProduct, selectedProvider, selectedPlatform, selectedTxStatus, selectedSubFilter, txPage, searchQuery]);
+  }, [period, selectedProduct, selectedProvider, selectedPlatform, selectedTxStatus, selectedSubFilter, selectedTxType, txPage, searchQuery]);
 
   const handleJumpToSubscription = (subMatch) => {
     if (!subMatch) return;
@@ -347,7 +348,7 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
         {[
           { id: 'overview', label: '📊 Financial Overview & Breakdown' },
           { id: 'subscriptions', label: '🔄 Active Subscriptions' },
-          { id: 'transactions', label: `💳 Live Transactions Explorer (${totalTxCount})` },
+          { id: 'transactions', label: `💳 Live Transactions Explorer (${totalTxCount}${selectedTxType === 'verified' ? ' Verified' : ''})` },
           { id: 'reconciliation', label: '⚖️ Reconciliation Audit' },
           { id: 'health', label: '📡 Sync Health & Gateways' }
         ].map((tab) => (
@@ -1136,6 +1137,26 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
                 <option value="matched">🔗 Any Matched Sub</option>
                 <option value="unmatched">⚪ Standalone / Unmatched</option>
               </select>
+
+              {/* Verified Payments vs Test / Admin Filter */}
+              <select
+                id="revenue-tx-type-filter"
+                value={selectedTxType}
+                onChange={(e) => { setSelectedTxType(e.target.value); setTxPage(1); }}
+                style={{
+                  background: selectedTxType === 'verified' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(15, 23, 42, 0.85)',
+                  border: selectedTxType === 'verified' ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(255, 255, 255, 0.12)',
+                  borderRadius: '10px',
+                  padding: '10px 12px',
+                  color: selectedTxType === 'verified' ? '#34d399' : '#f8fafc',
+                  fontSize: '13px',
+                  fontWeight: '700'
+                }}
+              >
+                <option value="verified">🛡️ Customer Revenue Only (Real Payments)</option>
+                <option value="all">📋 All Transactions (Inc. Test / Admin)</option>
+                <option value="test">🧪 Test / Admin Payments Only</option>
+              </select>
             </div>
           </div>
 
@@ -1165,9 +1186,25 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
                   </tr>
                 ) : (
                   transactions.map((tx) => (
-                    <tr key={tx.id || tx.external_transaction_id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)', fontSize: '13px' }}>
+                    <tr key={tx.id || tx.external_transaction_id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)', fontSize: '13px', background: tx.is_test ? 'rgba(239, 68, 68, 0.03)' : 'transparent' }}>
                       <td style={{ padding: '12px 14px', fontFamily: 'monospace', color: '#60a5fa', fontWeight: '600' }}>
-                        {tx.external_transaction_id}
+                        <div>{tx.external_transaction_id}</div>
+                        {tx.is_test && (
+                          <span style={{
+                            display: 'inline-block',
+                            marginTop: '4px',
+                            background: 'rgba(239, 68, 68, 0.15)',
+                            color: '#f87171',
+                            border: '1px solid rgba(239, 68, 68, 0.35)',
+                            borderRadius: '4px',
+                            padding: '1px 6px',
+                            fontSize: '10px',
+                            fontWeight: '700',
+                            letterSpacing: '0.03em'
+                          }}>
+                            🧪 TEST (Excluded from Revenue)
+                          </span>
+                        )}
                       </td>
                       <td style={{ padding: '12px 14px' }}>
                         <span style={{ fontWeight: '700', color: '#f8fafc', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
@@ -1184,14 +1221,24 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
                         )}
                         <div style={{ fontSize: '12px', color: '#94a3b8' }}>{tx.customer_email || 'Direct User'}</div>
                       </td>
-                      <td style={{ padding: '12px 14px', fontWeight: '700', color: '#f8fafc' }}>
-                        {formatCurrency(tx.gross_amount, tx.currency)}
+                      <td style={{ padding: '12px 14px', fontWeight: '700', color: tx.is_test ? '#94a3b8' : '#f8fafc' }}>
+                        <div>{formatCurrency(tx.gross_amount, tx.currency)}</div>
+                        {tx.is_test && (
+                          <div style={{ fontSize: '10px', color: '#f87171', fontWeight: '600', marginTop: '2px' }}>
+                            ₹0 in total revenue
+                          </div>
+                        )}
                       </td>
                       <td style={{ padding: '12px 14px', color: '#fbbf24' }}>
                         {formatCurrency(tx.fee_amount, tx.currency)}
                       </td>
-                      <td style={{ padding: '12px 14px', fontWeight: '700', color: '#34d399' }}>
-                        {formatCurrency(tx.net_amount, tx.currency)}
+                      <td style={{ padding: '12px 14px', fontWeight: '700', color: tx.is_test ? '#94a3b8' : '#34d399' }}>
+                        <div>{formatCurrency(tx.net_amount, tx.currency)}</div>
+                        {tx.is_test && (
+                          <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '500', marginTop: '2px' }}>
+                            Test net
+                          </div>
+                        )}
                       </td>
                       <td style={{ padding: '12px 14px' }}>
                         <span style={{
@@ -1307,7 +1354,7 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
             borderTop: '1px solid rgba(255, 255, 255, 0.08)'
           }}>
             <span style={{ fontSize: '12px', color: '#94a3b8' }}>
-              Showing {transactions.length} of {totalTxCount} recorded live transactions
+              Showing {transactions.length} of {totalTxCount} {selectedTxType === 'verified' ? 'verified customer transactions (test payments excluded from revenue)' : selectedTxType === 'test' ? 'test / admin transactions' : 'recorded transactions'}
             </span>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
