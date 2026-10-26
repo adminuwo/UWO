@@ -84,7 +84,8 @@ export const AppDownloadsTab = () => {
     active_devices: { android: [], ios: [] },
     daily_installs: { android: [], ios: [] },
     marketing_installs: { android: [], ios: [] },
-    google_play_installs: { android: [], ios: [] }
+    google_play_installs: { android: [], ios: [] },
+    firebase_installs: { android: [], ios: [] }
   });
   const [selectedApp, setSelectedApp] = useState('ailegal');
   const [showAndroid, setShowAndroid] = useState(true);
@@ -197,7 +198,8 @@ export const AppDownloadsTab = () => {
             active_devices: { android: d.active_devices?.android || [], ios: d.active_devices?.ios || [] },
             daily_installs: { android: d.daily_installs?.android || [], ios: d.daily_installs?.ios || [] },
             marketing_installs: { android: d.marketing_installs?.android || [], ios: d.marketing_installs?.ios || [] },
-            google_play_installs: { android: d.google_play_installs?.android || [], ios: d.google_play_installs?.ios || [] }
+            google_play_installs: { android: d.google_play_installs?.android || [], ios: d.google_play_installs?.ios || [] },
+            firebase_installs: { android: d.firebase_installs?.android || [], ios: d.firebase_installs?.ios || [] }
           };
           setTimeseriesData(nextTimeseries);
         }
@@ -418,9 +420,17 @@ export const AppDownloadsTab = () => {
     }
 
     const dailyMapA = {};
-    dailyAndroidPts.forEach(p => { dailyMapA[p.date] = p.value; });
+    const fallbackMapA = {};
+    dailyAndroidPts.forEach(p => {
+      dailyMapA[p.date] = p.value;
+      if (p.is_firebase_fallback) fallbackMapA[p.date] = true;
+    });
     const dailyMapI = {};
-    dailyIosPts.forEach(p => { dailyMapI[p.date] = p.value; });
+    const fallbackMapI = {};
+    dailyIosPts.forEach(p => {
+      dailyMapI[p.date] = p.value;
+      if (p.is_firebase_fallback) fallbackMapI[p.date] = true;
+    });
 
     let pre7Android = 0;
     let pre7Ios = 0;
@@ -497,18 +507,23 @@ export const AppDownloadsTab = () => {
 
       const dTotal = dAndroid + dIos;
 
+      // Detect unexported / pending Google Play batches bridged seamlessly with Firebase first_open
+      const isFirebaseFallback = barGraphSourceView === 'google_play' && (Boolean(fallbackMapA[d]) || d >= '2026-10-22');
+      const isPendingBatch = false;
+
       let sub = '';
 
       if (isToday) {
-        sub = 'Today Live ⚡';
+        sub = isFirebaseFallback ? 'Today (FB) 🔥' : 'Today Live ⚡';
       } else if (isYesterday) {
-        sub = 'Yesterday';
+        sub = isFirebaseFallback ? 'Yest (FB) 🔥' : 'Yesterday';
       } else {
         try {
           const dt = new Date(d + 'T00:00:00Z');
-          sub = dt.toLocaleDateString('en-US', { weekday: 'short' });
+          const dayName = dt.toLocaleDateString('en-US', { weekday: 'short' });
+          sub = isFirebaseFallback ? `${dayName} (FB) 🔥` : dayName;
         } catch (e) {
-          sub = d.slice(5);
+          sub = isFirebaseFallback ? `${d.slice(5)} (FB)` : d.slice(5);
         }
       }
 
@@ -520,9 +535,6 @@ export const AppDownloadsTab = () => {
         formattedDate = d.slice(5);
       }
 
-      // Detect unexported / pending Google Play batches
-      const isPendingBatch = barGraphSourceView === 'google_play' && dAndroid === 0 && d >= '2026-10-22';
-
       bars.push({
         id: `day-${d}`,
         label: isToday ? 'Today' : formattedDate,
@@ -530,6 +542,7 @@ export const AppDownloadsTab = () => {
         date: d,
         isToday,
         isYesterday,
+        isFirebaseFallback,
         isPendingBatch,
         android: dAndroid,
         ios: dIos,
@@ -1274,7 +1287,7 @@ export const AppDownloadsTab = () => {
               {barGraphSourceView === 'marketing'
                 ? `Showing downloads driven exclusively by Marketing & Referral Campaigns for ${selectedApp === 'all' ? 'all applications' : activeStats.name}.`
                 : (barGraphSourceView === 'google_play'
-                    ? `Showing official Google Play Console & Apple App Store report batches for ${selectedApp === 'all' ? 'all applications' : activeStats.name}.`
+                    ? `Showing official Google Play Console & Apple App Store report batches, bridged with live Firebase first_open data for pending dates.`
                     : (selectedApp === 'all'
                         ? 'All downloads prior to the 7-day window on the left, followed by the previous 7 days segregated by platform across all applications.'
                         : `All downloads prior to the 7-day window on the left, followed by the previous 7 days segregated by platform for ${activeStats.name}.`))}
@@ -1329,7 +1342,7 @@ export const AppDownloadsTab = () => {
               </button>
               <button
                 onClick={() => setBarGraphSourceView('google_play')}
-                title="Official Google Play Console & Apple App Store report batches"
+                title="Official Google Play Console & Apple App Store report batches + Live Firebase first_open data"
                 style={{
                   padding: '5px 11px',
                   borderRadius: '7px',
@@ -1342,7 +1355,7 @@ export const AppDownloadsTab = () => {
                   transition: 'all 0.15s ease'
                 }}
               >
-                📦 Google Play Batch
+                📦 Google Play & Firebase
               </button>
             </div>
 
@@ -1443,6 +1456,20 @@ export const AppDownloadsTab = () => {
               {barGraphSourceView === 'marketing' ? '🍏 Marketing iOS' : (barGraphSourceView === 'google_play' ? '🍏 Apple App Store' : '🍏 Apple App Store (iOS)')}
             </span>
           </div>
+          {barGraphSourceView === 'google_play' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{
+                width: '12px',
+                height: '12px',
+                borderRadius: '3px',
+                background: 'linear-gradient(to top, #c2410c, #f97316)',
+                border: '1px solid rgba(249, 115, 22, 0.4)'
+              }}></span>
+              <span style={{ color: '#fb923c' }}>
+                🔥 Firebase Live (first_open)
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Chart Canvas Area */}
@@ -1538,26 +1565,30 @@ export const AppDownloadsTab = () => {
                         <div style={{ fontSize: '11px', fontWeight: '800', color: '#f8fafc', marginBottom: '2px' }}>
                           {b.label} {b.date ? `(${b.date})` : ''}
                         </div>
-                        <div style={{ fontSize: '13px', fontWeight: '800', color: b.isPre ? '#c084fc' : (b.isPendingBatch ? '#94a3b8' : (barGraphSourceView === 'marketing' ? '#fbbf24' : '#34d399')) }}>
-                          {b.isPendingBatch ? 'Awaiting 48h Batch' : `${formatNum(b.total)} downloads`}
+                        <div style={{ fontSize: '13px', fontWeight: '800', color: b.isPre ? '#c084fc' : (b.isFirebaseFallback ? '#fb923c' : (barGraphSourceView === 'marketing' ? '#fbbf24' : '#34d399')) }}>
+                          {b.isFirebaseFallback ? `🔥 ${formatNum(b.total)} downloads (Firebase first_open)` : (b.isPendingBatch ? 'Awaiting 48h Batch' : `${formatNum(b.total)} downloads`)}
                         </div>
                         <div style={{ fontSize: '10px', color: '#cbd5e1', marginTop: '3px' }}>
-                          {b.isPendingBatch ? (
+                          {b.isFirebaseFallback ? (
+                            `🤖 ${formatNum(b.android)} (Android first_open) · 🍏 ${formatNum(b.ios)} (iOS)`
+                          ) : (b.isPendingBatch ? (
                             'Google Play reporting cutoff'
                           ) : (
                             `🤖 ${formatNum(b.android)} (${b.total > 0 ? ((b.android / b.total) * 100).toFixed(1) : 0}%) · 🍏 ${formatNum(b.ios)} (${b.total > 0 ? ((b.ios / b.total) * 100).toFixed(1) : 0}%)`
-                          )}
+                          ))}
                         </div>
                         <div style={{ fontSize: '9px', color: '#94a3b8', marginTop: '2px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                           {b.isPre
                             ? 'Historical Aggregate'
-                            : (b.isPendingBatch
-                                ? 'Google Play Batch Pending'
-                                : (barGraphSourceView === 'marketing'
-                                    ? 'Marketing Attribution'
-                                    : (barGraphSourceView === 'google_play'
-                                        ? 'Official Store Batch'
-                                        : (b.isToday ? 'Live Leading Edge' : 'Daily Volume'))))}
+                            : (b.isFirebaseFallback
+                                ? 'Firebase first_open (Pre-Batch Live Bridge)'
+                                : (b.isPendingBatch
+                                    ? 'Google Play Batch Pending'
+                                    : (barGraphSourceView === 'marketing'
+                                        ? 'Marketing Attribution'
+                                        : (barGraphSourceView === 'google_play'
+                                            ? 'Official Store Batch'
+                                            : (b.isToday ? 'Live Leading Edge' : 'Daily Volume')))))}
                         </div>
                       </div>
                     )}
@@ -1567,11 +1598,11 @@ export const AppDownloadsTab = () => {
                       fontSize: '11px',
                       fontWeight: '800',
                       marginBottom: '6px',
-                      color: b.isPre ? '#c084fc' : (b.isPendingBatch ? '#94a3b8' : (b.isToday ? '#38bdf8' : '#e2e8f0')),
-                      filter: isHovered ? 'drop-shadow(0 0 6px rgba(52, 211, 153, 0.6))' : 'none',
+                      color: b.isPre ? '#c084fc' : (b.isFirebaseFallback ? '#fb923c' : (b.isPendingBatch ? '#94a3b8' : (b.isToday ? '#38bdf8' : '#e2e8f0'))),
+                      filter: isHovered ? (b.isFirebaseFallback ? 'drop-shadow(0 0 6px rgba(251, 146, 60, 0.6))' : 'drop-shadow(0 0 6px rgba(52, 211, 153, 0.6))') : 'none',
                       transition: 'all 0.15s ease'
                     }}>
-                      {displayNum}
+                      {b.isFirebaseFallback ? `🔥 ${displayNum}` : displayNum}
                     </span>
 
                     {/* Bar Pillar */}
@@ -1585,7 +1616,7 @@ export const AppDownloadsTab = () => {
                       flexDirection: 'column',
                       justifyContent: 'flex-end',
                       boxShadow: isHovered
-                        ? (b.isPre ? '0 0 16px rgba(168, 85, 247, 0.4)' : (barGraphSourceView === 'marketing' ? '0 0 16px rgba(245, 158, 11, 0.4)' : '0 0 16px rgba(16, 185, 129, 0.4)'))
+                        ? (b.isPre ? '0 0 16px rgba(168, 85, 247, 0.4)' : (b.isFirebaseFallback ? '0 0 16px rgba(249, 115, 22, 0.4)' : (barGraphSourceView === 'marketing' ? '0 0 16px rgba(245, 158, 11, 0.4)' : '0 0 16px rgba(16, 185, 129, 0.4)')))
                         : '0 4px 10px rgba(0, 0, 0, 0.25)',
                       transition: 'height 0.4s ease, filter 0.2s ease',
                       filter: isHovered ? 'brightness(1.15)' : 'none',
@@ -1594,13 +1625,15 @@ export const AppDownloadsTab = () => {
                         : (b.isPre
                           ? 'linear-gradient(to top, #4338ca, #6366f1, #a855f7)'
                           : (barGraphPlatformView === 'android'
-                            ? (barGraphSourceView === 'marketing'
-                                ? 'linear-gradient(to top, #d97706, #f59e0b, #fbbf24)'
-                                : 'linear-gradient(to top, #059669, #10b981, #34d399)')
+                            ? (b.isFirebaseFallback
+                                ? 'linear-gradient(to top, #c2410c, #ea580c, #f97316)'
+                                : (barGraphSourceView === 'marketing'
+                                    ? 'linear-gradient(to top, #d97706, #f59e0b, #fbbf24)'
+                                    : 'linear-gradient(to top, #059669, #10b981, #34d399)'))
                             : (barGraphPlatformView === 'ios'
                               ? 'linear-gradient(to top, #0284c7, #0ea5e9, #38bdf8)'
                               : 'transparent'))),
-                      border: b.isPendingBatch ? '1px dashed rgba(148, 163, 184, 0.35)' : 'none'
+                      border: b.isFirebaseFallback ? '1px solid rgba(249, 115, 22, 0.35)' : (b.isPendingBatch ? '1px dashed rgba(148, 163, 184, 0.35)' : 'none')
                     }}>
                       {b.isPendingBatch ? (
                         <div style={{
@@ -1665,13 +1698,17 @@ export const AppDownloadsTab = () => {
                               title={`🤖 Android: ${formatNum(b.android)}`}
                               style={{
                                 flex: 1,
-                                background: barGraphSourceView === 'marketing'
+                                background: b.isFirebaseFallback
                                   ? (b.isToday
-                                      ? 'linear-gradient(to top, #b45309, #d97706, #fbbf24)'
-                                      : 'linear-gradient(to top, #d97706, #f59e0b, #fbbf24)')
-                                  : (b.isToday
-                                      ? 'linear-gradient(to top, #0d9488, #14b8a6, #2dd4bf)'
-                                      : 'linear-gradient(to top, #059669, #10b981, #34d399)')
+                                      ? 'linear-gradient(to top, #9a3412, #c2410c, #f97316)'
+                                      : 'linear-gradient(to top, #c2410c, #ea580c, #f97316)')
+                                  : (barGraphSourceView === 'marketing'
+                                      ? (b.isToday
+                                          ? 'linear-gradient(to top, #b45309, #d97706, #fbbf24)'
+                                          : 'linear-gradient(to top, #d97706, #f59e0b, #fbbf24)')
+                                      : (b.isToday
+                                          ? 'linear-gradient(to top, #0d9488, #14b8a6, #2dd4bf)'
+                                          : 'linear-gradient(to top, #059669, #10b981, #34d399)'))
                               }}
                             />
                           </div>
@@ -1738,7 +1775,7 @@ export const AppDownloadsTab = () => {
 
             <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '10px', padding: '10px 14px', textAlign: 'center' }}>
               <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '500', display: 'block' }}>
-                {barGraphSourceView === 'marketing' ? 'Last 7D Campaigns (Android)' : (barGraphSourceView === 'google_play' ? 'Last 7D Google Play' : 'Last 7D Android')}
+                {barGraphSourceView === 'marketing' ? 'Last 7D Campaigns (Android)' : (barGraphSourceView === 'google_play' ? 'Last 7D Google Play / Firebase' : 'Last 7D Android')}
               </span>
               <span style={{ fontSize: '16px', fontWeight: '800', color: barGraphSourceView === 'marketing' ? '#fbbf24' : '#34d399', display: 'block', marginTop: '2px' }}>
                 +{formatNum(sevenDayBarData.sum7Android)}
@@ -1750,7 +1787,7 @@ export const AppDownloadsTab = () => {
 
             <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '10px', padding: '10px 14px', textAlign: 'center' }}>
               <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '500', display: 'block' }}>
-                {barGraphSourceView === 'marketing' ? 'Last 7D Campaigns (iOS)' : (barGraphSourceView === 'google_play' ? 'Last 7D App Store' : 'Last 7D iOS')}
+                {barGraphSourceView === 'marketing' ? 'Last 7D Campaigns (iOS)' : (barGraphSourceView === 'google_play' ? 'Last 7D App Store / Firebase' : 'Last 7D iOS')}
               </span>
               <span style={{ fontSize: '16px', fontWeight: '800', color: '#38bdf8', display: 'block', marginTop: '2px' }}>
                 +{formatNum(sevenDayBarData.sum7Ios)}
@@ -1765,7 +1802,7 @@ export const AppDownloadsTab = () => {
                 {barGraphSourceView === 'marketing'
                   ? 'All-Time Marketing'
                   : (barGraphSourceView === 'google_play'
-                      ? 'All-Time Store Consoles'
+                      ? 'All-Time Store & Firebase'
                       : (selectedApp === 'all' ? 'All-Time Combined' : `All-Time ${activeStats.name}`))}
               </span>
               <span style={{ fontSize: '16px', fontWeight: '800', color: '#f8fafc', display: 'block', marginTop: '2px' }}>
@@ -1775,7 +1812,7 @@ export const AppDownloadsTab = () => {
                 {barGraphSourceView === 'marketing'
                   ? 'Attribution Total'
                   : (barGraphSourceView === 'google_play'
-                      ? 'Official Batches Total'
+                      ? 'Official Batches + Firebase Live'
                       : 'Historical + 7D')}
               </span>
             </div>

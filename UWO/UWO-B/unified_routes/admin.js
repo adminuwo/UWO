@@ -1483,7 +1483,8 @@ async function computeTimeseriesBase(db, codes) {
         user_loss: { android: [], ios: [] },
         daily_installs: { android: [], ios: [] },
         marketing_installs: { android: [], ios: [] },
-        google_play_installs: { android: [], ios: [] }
+        google_play_installs: { android: [], ios: [] },
+        firebase_installs: { android: [], ios: [] }
       };
 
       let iosCum = 0;
@@ -1537,6 +1538,8 @@ async function computeTimeseriesBase(db, codes) {
         let mktIos = 0;
         let playAndroid = 0;
         let playIos = iosHistByDate[d] || 0;
+        let fbAndroid = 0;
+        let fbIos = 0;
 
         for (const code of codes) {
           const merged = mergedByApp[code];
@@ -1549,13 +1552,39 @@ async function computeTimeseriesBase(db, codes) {
           if (playDay) {
             playAndroid += (playDay.daily_user_installs || 0);
           }
+          const fbApp = fbData?.by_app?.[code];
+          const fbDay = fbApp?.daily_metrics?.[d];
+          if (fbDay) {
+            fbAndroid += (fbDay.android || 0);
+            fbIos += (fbDay.ios || 0);
+          }
         }
 
         metrics.marketing_installs.android.push({ date: d, value: mktAndroid });
         metrics.marketing_installs.ios.push({ date: d, value: mktIos });
 
-        metrics.google_play_installs.android.push({ date: d, value: playAndroid });
-        metrics.google_play_installs.ios.push({ date: d, value: playIos });
+        metrics.firebase_installs.android.push({ date: d, value: fbAndroid });
+        metrics.firebase_installs.ios.push({ date: d, value: fbIos });
+
+        // Seamless bridge: If Google Play Console or App Store batch is pending/unexported (d >= 2026-10-22),
+        // populate with Firebase first_open data so charts don't leave recent days blank!
+        const isPlayPending = (playAndroid === 0 && d >= '2026-10-22');
+        const isStoreIosPending = (playIos === 0 && d >= '2026-10-22');
+        const resolvedPlayAndroid = isPlayPending ? fbAndroid : playAndroid;
+        const resolvedPlayIos = isStoreIosPending ? fbIos : playIos;
+
+        metrics.google_play_installs.android.push({
+          date: d,
+          value: resolvedPlayAndroid,
+          raw_play: playAndroid,
+          is_firebase_fallback: isPlayPending && fbAndroid > 0
+        });
+        metrics.google_play_installs.ios.push({
+          date: d,
+          value: resolvedPlayIos,
+          raw_store: playIos,
+          is_firebase_fallback: isStoreIosPending && fbIos > 0
+        });
       }
 
       const calculatedData = {
@@ -1590,7 +1619,7 @@ router.get(['/analytics/google-play/timeseries', '/google-play/timeseries'], ver
 
     if (metric === 'all') {
       const allMetrics = {};
-      for (const mKey of ['total_installs', 'active_devices', 'user_loss', 'daily_installs', 'marketing_installs', 'google_play_installs']) {
+      for (const mKey of ['total_installs', 'active_devices', 'user_loss', 'daily_installs', 'marketing_installs', 'google_play_installs', 'firebase_installs']) {
         let aPts = baseData.metrics[mKey]?.android || [];
         let iPts = baseData.metrics[mKey]?.ios || [];
         if (startDate) {
