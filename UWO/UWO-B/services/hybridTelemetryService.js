@@ -16,10 +16,12 @@ const googlePlaySync = require('./googlePlaySyncService');
  */
 
 const mergedCache = new Map();
+const inFlightMerged = new Map();
 const MERGED_CACHE_TTL_MS = 45 * 1000; // 45 seconds cache to serve parallel endpoints in <1ms
 
 function invalidateMergedCache() {
   mergedCache.clear();
+  inFlightMerged.clear();
 }
 
 async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
@@ -30,90 +32,11 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
     return cached.data;
   }
 
-  // 1. Fetch Google Play Console historical records from DB
-  let playRecords = [];
-  let playRating = null;
-  let playCrash = null;
-  let playPerf = null;
-
-  if (db) {
-    playRecords = await db.collection('play_install_metrics')
-      .find({ app_code: appCode, dimension_type: 'overview' })
-      .sort({ metric_date: 1 })
-      .toArray()
-      .catch(() => []);
-
-    playRating = await db.collection('play_rating_metrics')
-      .find({ app_code: appCode })
-      .sort({ metric_date: -1 })
-      .limit(1)
-      .toArray()
-      .then(a => a[0] || null)
-      .catch(() => null);
-
-    playCrash = await db.collection('play_crash_metrics')
-      .find({ app_code: appCode })
-      .sort({ metric_date: -1 })
-      .limit(1)
-      .toArray()
-      .then(a => a[0] || null)
-      .catch(() => null);
-
-    playPerf = await db.collection('play_store_performance')
-      .find({ app_code: appCode })
-      .sort({ metric_date: -1 })
-      .limit(1)
-      .toArray()
-      .then(a => a[0] || null)
-      .catch(() => null);
+  if (inFlightMerged.has(cacheKey)) {
+    return inFlightMerged.get(cacheKey);
   }
 
-  // 2. Fetch Live Firebase Telemetry
-  const fbData = await firebaseAnalytics.getFirebaseTelemetry().catch(() => null);
-  const appFb = fbData?.by_app?.[appCode] || null;
-
-  const now = new Date();
-  const todayStr = now.toISOString().slice(0, 10);
-  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  const yesterdayStr = yesterday.toISOString().slice(0, 10);
-
-  // 3. Process Google Play Console records (for baseline before live leading edge)
-  let playDailyMap = {};
-  let dedupedPlayRecords = [];
-  let playMaxDate = null;
-
-  if (playRecords.length > 0) {
-    const dedupedRecordsMap = {};
-    for (const r of playRecords) {
-      const existing = dedupedRecordsMap[r.metric_date];
-      const rScore = Math.max(r.install_events || 0, r.daily_device_installs || 0, r.daily_user_installs || 0);
-      const exScore = existing ? Math.max(existing.install_events || 0, existing.daily_device_installs || 0, existing.daily_user_installs || 0) : -1;
-      if (!existing || rScore >= exScore) {
-        dedupedRecordsMap[r.metric_date] = r;
-      }
-    }
-    dedupedPlayRecords = Object.values(dedupedRecordsMap).sort((a, b) => a.metric_date.localeCompare(b.metric_date));
-    playMaxDate = dedupedPlayRecords[dedupedPlayRecords.length - 1].metric_date;
-
-    let runningPlayTotal = 0;
-    for (const r of dedupedPlayRecords) {
-      const count = (r.install_events || r.daily_device_installs || r.daily_user_installs || 0);
-      runningPlayTotal += count;
-      playDailyMap[r.metric_date] = {
-        date: r.metric_date,
-        daily_user_installs: r.daily_user_installs || count,
-        daily_user_uninstalls: r.daily_user_uninstalls || 0,
-        daily_device_installs: r.daily_device_installs || count,
-        installs_on_active_devices: r.installs_on_active_devices || 0,
-        total_user_installs: runningPlayTotal,
-        source: 'google_play_console'
-      };
-    }
-  }
-
-  // 3b. Query Live Incoming Store Telemetry from MongoDB (for real-time live edge dates > playMaxDate)
-  let liveDbDaily = {};
-  if (db) {
+  const workPromise = (async () => {
     try {
       const matchCriteria = {
         $or: [
@@ -126,8 +49,22 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
         matchCriteria.$or.push({ product_id: { $exists: false } });
       }
 
-      const [mktRows, dlRows] = await Promise.all([
-        db.collection('marketing_installs').aggregate([
+      // Fetch all required DB queries & live Firebase in a single parallel roundtrip
+      const [
+        playRecords,
+        playRating,
+        playCrash,
+        playPerf,
+        mktRows,
+        dlRows,
+        iosRecords,
+        fbData
+      ] = await Promise.all([
+        db ? db.collection('play_install_metrics').find({ app_code: appCode, dimension_type: 'overview' }).sort({ metric_date: 1 }).toArray().catch(() => []) : [],
+        db ? db.collection('play_rating_metrics').find({ app_code: appCode }).sort({ metric_date: -1 }).limit(1).toArray().then(a => a[0] || null).catch(() => null) : null,
+        db ? db.collection('play_crash_metrics').find({ app_code: appCode }).sort({ metric_date: -1 }).limit(1).toArray().then(a => a[0] || null).catch(() => null) : null,
+        db ? db.collection('play_store_performance').find({ app_code: appCode }).sort({ metric_date: -1 }).limit(1).toArray().then(a => a[0] || null).catch(() => null) : null,
+        db ? db.collection('marketing_installs').aggregate([
           { $match: matchCriteria },
           {
             $group: {
@@ -138,8 +75,8 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
               count: { $sum: 1 }
             }
           }
-        ]).toArray().catch(() => []),
-        db.collection('app_downloads').aggregate([
+        ]).toArray().catch(() => []) : [],
+        db ? db.collection('app_downloads').aggregate([
           { $match: { app_code: appCode } },
           {
             $group: {
@@ -150,9 +87,54 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
               count: { $sum: 1 }
             }
           }
-        ]).toArray().catch(() => [])
+        ]).toArray().catch(() => []) : [],
+        db ? db.collection('app_store_metrics').find({ app_code: appCode }).sort({ metric_date: 1 }).toArray().catch(() => []) : [],
+        firebaseAnalytics.getFirebaseTelemetry().catch(() => null)
       ]);
 
+      const appFb = fbData?.by_app?.[appCode] || null;
+
+      const now = new Date();
+      const todayStr = now.toISOString().slice(0, 10);
+      const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const yesterdayStr = yesterday.toISOString().slice(0, 10);
+
+      // Process Google Play Console records (for baseline before live leading edge)
+      let playDailyMap = {};
+      let dedupedPlayRecords = [];
+      let playMaxDate = null;
+
+      if (playRecords.length > 0) {
+        const dedupedRecordsMap = {};
+        for (const r of playRecords) {
+          const existing = dedupedRecordsMap[r.metric_date];
+          const rScore = Math.max(r.install_events || 0, r.daily_device_installs || 0, r.daily_user_installs || 0);
+          const exScore = existing ? Math.max(existing.install_events || 0, existing.daily_device_installs || 0, existing.daily_user_installs || 0) : -1;
+          if (!existing || rScore >= exScore) {
+            dedupedRecordsMap[r.metric_date] = r;
+          }
+        }
+        dedupedPlayRecords = Object.values(dedupedRecordsMap).sort((a, b) => a.metric_date.localeCompare(b.metric_date));
+        playMaxDate = dedupedPlayRecords[dedupedPlayRecords.length - 1].metric_date;
+
+        let runningPlayTotal = 0;
+        for (const r of dedupedPlayRecords) {
+          const count = (r.install_events || r.daily_device_installs || r.daily_user_installs || 0);
+          runningPlayTotal += count;
+          playDailyMap[r.metric_date] = {
+            date: r.metric_date,
+            daily_user_installs: r.daily_user_installs || count,
+            daily_user_uninstalls: r.daily_user_uninstalls || 0,
+            daily_device_installs: r.daily_device_installs || count,
+            installs_on_active_devices: r.installs_on_active_devices || 0,
+            total_user_installs: runningPlayTotal,
+            source: 'google_play_console'
+          };
+        }
+      }
+
+      // Process Live Incoming Store Telemetry from MongoDB rows
+      let liveDbDaily = {};
       for (const r of [...mktRows, ...dlRows]) {
         const d = r._id?.date;
         if (!d || d.length !== 10) continue;
@@ -161,10 +143,6 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
         liveDbDaily[d][plat] += r.count;
         liveDbDaily[d].total += r.count;
       }
-    } catch (e) {
-      console.warn('[HybridTelemetry] Live DB aggregate warning:', e.message);
-    }
-  }
 
   // 4. Determine Hybrid Watermark & Totals
   // Google Play Console is the authoritative historical ground truth up to playMaxDate.
@@ -237,15 +215,7 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
   const totalAndroidInstalls = playInstallsTotal + postPlayInstalls;
   const activeDevices = runningActive > 0 ? runningActive : (appFb?.active_users || playLatestActive || 0);
 
-  // 6. Query Apple App Store Metrics for iOS Store Downloads
-  let iosRecords = [];
-  if (db) {
-    iosRecords = await db.collection('app_store_metrics')
-      .find({ app_code: appCode })
-      .sort({ metric_date: 1 })
-      .toArray()
-      .catch(() => []);
-  }
+  // 6. Apple App Store Metrics for iOS Store Downloads (fetched concurrently at start)
 
   let iosMaxDate = null;
   let iosBaselineTotal = 0;
@@ -340,8 +310,15 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
     timeline: mergedTimeline
   };
 
-  mergedCache.set(cacheKey, { timestamp: nowMs, data: result });
-  return result;
+      mergedCache.set(cacheKey, { timestamp: Date.now(), data: result });
+      return result;
+    } finally {
+      inFlightMerged.delete(cacheKey);
+    }
+  })();
+
+  inFlightMerged.set(cacheKey, workPromise);
+  return workPromise;
 }
 
 module.exports = {

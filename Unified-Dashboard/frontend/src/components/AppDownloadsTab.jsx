@@ -148,13 +148,24 @@ export const AppDownloadsTab = () => {
     try {
       const appCodes = targetApp === 'all' ? 'aisa,ailegal' : targetApp;
       
-      const [overviewRes, lossRes, installsRes, activeRes, geoRes, dailyRes] = await Promise.all([
-        authFetch(`/api/admin/analytics/google-play/overview?app_codes=${appCodes}`),
-        authFetch(`/api/admin/analytics/google-play/timeseries?app_codes=${appCodes}&metric=user_loss`),
-        authFetch(`/api/admin/analytics/google-play/timeseries?app_codes=${appCodes}&metric=total_installs`),
-        authFetch(`/api/admin/analytics/google-play/timeseries?app_codes=${appCodes}&metric=active_devices`),
-        authFetch(`/api/admin/analytics/google-play/geo?app_codes=${appCodes}`),
-        authFetch(`/api/admin/analytics/google-play/timeseries?app_codes=${appCodes}&metric=daily_installs`)
+      const safeAuthFetch = async (url) => {
+        try {
+          const res = await authFetch(url);
+          if ((res.status === 503 || res.status === 504) && !silent) {
+            await new Promise(r => setTimeout(r, 600));
+            return await authFetch(url).catch(() => res);
+          }
+          return res;
+        } catch (err) {
+          console.warn(`[AppDownloads] Fetch error for ${url}:`, err.message);
+          return { ok: false, status: 500 };
+        }
+      };
+
+      const [overviewRes, timeseriesRes, geoRes] = await Promise.all([
+        safeAuthFetch(`/api/admin/analytics/google-play/overview?app_codes=${appCodes}`),
+        safeAuthFetch(`/api/admin/analytics/google-play/timeseries?app_codes=${appCodes}&metric=all`),
+        safeAuthFetch(`/api/admin/analytics/google-play/geo?app_codes=${appCodes}`)
       ]);
 
       // Discard stale response if a different filter was clicked in the meantime
@@ -164,28 +175,29 @@ export const AppDownloadsTab = () => {
       let nextTimeseries = timeseriesData;
       let nextGeo = geoData;
 
-      if (overviewRes.ok) {
-        const data = await overviewRes.json();
-        nextAnalytics = data.data;
-        setAnalytics(nextAnalytics);
+      if (overviewRes && overviewRes.ok) {
+        const data = await overviewRes.json().catch(() => null);
+        if (data?.data) {
+          nextAnalytics = data.data;
+          setAnalytics(nextAnalytics);
+        }
       }
-      if (lossRes.ok && installsRes.ok && activeRes.ok) {
-        const lossData = await lossRes.json();
-        const installsData = await installsRes.json();
-        const activeData = await activeRes.json();
-
-        const dailyData = dailyRes && dailyRes.ok ? await dailyRes.json().catch(() => ({})) : {};
-        nextTimeseries = {
-          user_loss: { android: lossData.data?.android || [], ios: lossData.data?.ios || [] },
-          total_installs: { android: installsData.data?.android || [], ios: installsData.data?.ios || [] },
-          active_devices: { android: activeData.data?.android || [], ios: activeData.data?.ios || [] },
-          daily_installs: { android: dailyData.data?.android || [], ios: dailyData.data?.ios || [] }
-        };
-        setTimeseriesData(nextTimeseries);
+      if (timeseriesRes && timeseriesRes.ok) {
+        const tsJson = await timeseriesRes.json().catch(() => null);
+        const d = tsJson?.data || {};
+        if (d.total_installs || d.user_loss || d.active_devices || d.daily_installs) {
+          nextTimeseries = {
+            user_loss: { android: d.user_loss?.android || [], ios: d.user_loss?.ios || [] },
+            total_installs: { android: d.total_installs?.android || [], ios: d.total_installs?.ios || [] },
+            active_devices: { android: d.active_devices?.android || [], ios: d.active_devices?.ios || [] },
+            daily_installs: { android: d.daily_installs?.android || [], ios: d.daily_installs?.ios || [] }
+          };
+          setTimeseriesData(nextTimeseries);
+        }
       }
       if (geoRes && geoRes.ok) {
-        const geoJson = await geoRes.json();
-        const incoming = geoJson.data || geoJson;
+        const geoJson = await geoRes.json().catch(() => null);
+        const incoming = geoJson?.data || geoJson;
         if (incoming && (incoming.india_states?.length > 0 || incoming.countries?.length > 0)) {
           nextGeo = incoming;
           setGeoData(nextGeo);

@@ -6,6 +6,22 @@ let clientInstance = null;
 let cachedData = null;
 let lastFetchTime = 0;
 const CACHE_TTL_MS = 60 * 1000; // 60 seconds TTL
+let inFlightFirebasePromise = null;
+let inFlightGeoRawPromise = null;
+
+function runWithTimeout(promise, timeoutMs, fallbackVal = null) {
+  let timer;
+  const timeoutPromise = new Promise(resolve => {
+    timer = setTimeout(() => {
+      console.warn(`[FirebaseAnalytics] Operation timed out after ${timeoutMs}ms, using fallback.`);
+      resolve(fallbackVal);
+    }, timeoutMs);
+  });
+  return Promise.race([
+    promise.finally(() => clearTimeout(timer)),
+    timeoutPromise
+  ]);
+}
 
 // Exact Data Streams verified from Firebase Console & Google Analytics Property 545341929
 const STREAM_REGISTRY = {
@@ -112,11 +128,17 @@ async function getLiveRealtimeUsers() {
   if (!client || !propertyId) return { total: 0, android: 0, ios: 0, by_app: { ailegal: { total: 0, android: 0, ios: 0 }, aisa: { total: 0, android: 0, ios: 0 } } };
 
   try {
-    const [res] = await client.runRealtimeReport({
+    const reportPromise = client.runRealtimeReport({
       property: `properties/${propertyId}`,
       dimensions: [{ name: 'streamId' }, { name: 'streamName' }, { name: 'platform' }],
       metrics: [{ name: 'activeUsers' }]
     });
+
+    const reportRes = await runWithTimeout(reportPromise, 3500, null);
+    if (!reportRes || !reportRes[0]) {
+      return { total: 0, android: 0, ios: 0, by_app: { ailegal: { total: 0, android: 0, ios: 0 }, aisa: { total: 0, android: 0, ios: 0 } } };
+    }
+    const [res] = reportRes;
 
     let android = 0;
     let ios = 0;
@@ -173,24 +195,30 @@ async function fetchFirebaseDirectMetrics(days = 30) {
     const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const yesterdayStrRaw = yesterday.toISOString().slice(0, 10).replace(/-/g, '');
 
-    // 1. Fetch Events & Installs with streamId and streamName
-    const [eventsRes] = await client.runReport({
-      property: `properties/${propertyId}`,
-      dateRanges: [{ startDate: '2026-07-01', endDate: 'today' }],
-      dimensions: [{ name: 'date' }, { name: 'eventName' }, { name: 'platform' }, { name: 'streamId' }, { name: 'streamName' }],
-      metrics: [{ name: 'eventCount' }]
-    });
+    // 1. Fetch Events, Traffic, and Realtime in parallel with timeout guard
+    const [eventsResWrap, trafficResWrap, realtimeRes] = await Promise.all([
+      runWithTimeout(client.runReport({
+        property: `properties/${propertyId}`,
+        dateRanges: [{ startDate: '2026-07-01', endDate: 'today' }],
+        dimensions: [{ name: 'date' }, { name: 'eventName' }, { name: 'platform' }, { name: 'streamId' }, { name: 'streamName' }],
+        metrics: [{ name: 'eventCount' }]
+      }), 4000, null),
+      runWithTimeout(client.runReport({
+        property: `properties/${propertyId}`,
+        dateRanges: [{ startDate: '2026-07-01', endDate: 'today' }],
+        dimensions: [{ name: 'streamId' }, { name: 'streamName' }],
+        metrics: [{ name: 'activeUsers' }, { name: 'sessions' }]
+      }), 4000, null),
+      getLiveRealtimeUsers()
+    ]);
 
-    // 2. Fetch Active Users & Sessions per stream
-    const [trafficRes] = await client.runReport({
-      property: `properties/${propertyId}`,
-      dateRanges: [{ startDate: '2026-07-01', endDate: 'today' }],
-      dimensions: [{ name: 'streamId' }, { name: 'streamName' }],
-      metrics: [{ name: 'activeUsers' }, { name: 'sessions' }]
-    });
-
-    // 3. Realtime Report
-    const realtime = await getLiveRealtimeUsers();
+    if (!eventsResWrap || !eventsResWrap[0]) {
+      console.warn('[FirebaseAnalytics] Events report timed out or failed, falling back.');
+      return cachedData || null;
+    }
+    const [eventsRes] = eventsResWrap;
+    const trafficRes = trafficResWrap ? trafficResWrap[0] : { rows: [] };
+    const realtime = realtimeRes || { total: 0, android: 0, ios: 0, by_app: { ailegal: { total: 0, android: 0, ios: 0 }, aisa: { total: 0, android: 0, ios: 0 } } };
 
     const byApp = {
       ailegal: {
@@ -570,90 +598,111 @@ async function fetchGeoDirectMetrics(forceRefresh = false, targets = null) {
     return calibrateGeoData(cachedGeoRaw, targets);
   }
 
-  try {
-    const [res] = await client.runReport({
-      property: `properties/${propertyId}`,
-      dateRanges: [{ startDate: '2026-07-01', endDate: 'today' }],
-      dimensions: [
-        { name: 'country' },
-        { name: 'region' },
-        { name: 'streamId' },
-        { name: 'platform' }
-      ],
-      metrics: [{ name: 'eventCount' }],
-      dimensionFilter: {
-        filter: {
-          fieldName: 'eventName',
-          stringFilter: { matchType: 'EXACT', value: 'first_open' }
+  if (inFlightGeoRawPromise) {
+    const raw = await inFlightGeoRawPromise;
+    if (!raw) return synthesizeGeoData(targets);
+    return calibrateGeoData(raw, targets);
+  }
+
+  inFlightGeoRawPromise = (async () => {
+    try {
+      const reportCall = client.runReport({
+        property: `properties/${propertyId}`,
+        dateRanges: [{ startDate: '2026-07-01', endDate: 'today' }],
+        dimensions: [
+          { name: 'country' },
+          { name: 'region' },
+          { name: 'streamId' },
+          { name: 'platform' }
+        ],
+        metrics: [{ name: 'eventCount' }],
+        dimensionFilter: {
+          filter: {
+            fieldName: 'eventName',
+            stringFilter: { matchType: 'EXACT', value: 'first_open' }
+          }
         }
+      });
+
+      const reportRes = await runWithTimeout(reportCall, 3500, null);
+      if (!reportRes || !reportRes[0]) {
+        console.warn('[FirebaseAnalytics] fetchGeoDirectMetrics timed out or empty, using cached or fallback');
+        return cachedGeoRaw || null;
       }
-    });
+      const [res] = reportRes;
 
-    const streamMap = {
-      '15361501715': 'ailegal',
-      '15843076287': 'ailegal',
-      '15842883067': 'ailegal',
-      '15843012506': 'aisa',
-      '15842956481': 'aisa',
-      '15843098831': 'aisa',
-      '15248694028': 'aisa'
-    };
+      const streamMap = {
+        '15361501715': 'ailegal',
+        '15843076287': 'ailegal',
+        '15842883067': 'ailegal',
+        '15843012506': 'aisa',
+        '15842956481': 'aisa',
+        '15843098831': 'aisa',
+        '15248694028': 'aisa'
+      };
 
-    const appRaw = {
-      all: { countries: {}, states: {} },
-      ailegal: { countries: {}, states: {} },
-      aisa: { countries: {}, states: {} }
-    };
+      const appRaw = {
+        all: { countries: {}, states: {} },
+        ailegal: { countries: {}, states: {} },
+        aisa: { countries: {}, states: {} }
+      };
 
-    for (const row of res.rows || []) {
-      const countryRaw = row.dimensionValues[0]?.value || 'Unknown';
-      const country = countryRaw === '(not set)' ? 'Other / Global' : countryRaw;
-      const regionRaw = normalizeState(row.dimensionValues[1]?.value);
-      const streamId = row.dimensionValues[2]?.value || '';
-      const rawPlat = (row.dimensionValues[3]?.value || 'android').toLowerCase();
-      const count = parseInt(row.metricValues[0]?.value || '0', 10);
-      const isIos = rawPlat.includes('ios');
-      const appCode = streamMap[streamId] || 'ailegal';
+      for (const row of res.rows || []) {
+        const countryRaw = row.dimensionValues[0]?.value || 'Unknown';
+        const country = countryRaw === '(not set)' ? 'Other / Global' : countryRaw;
+        const regionRaw = normalizeState(row.dimensionValues[1]?.value);
+        const streamId = row.dimensionValues[2]?.value || '';
+        const rawPlat = (row.dimensionValues[3]?.value || 'android').toLowerCase();
+        const count = parseInt(row.metricValues[0]?.value || '0', 10);
+        const isIos = rawPlat.includes('ios');
+        const appCode = streamMap[streamId] || 'ailegal';
 
-      const targetsList = [appRaw.all, appRaw[appCode]].filter(Boolean);
-      for (const t of targetsList) {
-        if (!t.countries[country]) {
-          t.countries[country] = {
-            country,
-            flag: COUNTRY_FLAGS[country] || '🌐',
-            installs: 0,
-            android: 0,
-            ios: 0
-          };
-        }
-        t.countries[country].installs += count;
-        if (isIos) t.countries[country].ios += count;
-        else t.countries[country].android += count;
-
-        if (country.toLowerCase() === 'india' && regionRaw && regionRaw !== '(not set)' && regionRaw !== 'Unknown') {
-          if (!t.states[regionRaw]) {
-            t.states[regionRaw] = {
-              state: regionRaw,
-              zone: STATE_ZONE_MAP[regionRaw] || 'Central',
+        const targetsList = [appRaw.all, appRaw[appCode]].filter(Boolean);
+        for (const t of targetsList) {
+          if (!t.countries[country]) {
+            t.countries[country] = {
+              country,
+              flag: COUNTRY_FLAGS[country] || '🌐',
               installs: 0,
               android: 0,
               ios: 0
             };
           }
-          t.states[regionRaw].installs += count;
-          if (isIos) t.states[regionRaw].ios += count;
-          else t.states[regionRaw].android += count;
+          t.countries[country].installs += count;
+          if (isIos) t.countries[country].ios += count;
+          else t.countries[country].android += count;
+
+          if (country.toLowerCase() === 'india' && regionRaw && regionRaw !== '(not set)' && regionRaw !== 'Unknown') {
+            if (!t.states[regionRaw]) {
+              t.states[regionRaw] = {
+                state: regionRaw,
+                zone: STATE_ZONE_MAP[regionRaw] || 'Central',
+                installs: 0,
+                android: 0,
+                ios: 0
+              };
+            }
+            t.states[regionRaw].installs += count;
+            if (isIos) t.states[regionRaw].ios += count;
+            else t.states[regionRaw].android += count;
+          }
         }
       }
-    }
 
-    cachedGeoRaw = appRaw;
-    lastGeoFetchTime = now;
-    return calibrateGeoData(appRaw, targets);
-  } catch (err) {
-    console.warn('[FirebaseAnalytics] fetchGeoDirectMetrics error, using calibrated baseline:', err.message);
-    return synthesizeGeoData(targets);
-  }
+      cachedGeoRaw = appRaw;
+      lastGeoFetchTime = Date.now();
+      return appRaw;
+    } catch (err) {
+      console.warn('[FirebaseAnalytics] fetchGeoDirectMetrics error, using calibrated baseline:', err.message);
+      return cachedGeoRaw || null;
+    } finally {
+      inFlightGeoRawPromise = null;
+    }
+  })();
+
+  const raw = await inFlightGeoRawPromise;
+  if (!raw) return synthesizeGeoData(targets);
+  return calibrateGeoData(raw, targets);
 }
 
 function synthesizeGeoData(targets = null) {
@@ -734,12 +783,24 @@ async function getFirebaseTelemetry(forceRefresh = false) {
     return cachedData;
   }
 
-  const liveData = await fetchFirebaseDirectMetrics(30);
-  if (liveData) {
-    cachedData = liveData;
-    lastFetchTime = now;
+  if (inFlightFirebasePromise) {
+    return inFlightFirebasePromise;
   }
-  return cachedData;
+
+  inFlightFirebasePromise = (async () => {
+    try {
+      const liveData = await fetchFirebaseDirectMetrics(30);
+      if (liveData) {
+        cachedData = liveData;
+        lastFetchTime = Date.now();
+      }
+      return cachedData;
+    } finally {
+      inFlightFirebasePromise = null;
+    }
+  })();
+
+  return inFlightFirebasePromise;
 }
 
 module.exports = {

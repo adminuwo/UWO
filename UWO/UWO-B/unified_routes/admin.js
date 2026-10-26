@@ -16,6 +16,34 @@ googlePlaySync.startPlayStoreAutoSyncWorker(getUnifiedDb, 15);
 // Launch Automated Apple App Store Connect Auto-Sync Worker (runs every 60 minutes)
 appStoreSync.startAppStoreAutoSyncWorker(getUnifiedDb, 60);
 
+// Background Telemetry Cache Warmer
+// Keeps in-memory caches warm so client requests never encounter cold DB/GA4 stalls (<20ms response)
+let telemetryWarmerTimer = null;
+async function triggerTelemetryWarmup() {
+  try {
+    const db = await getUnifiedDb();
+    if (!db) return;
+    const codes = ['aisa', 'ailegal'];
+    await Promise.all([
+      firebaseAnalytics.getFirebaseTelemetry().catch(() => null),
+      getLiveDownloadsData(db).catch(() => null),
+      hybridTelemetry.getMergedAppTelemetry(db, 'ailegal').catch(() => null),
+      hybridTelemetry.getMergedAppTelemetry(db, 'aisa').catch(() => null),
+      getAuthoritativeDownloadTargets(db).catch(() => null),
+      computeTimeseriesBase(db, codes).catch(() => null),
+      firebaseAnalytics.getGeoTelemetry('all').catch(() => null)
+    ]);
+  } catch (e) {
+    // Non-fatal background warm-up
+  }
+}
+
+setTimeout(triggerTelemetryWarmup, 2000);
+if (!telemetryWarmerTimer) {
+  telemetryWarmerTimer = setInterval(triggerTelemetryWarmup, 30 * 1000);
+  if (telemetryWarmerTimer.unref) telemetryWarmerTimer.unref();
+}
+
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-jwt-key-change-this-in-production-32-bytes';
 
 // Master Admin Credential Fallbacks
@@ -822,602 +850,749 @@ function normalizeAppCode(code) {
 
 let liveDownloadsCache = null;
 let liveDownloadsCacheTime = 0;
+let inFlightLiveDownloadsPromise = null;
 
 async function getLiveDownloadsData(db) {
-  if (liveDownloadsCache && (Date.now() - liveDownloadsCacheTime < 45000)) {
+  if (liveDownloadsCache && (Date.now() - liveDownloadsCacheTime < 60000)) {
     return liveDownloadsCache;
   }
-  const now = new Date();
-  const getDayStrings = (d) => {
-    const utc = d.toISOString().split('T')[0];
-    let ist = utc;
-    try {
-      ist = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(d);
-    } catch (e) {}
-    return { utc, ist };
-  };
-
-  const todayStrings = getDayStrings(now);
-  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  const yesterdayStrings = getDayStrings(yesterday);
-  const todayStr = todayStrings.utc;
-
-  // Query real live incoming install events from both marketing_installs and app_downloads
-  const [marketingList, downloadsList] = await Promise.all([
-    db.collection('marketing_installs').find({}).toArray().catch(() => []),
-    db.collection('app_downloads').find({}).toArray().catch(() => [])
-  ]);
-
-  const appTotals = {
-    aisa: { android: 0, ios: 0, today_total: 0, today_android: 0, today_ios: 0, yesterday_total: 0, yesterday_android: 0, yesterday_ios: 0, total: 0 },
-    ailegal: { android: 0, ios: 0, today_total: 0, today_android: 0, today_ios: 0, yesterday_total: 0, yesterday_android: 0, yesterday_ios: 0, total: 0 },
-  };
-  const dailyByApp = {
-    aisa: {},
-    ailegal: {},
-  };
-  let latestEvent = null;
-
-  // Deduplicate live events by device_id, fingerprint, or event_id across collections
-  const seenEvents = new Set();
-
-  function processRecord(rec) {
-    let dt = null;
-    if (rec.timestamp) {
-      dt = rec.timestamp instanceof Date ? rec.timestamp : new Date(rec.timestamp);
-    } else if (rec.installed_at) {
-      dt = rec.installed_at instanceof Date ? rec.installed_at : new Date(rec.installed_at);
-    } else if (rec.created_at) {
-      dt = rec.created_at instanceof Date ? rec.created_at : new Date(rec.created_at);
-    }
-    if (!dt || isNaN(dt.getTime())) return;
-    if (!latestEvent || dt > latestEvent) latestEvent = dt;
-
-    const dedupKey = (rec.device_id || rec.fingerprint || rec.event_id || rec._id.toString()) + '_' + dt.toISOString().slice(0, 13);
-    if (seenEvents.has(dedupKey)) return;
-    seenEvents.add(dedupKey);
-
-    const { utc: dUtc, ist: dIst } = getDayStrings(dt);
-    const dStr = dUtc;
-    const rawApp = (rec.app_code || rec.product_id || '').toLowerCase();
-    const appCode = rawApp.includes('aisa') ? 'aisa' : 'ailegal';
-    const platRaw = String(rec.platform || 'android').toLowerCase().trim();
-    const plat = platRaw === 'ios' ? 'ios' : 'android';
-
-    if (!appTotals[appCode]) {
-      appTotals[appCode] = { android: 0, ios: 0, today_total: 0, today_android: 0, today_ios: 0, yesterday_total: 0, yesterday_android: 0, yesterday_ios: 0, total: 0 };
-    }
-    if (!dailyByApp[appCode]) dailyByApp[appCode] = {};
-    if (!dailyByApp[appCode][dStr]) dailyByApp[appCode][dStr] = { android: 0, ios: 0 };
-
-    appTotals[appCode][plat] += 1;
-    appTotals[appCode].total += 1;
-
-    const isToday = (dIst === todayStrings.ist);
-    const isYesterday = (dIst === yesterdayStrings.ist);
-
-    if (isToday) {
-      appTotals[appCode].today_total += 1;
-      if (plat === 'android') appTotals[appCode].today_android += 1;
-      else appTotals[appCode].today_ios += 1;
-    } else if (isYesterday) {
-      appTotals[appCode].yesterday_total += 1;
-      if (plat === 'android') appTotals[appCode].yesterday_android = (appTotals[appCode].yesterday_android || 0) + 1;
-      else appTotals[appCode].yesterday_ios = (appTotals[appCode].yesterday_ios || 0) + 1;
-    }
-
-    dailyByApp[appCode][dStr][plat] += 1;
+  if (inFlightLiveDownloadsPromise) {
+    return inFlightLiveDownloadsPromise;
   }
 
-  marketingList.forEach(processRecord);
-  downloadsList.forEach(processRecord);
+  inFlightLiveDownloadsPromise = (async () => {
+    try {
+      const now = new Date();
+      const getDayStrings = (d) => {
+        const utc = d.toISOString().split('T')[0];
+        let ist = utc;
+        try {
+          ist = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(d);
+        } catch (e) {}
+        return { utc, ist };
+      };
 
-  const totalCount = seenEvents.size;
-  const result = { appTotals, dailyByApp, latestEvent, todayStr, todayIst: todayStrings.ist, totalCount };
-  liveDownloadsCache = result;
-  liveDownloadsCacheTime = Date.now();
-  return result;
+      const todayStrings = getDayStrings(now);
+      const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const yesterdayStrings = getDayStrings(yesterday);
+      const todayStr = todayStrings.utc;
+
+      // Query real live incoming install events with minimal projected fields to optimize network payload
+      const proj = {
+        projection: {
+          timestamp: 1,
+          installed_at: 1,
+          created_at: 1,
+          device_id: 1,
+          fingerprint: 1,
+          event_id: 1,
+          app_code: 1,
+          product_id: 1,
+          platform: 1
+        }
+      };
+
+      const [marketingList, downloadsList] = await Promise.all([
+        db.collection('marketing_installs').find({}, proj).toArray().catch(() => []),
+        db.collection('app_downloads').find({}, proj).toArray().catch(() => [])
+      ]);
+
+      const appTotals = {
+        aisa: { android: 0, ios: 0, today_total: 0, today_android: 0, today_ios: 0, yesterday_total: 0, yesterday_android: 0, yesterday_ios: 0, total: 0 },
+        ailegal: { android: 0, ios: 0, today_total: 0, today_android: 0, today_ios: 0, yesterday_total: 0, yesterday_android: 0, yesterday_ios: 0, total: 0 },
+      };
+      const dailyByApp = {
+        aisa: {},
+        ailegal: {},
+      };
+      let latestEvent = null;
+
+      // Deduplicate live events by device_id, fingerprint, or event_id across collections
+      const seenEvents = new Set();
+
+      function processRecord(rec) {
+        let dt = null;
+        if (rec.timestamp) {
+          dt = rec.timestamp instanceof Date ? rec.timestamp : new Date(rec.timestamp);
+        } else if (rec.installed_at) {
+          dt = rec.installed_at instanceof Date ? rec.installed_at : new Date(rec.installed_at);
+        } else if (rec.created_at) {
+          dt = rec.created_at instanceof Date ? rec.created_at : new Date(rec.created_at);
+        }
+        if (!dt || isNaN(dt.getTime())) return;
+        if (!latestEvent || dt > latestEvent) latestEvent = dt;
+
+        const dedupKey = (rec.device_id || rec.fingerprint || rec.event_id || rec._id.toString()) + '_' + dt.toISOString().slice(0, 13);
+        if (seenEvents.has(dedupKey)) return;
+        seenEvents.add(dedupKey);
+
+        const { utc: dUtc, ist: dIst } = getDayStrings(dt);
+        const dStr = dUtc;
+        const rawApp = (rec.app_code || rec.product_id || '').toLowerCase();
+        const appCode = rawApp.includes('aisa') ? 'aisa' : 'ailegal';
+        const platRaw = String(rec.platform || 'android').toLowerCase().trim();
+        const plat = platRaw === 'ios' ? 'ios' : 'android';
+
+        if (!appTotals[appCode]) {
+          appTotals[appCode] = { android: 0, ios: 0, today_total: 0, today_android: 0, today_ios: 0, yesterday_total: 0, yesterday_android: 0, yesterday_ios: 0, total: 0 };
+        }
+        if (!dailyByApp[appCode]) dailyByApp[appCode] = {};
+        if (!dailyByApp[appCode][dStr]) dailyByApp[appCode][dStr] = { android: 0, ios: 0 };
+
+        appTotals[appCode][plat] += 1;
+        appTotals[appCode].total += 1;
+
+        const isToday = (dIst === todayStrings.ist);
+        const isYesterday = (dIst === yesterdayStrings.ist);
+
+        if (isToday) {
+          appTotals[appCode].today_total += 1;
+          if (plat === 'android') appTotals[appCode].today_android += 1;
+          else appTotals[appCode].today_ios += 1;
+        } else if (isYesterday) {
+          appTotals[appCode].yesterday_total += 1;
+          if (plat === 'android') appTotals[appCode].yesterday_android = (appTotals[appCode].yesterday_android || 0) + 1;
+          else appTotals[appCode].yesterday_ios = (appTotals[appCode].yesterday_ios || 0) + 1;
+        }
+
+        dailyByApp[appCode][dStr][plat] += 1;
+      }
+
+      marketingList.forEach(processRecord);
+      downloadsList.forEach(processRecord);
+
+      const totalCount = seenEvents.size;
+      const result = { appTotals, dailyByApp, latestEvent, todayStr, todayIst: todayStrings.ist, totalCount };
+      liveDownloadsCache = result;
+      liveDownloadsCacheTime = Date.now();
+      return result;
+    } finally {
+      inFlightLiveDownloadsPromise = null;
+    }
+  })();
+
+  return inFlightLiveDownloadsPromise;
 }
+
+// In-memory overview caching and promise deduplication (TTL 45s)
+const overviewCache = new Map();
+const inFlightOverview = new Map();
+const OVERVIEW_CACHE_TTL_MS = 45 * 1000;
 
 // GET /api/admin/analytics/google-play/overview
 router.get(['/analytics/google-play/overview', '/google-play/overview'], verifyAdminToken, async (req, res) => {
   try {
-    const db = await getUnifiedDb();
     const rawCodes = req.query.app_codes || 'aisa,ailegal';
     const codes = rawCodes.split(',').map(c => c.trim().toLowerCase()).filter(Boolean);
-    const startDate = req.query.start_date;
-    const endDate = req.query.end_date;
+    const startDate = req.query.start_date || '';
+    const endDate = req.query.end_date || '';
+    const cacheKey = `${[...codes].sort().join(',')}_${startDate}_${endDate}`;
 
-    const matchFilter = {
-      app_code: { $in: codes },
-      dimension_type: 'overview'
-    };
-    if (startDate && endDate) matchFilter.metric_date = { $gte: startDate, $lte: endDate };
-    else if (startDate) matchFilter.metric_date = { $gte: startDate };
-    else if (endDate) matchFilter.metric_date = { $lte: endDate };
+    const cached = overviewCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp < OVERVIEW_CACHE_TTL_MS)) {
+      return res.json(cached.body);
+    }
 
-    const pipeline = [
-      { $match: matchFilter },
-      {
-        $group: {
-          _id: { app_code: '$app_code', metric_date: '$metric_date' },
-          daily_user_installs: { $max: '$daily_user_installs' },
-          daily_user_uninstalls: { $max: '$daily_user_uninstalls' },
-          daily_device_installs: { $max: '$daily_device_installs' },
-          daily_device_uninstalls: { $max: '$daily_device_uninstalls' },
-          install_events: { $max: '$install_events' },
-          uninstall_events: { $max: '$uninstall_events' },
-          installs_on_active_devices: { $max: '$installs_on_active_devices' },
-          total_user_installs: { $max: '$total_user_installs' }
+    if (inFlightOverview.has(cacheKey)) {
+      const body = await inFlightOverview.get(cacheKey);
+      return res.json(body);
+    }
+
+    const workPromise = (async () => {
+      const db = await getUnifiedDb();
+      const matchFilter = {
+        app_code: { $in: codes },
+        dimension_type: 'overview'
+      };
+      if (startDate && endDate) matchFilter.metric_date = { $gte: startDate, $lte: endDate };
+      else if (startDate) matchFilter.metric_date = { $gte: startDate };
+      else if (endDate) matchFilter.metric_date = { $lte: endDate };
+
+      const pipeline = [
+        { $match: matchFilter },
+        {
+          $group: {
+            _id: { app_code: '$app_code', metric_date: '$metric_date' },
+            daily_user_installs: { $max: '$daily_user_installs' },
+            daily_user_uninstalls: { $max: '$daily_user_uninstalls' },
+            daily_device_installs: { $max: '$daily_device_installs' },
+            daily_device_uninstalls: { $max: '$daily_device_uninstalls' },
+            install_events: { $max: '$install_events' },
+            uninstall_events: { $max: '$uninstall_events' },
+            installs_on_active_devices: { $max: '$installs_on_active_devices' },
+            total_user_installs: { $max: '$total_user_installs' }
+          }
+        },
+        {
+          $group: {
+            _id: '$_id.app_code',
+            daily_user_installs: { $sum: '$daily_user_installs' },
+            daily_user_uninstalls: { $sum: '$daily_user_uninstalls' },
+            net_user_installs: { $sum: '$daily_user_installs' },
+            daily_device_installs: { $sum: '$daily_device_installs' },
+            daily_device_uninstalls: { $sum: '$daily_device_uninstalls' },
+            net_device_installs: { $sum: '$daily_device_installs' },
+            install_events: { $sum: '$install_events' },
+            uninstall_events: { $sum: '$uninstall_events' },
+            total_user_installs_latest: { $max: '$total_user_installs' },
+            active_device_installs_latest: { $max: '$installs_on_active_devices' },
+            avg_active_devices: { $avg: '$installs_on_active_devices' },
+            avg_daily_user_loss: { $avg: '$daily_user_uninstalls' }
+          }
         }
-      },
-      {
-        $group: {
-          _id: '$_id.app_code',
-          daily_user_installs: { $sum: '$daily_user_installs' },
-          daily_user_uninstalls: { $sum: '$daily_user_uninstalls' },
-          net_user_installs: { $sum: '$daily_user_installs' },
-          daily_device_installs: { $sum: '$daily_device_installs' },
-          daily_device_uninstalls: { $sum: '$daily_device_uninstalls' },
-          net_device_installs: { $sum: '$daily_device_installs' },
-          install_events: { $sum: '$install_events' },
-          uninstall_events: { $sum: '$uninstall_events' },
-          total_user_installs_latest: { $max: '$total_user_installs' },
-          active_device_installs_latest: { $max: '$installs_on_active_devices' },
-          avg_active_devices: { $avg: '$installs_on_active_devices' },
-          avg_daily_user_loss: { $avg: '$daily_user_uninstalls' }
-        }
-      }
-    ];
+      ];
 
-    const [results, [liveData, fbData], mergedAilegal, mergedAisa] = await Promise.all([
-      db.collection('play_install_metrics').aggregate(pipeline).toArray().catch(() => []),
-      Promise.all([
-        getLiveDownloadsData(db),
-        firebaseAnalytics.getFirebaseTelemetry().catch(() => null)
-      ]),
-      hybridTelemetry.getMergedAppTelemetry(db, 'ailegal').catch(() => null),
-      hybridTelemetry.getMergedAppTelemetry(db, 'aisa').catch(() => null)
-    ]);
-    const histByApp = {};
-    results.forEach(r => { if (r._id) histByApp[r._id] = r; });
-    const appTotals = liveData.appTotals;
-    const latestEvent = liveData.latestEvent;
-    const todayStr = liveData.todayStr;
+      const [results, [liveData, fbData], mergedAilegal, mergedAisa, appExtraData] = await Promise.all([
+        db.collection('play_install_metrics').aggregate(pipeline).toArray().catch(() => []),
+        Promise.all([
+          getLiveDownloadsData(db),
+          firebaseAnalytics.getFirebaseTelemetry().catch(() => null)
+        ]),
+        hybridTelemetry.getMergedAppTelemetry(db, 'ailegal').catch(() => null),
+        hybridTelemetry.getMergedAppTelemetry(db, 'aisa').catch(() => null),
+        Promise.all(codes.map(async (code) => {
+          const [latestDoc, iosRecords] = await Promise.all([
+            db.collection('play_install_metrics').findOne(
+              { app_code: code, dimension_type: 'overview' },
+              { sort: { metric_date: -1 } }
+            ).catch(() => null),
+            db.collection('app_store_metrics').find({ app_code: code }).toArray().catch(() => [])
+          ]);
+          return { code, latestDoc, iosRecords };
+        }))
+      ]);
 
-    const appsData = [];
-    const combined = {
-      daily_user_installs: 0,
-      daily_user_uninstalls: 0,
-      net_user_installs: 0,
-      daily_device_installs: 0,
-      daily_device_uninstalls: 0,
-      net_device_installs: 0,
-      install_events: 0,
-      uninstall_events: 0,
-      net_lost_devices: 0,
-      retention_rate: 0.0,
-      churn_rate: 0.0,
-      total_user_installs_latest: 0,
-      active_device_installs_latest: 0,
-      total_active_users: 0,
-      active_users: 0,
-      avg_active_devices: 0.0,
-      avg_daily_user_loss: 0.0,
-      android_store_downloads: 0,
-      android_live_installs: 0,
-      ios_store_downloads: 0,
-      ios_live_installs: 0,
-      ios_total_downloads: 0,
-      ios_first_time_downloads: 0,
-      ios_redownloads: 0,
-      ios_page_views: 0,
-      ios_impressions: 0,
-      today_installs: 0,
-      yesterday_installs: 0,
-      realtime_active_devices: 0,
-      latest_download_timestamp: latestEvent ? latestEvent.toISOString() : null,
-      snapshot_as_of_date: todayStr,
-      cross_app_unique: true
-    };
+      const extraMap = {};
+      appExtraData.forEach(e => { extraMap[e.code] = e; });
 
-    for (const code of codes) {
-      const hist = histByApp[code] || {};
-      const latestDoc = await db.collection('play_install_metrics').findOne(
-        { app_code: code, dimension_type: 'overview' },
-        { sort: { metric_date: -1 } }
-      ).catch(() => null);
+      const histByApp = {};
+      results.forEach(r => { if (r._id) histByApp[r._id] = r; });
+      const appTotals = liveData.appTotals;
+      const latestEvent = liveData.latestEvent;
+      const todayStr = liveData.todayStr;
 
-      let baseActive = latestDoc?.installs_on_active_devices || 0;
-      let baseInstalls = hist.total_user_installs_latest || hist.daily_device_installs || 0;
-      let dailyLoss = hist.avg_daily_user_loss || (latestDoc?.daily_user_uninstalls || 0);
+      const appsData = [];
+      const combined = {
+        daily_user_installs: 0,
+        daily_user_uninstalls: 0,
+        net_user_installs: 0,
+        daily_device_installs: 0,
+        daily_device_uninstalls: 0,
+        net_device_installs: 0,
+        install_events: 0,
+        uninstall_events: 0,
+        net_lost_devices: 0,
+        retention_rate: 0.0,
+        churn_rate: 0.0,
+        total_user_installs_latest: 0,
+        active_device_installs_latest: 0,
+        total_active_users: 0,
+        active_users: 0,
+        avg_active_devices: 0.0,
+        avg_daily_user_loss: 0.0,
+        android_store_downloads: 0,
+        android_live_installs: 0,
+        ios_store_downloads: 0,
+        ios_live_installs: 0,
+        ios_total_downloads: 0,
+        ios_first_time_downloads: 0,
+        ios_redownloads: 0,
+        ios_page_views: 0,
+        ios_impressions: 0,
+        today_installs: 0,
+        yesterday_installs: 0,
+        realtime_active_devices: 0,
+        latest_download_timestamp: latestEvent ? latestEvent.toISOString() : null,
+        snapshot_as_of_date: todayStr,
+        cross_app_unique: true
+      };
 
-      const iosRecords = await db.collection('app_store_metrics').find({ app_code: code }).toArray().catch(() => []);
-      const iosHistTotal = iosRecords.reduce((acc, r) => acc + (r.total_downloads || 0), 0);
-      const iosFirstTime = iosRecords.reduce((acc, r) => acc + (r.first_time_downloads || 0), 0);
-      const iosRedownloads = iosRecords.reduce((acc, r) => acc + (r.redownloads || 0), 0);
-      const iosViews = iosRecords.reduce((acc, r) => acc + (r.page_views || 0), 0);
-      const iosImpressions = iosRecords.reduce((acc, r) => acc + (r.impressions || 0), 0);
+      for (const code of codes) {
+        const hist = histByApp[code] || {};
+        const latestDoc = extraMap[code]?.latestDoc || null;
 
-      let liveAndroid = appTotals[code]?.android || 0;
-      let liveIos = appTotals[code]?.ios || 0;
-      let liveTodayTotal = appTotals[code]?.today_total || 0;
-      let liveYesterdayTotal = appTotals[code]?.yesterday_total || 0;
-      let todayAndroid = appTotals[code]?.today_android || 0;
-      let todayIos = appTotals[code]?.today_ios || 0;
-      let yesterdayAndroid = appTotals[code]?.yesterday_android || 0;
-      let yesterdayIos = appTotals[code]?.yesterday_ios || 0;
+        let baseActive = latestDoc?.installs_on_active_devices || 0;
+        let baseInstalls = hist.total_user_installs_latest || hist.daily_device_installs || 0;
+        let dailyLoss = hist.avg_daily_user_loss || (latestDoc?.daily_user_uninstalls || 0);
 
-      let totalAndroidInstalls = baseInstalls + liveAndroid;
-      let iosStoreDownloads = iosHistTotal;
-      let totalIosInstalls = iosStoreDownloads;
-      let currentActive = baseActive;
-      let appRealtime = 0;
-      const appFb = fbData?.by_app?.[code];
+        const iosRecords = extraMap[code]?.iosRecords || [];
+        const iosHistTotal = iosRecords.reduce((acc, r) => acc + (r.total_downloads || 0), 0);
+        const iosFirstTime = iosRecords.reduce((acc, r) => acc + (r.first_time_downloads || 0), 0);
+        const iosRedownloads = iosRecords.reduce((acc, r) => acc + (r.redownloads || 0), 0);
+        const iosViews = iosRecords.reduce((acc, r) => acc + (r.page_views || 0), 0);
+        const iosImpressions = iosRecords.reduce((acc, r) => acc + (r.impressions || 0), 0);
 
-      let todayTotal = liveTodayTotal;
-      let yesterdayTotal = liveYesterdayTotal;
+        let liveAndroid = appTotals[code]?.android || 0;
+        let liveIos = appTotals[code]?.ios || 0;
+        let liveTodayTotal = appTotals[code]?.today_total || 0;
+        let liveYesterdayTotal = appTotals[code]?.yesterday_total || 0;
+        let todayAndroid = appTotals[code]?.today_android || 0;
+        let todayIos = appTotals[code]?.today_ios || 0;
+        let yesterdayAndroid = appTotals[code]?.yesterday_android || 0;
+        let yesterdayIos = appTotals[code]?.yesterday_ios || 0;
 
-      // Hybrid Splicing: Google Play Console (authoritative history) + Firebase SDK (live edge)
-      const merged = code === 'ailegal' ? mergedAilegal : (code === 'aisa' ? mergedAisa : await hybridTelemetry.getMergedAppTelemetry(db, code).catch(() => null));
-      if (merged) {
-        totalAndroidInstalls = merged.total_android_installs;
-        baseInstalls = merged.total_android_installs;
-        liveAndroid = merged.total_android_installs;
-        if (merged.total_ios_installs !== undefined) {
-          totalIosInstalls = merged.total_ios_installs;
-          iosStoreDownloads = merged.total_ios_installs;
-        }
-        currentActive = merged.active_devices;
-        todayTotal = Math.max(liveTodayTotal, merged.today_installs || 0);
-        yesterdayTotal = Math.max(liveYesterdayTotal, merged.yesterday_installs || 0);
-        todayAndroid = Math.max(todayAndroid, merged.today_android || 0);
-        todayIos = Math.max(todayIos, merged.today_ios || 0);
-        yesterdayAndroid = Math.max(yesterdayAndroid, merged.yesterday_android || 0);
-        yesterdayIos = Math.max(yesterdayIos, merged.yesterday_ios || 0);
-        if (todayTotal > (todayAndroid + todayIos)) {
-          todayAndroid = todayTotal - todayIos;
-        }
-        if (yesterdayTotal > (yesterdayAndroid + yesterdayIos)) {
-          yesterdayAndroid = yesterdayTotal - yesterdayIos;
-        }
-        appRealtime = merged.realtime_active_devices;
-        const timelineDays = Math.max(1, merged.timeline?.length || 30);
-        dailyLoss = merged.total_uninstalls_raw > 0 ? Number((merged.total_uninstalls_raw / timelineDays).toFixed(2)) : dailyLoss;
-      } else {
-        // Direct live Firebase stream if hybrid telemetry encounters error
+        let totalAndroidInstalls = baseInstalls + liveAndroid;
+        let iosStoreDownloads = iosHistTotal;
+        let totalIosInstalls = iosStoreDownloads;
+        let currentActive = baseActive;
+        let appRealtime = 0;
         const appFb = fbData?.by_app?.[code];
-        if (appFb || fbData) {
-          const fbInstalls = appFb?.android_installs || appFb?.total_installs || fbData.total_all_time_installs || 0;
-          baseInstalls = fbInstalls;
-          liveAndroid = fbInstalls;
-          totalAndroidInstalls = fbInstalls;
-          todayTotal = Math.max(liveTodayTotal, appFb?.today_installs ?? fbData.today_installs ?? 0);
-          yesterdayTotal = Math.max(liveYesterdayTotal, appFb?.yesterday_installs ?? fbData.yesterday_installs ?? 0);
-          todayAndroid = Math.max(todayAndroid, appFb?.daily_metrics?.[todayStr]?.android || appFb?.today_installs || 0);
-          todayIos = Math.max(todayIos, appFb?.daily_metrics?.[todayStr]?.ios || 0);
-          yesterdayAndroid = Math.max(yesterdayAndroid, appFb?.daily_metrics?.[yesterdayStr]?.android || appFb?.yesterday_installs || 0);
-          yesterdayIos = Math.max(yesterdayIos, appFb?.daily_metrics?.[yesterdayStr]?.ios || 0);
+
+        let todayTotal = liveTodayTotal;
+        let yesterdayTotal = liveYesterdayTotal;
+
+        // Hybrid Splicing: Google Play Console (authoritative history) + Firebase SDK (live edge)
+        const merged = code === 'ailegal' ? mergedAilegal : (code === 'aisa' ? mergedAisa : await hybridTelemetry.getMergedAppTelemetry(db, code).catch(() => null));
+        if (merged) {
+          totalAndroidInstalls = merged.total_android_installs;
+          baseInstalls = merged.total_android_installs;
+          liveAndroid = merged.total_android_installs;
+          if (merged.total_ios_installs !== undefined) {
+            totalIosInstalls = merged.total_ios_installs;
+            iosStoreDownloads = merged.total_ios_installs;
+          }
+          currentActive = merged.active_devices;
+          todayTotal = Math.max(liveTodayTotal, merged.today_installs || 0);
+          yesterdayTotal = Math.max(liveYesterdayTotal, merged.yesterday_installs || 0);
+          todayAndroid = Math.max(todayAndroid, merged.today_android || 0);
+          todayIos = Math.max(todayIos, merged.today_ios || 0);
+          yesterdayAndroid = Math.max(yesterdayAndroid, merged.yesterday_android || 0);
+          yesterdayIos = Math.max(yesterdayIos, merged.yesterday_ios || 0);
           if (todayTotal > (todayAndroid + todayIos)) {
             todayAndroid = todayTotal - todayIos;
           }
           if (yesterdayTotal > (yesterdayAndroid + yesterdayIos)) {
             yesterdayAndroid = yesterdayTotal - yesterdayIos;
           }
-          currentActive = appFb?.active_users || fbData.total_active_users || 0;
-          dailyLoss = Number(((appFb?.total_uninstalls || fbData.total_uninstalls || 0) / 30).toFixed(2));
-          appRealtime = appFb?.realtime_active || fbData.realtime_active || 0;
-          if (appFb?.ios_installs > 0) {
-            totalIosInstalls = appFb.ios_installs;
+          appRealtime = merged.realtime_active_devices;
+          const timelineDays = Math.max(1, merged.timeline?.length || 30);
+          dailyLoss = merged.total_uninstalls_raw > 0 ? Number((merged.total_uninstalls_raw / timelineDays).toFixed(2)) : dailyLoss;
+        } else {
+          // Direct live Firebase stream if hybrid telemetry encounters error
+          const appFb = fbData?.by_app?.[code];
+          if (appFb || fbData) {
+            const fbInstalls = appFb?.android_installs || appFb?.total_installs || fbData.total_all_time_installs || 0;
+            baseInstalls = fbInstalls;
+            liveAndroid = fbInstalls;
+            totalAndroidInstalls = fbInstalls;
+            todayTotal = Math.max(liveTodayTotal, appFb?.today_installs ?? fbData.today_installs ?? 0);
+            yesterdayTotal = Math.max(liveYesterdayTotal, appFb?.yesterday_installs ?? fbData.yesterday_installs ?? 0);
+            todayAndroid = Math.max(todayAndroid, appFb?.daily_metrics?.[todayStr]?.android || appFb?.today_installs || 0);
+            todayIos = Math.max(todayIos, appFb?.daily_metrics?.[todayStr]?.ios || 0);
+            yesterdayAndroid = Math.max(yesterdayAndroid, appFb?.daily_metrics?.[yesterdayStr]?.android || appFb?.yesterday_installs || 0);
+            yesterdayIos = Math.max(yesterdayIos, appFb?.daily_metrics?.[yesterdayStr]?.ios || 0);
+            if (todayTotal > (todayAndroid + todayIos)) {
+              todayAndroid = todayTotal - todayIos;
+            }
+            if (yesterdayTotal > (yesterdayAndroid + yesterdayIos)) {
+              yesterdayAndroid = yesterdayTotal - yesterdayIos;
+            }
+            currentActive = appFb?.active_users || fbData.total_active_users || 0;
+            dailyLoss = Number(((appFb?.total_uninstalls || fbData.total_uninstalls || 0) / 30).toFixed(2));
+            appRealtime = appFb?.realtime_active || fbData.realtime_active || 0;
+            if (appFb?.ios_installs > 0) {
+              totalIosInstalls = appFb.ios_installs;
+            }
           }
         }
+
+        const appInfo = {
+          app_code: code,
+          display_name: code === 'ailegal' ? 'AI Legal' : 'AISA Assistant',
+          daily_user_installs: todayTotal,
+          daily_user_uninstalls: appFb?.daily_metrics?.[todayStr]?.uninstalls || 0,
+          net_user_installs: todayTotal,
+          daily_device_installs: todayTotal,
+          daily_device_uninstalls: hist.daily_device_uninstalls || 0,
+          install_events: totalAndroidInstalls,
+          uninstall_events: merged?.total_uninstalls_raw || hist.uninstall_events || 0,
+          total_uninstalls_raw: merged?.total_uninstalls_raw || hist.uninstall_events || 0,
+          total_user_installs_latest: totalAndroidInstalls,
+          android_store_downloads: baseInstalls,
+          android_live_installs: liveAndroid,
+          active_device_installs_latest: currentActive,
+          avg_active_devices: currentActive,
+          avg_daily_user_loss: Number(dailyLoss.toFixed(2)),
+          ios_store_downloads: iosStoreDownloads,
+          ios_live_installs: liveIos,
+          ios_total_downloads: totalIosInstalls,
+          ios_first_time_downloads: iosFirstTime || iosStoreDownloads,
+          ios_redownloads: iosRedownloads,
+          ios_page_views: iosViews,
+          ios_impressions: iosImpressions,
+          today_installs: todayTotal,
+          today_android: todayAndroid,
+          today_ios: todayIos,
+          yesterday_installs: yesterdayTotal,
+          yesterday_android: yesterdayAndroid,
+          yesterday_ios: yesterdayIos,
+          realtime_active_devices: appRealtime,
+          snapshot_as_of_date: todayStr,
+          watermark_date: merged?.watermark_date || null,
+          ios_watermark_date: merged?.ios_watermark_date || null,
+          sources: merged?.sources || null,
+          avg_rating: merged?.avg_rating || 0,
+          crashes: merged?.crashes || 0,
+          anrs: merged?.anrs || 0,
+          store_visitors: merged?.store_visitors || 0,
+          store_installers: merged?.store_installers || 0
+        };
+
+        const appActiveUsers = merged?.active_users || appFb?.active_users || currentActive;
+        const appNetLost = merged ? merged.net_lost_devices : Math.max(0, totalAndroidInstalls - appActiveUsers);
+        const appRetentionPct = merged ? merged.retention_rate : (totalAndroidInstalls > 0 ? Number(((appActiveUsers / totalAndroidInstalls) * 100).toFixed(1)) : 0);
+        appInfo.net_lost_devices = appNetLost;
+        appInfo.retention_rate = appRetentionPct;
+        appInfo.churn_rate = Number((100 - appRetentionPct).toFixed(1));
+        appInfo.active_users = appActiveUsers;
+
+        appsData.push(appInfo);
+
+        combined.daily_user_installs += todayTotal;
+        combined.daily_device_installs += todayTotal;
+        combined.net_user_installs += todayTotal;
+        combined.net_device_installs += todayTotal;
+        combined.total_user_installs_latest += totalAndroidInstalls;
+        combined.android_store_downloads += baseInstalls;
+        combined.android_live_installs += liveAndroid;
+        combined.active_device_installs_latest += currentActive;
+        combined.total_active_users = (combined.total_active_users || 0) + appActiveUsers;
+        combined.active_users = (combined.active_users || 0) + appActiveUsers;
+        combined.net_lost_devices += appNetLost;
+        combined.daily_user_uninstalls += (appInfo.daily_user_uninstalls || 0);
+        combined.daily_device_uninstalls += (hist.daily_device_uninstalls || 0);
+        combined.install_events += totalAndroidInstalls;
+        combined.uninstall_events += (appInfo.uninstall_events || 0);
+        combined.total_uninstalls_raw = (combined.total_uninstalls_raw || 0) + (appInfo.total_uninstalls_raw || 0);
+        combined.ios_store_downloads += iosStoreDownloads;
+        combined.ios_live_installs += liveIos;
+        combined.ios_total_downloads += totalIosInstalls;
+        combined.ios_first_time_downloads += (iosFirstTime || iosStoreDownloads);
+        combined.ios_redownloads += iosRedownloads;
+        combined.ios_page_views += iosViews;
+        combined.ios_impressions += iosImpressions;
+        combined.today_installs += todayTotal;
+        combined.today_android = (combined.today_android || 0) + todayAndroid;
+        combined.today_ios = (combined.today_ios || 0) + todayIos;
+        combined.yesterday_installs += yesterdayTotal;
+        combined.yesterday_android = (combined.yesterday_android || 0) + yesterdayAndroid;
+        combined.yesterday_ios = (combined.yesterday_ios || 0) + yesterdayIos;
+        combined.realtime_active_devices += appRealtime;
       }
 
-      const appInfo = {
-        app_code: code,
-        display_name: code === 'ailegal' ? 'AI Legal' : 'AISA Assistant',
-        daily_user_installs: todayTotal,
-        daily_user_uninstalls: appFb?.daily_metrics?.[todayStr]?.uninstalls || 0,
-        net_user_installs: todayTotal,
-        daily_device_installs: todayTotal,
-        daily_device_uninstalls: hist.daily_device_uninstalls || 0,
-        install_events: totalAndroidInstalls,
-        uninstall_events: merged?.total_uninstalls_raw || hist.uninstall_events || 0,
-        total_uninstalls_raw: merged?.total_uninstalls_raw || hist.uninstall_events || 0,
-        total_user_installs_latest: totalAndroidInstalls,
-        android_store_downloads: baseInstalls,
-        android_live_installs: liveAndroid,
-        active_device_installs_latest: currentActive,
-        avg_active_devices: currentActive,
-        avg_daily_user_loss: Number(dailyLoss.toFixed(2)),
-        ios_store_downloads: iosStoreDownloads,
-        ios_live_installs: liveIos,
-        ios_total_downloads: totalIosInstalls,
-        ios_first_time_downloads: iosFirstTime || iosStoreDownloads,
-        ios_redownloads: iosRedownloads,
-        ios_page_views: iosViews,
-        ios_impressions: iosImpressions,
-        today_installs: todayTotal,
-        today_android: todayAndroid,
-        today_ios: todayIos,
-        yesterday_installs: yesterdayTotal,
-        yesterday_android: yesterdayAndroid,
-        yesterday_ios: yesterdayIos,
-        realtime_active_devices: appRealtime,
-        snapshot_as_of_date: todayStr,
-        watermark_date: merged?.watermark_date || null,
-        ios_watermark_date: merged?.ios_watermark_date || null,
-        sources: merged?.sources || null,
-        avg_rating: merged?.avg_rating || 0,
-        crashes: merged?.crashes || 0,
-        anrs: merged?.anrs || 0,
-        store_visitors: merged?.store_visitors || 0,
-        store_installers: merged?.store_installers || 0
+      if (appsData.length > 0) {
+        combined.avg_active_devices = combined.active_device_installs_latest;
+        combined.avg_daily_user_loss = Number((appsData.reduce((acc, a) => acc + a.avg_daily_user_loss, 0) / appsData.length).toFixed(2));
+        const totalBase = (combined.total_active_users || combined.active_device_installs_latest) + combined.net_lost_devices;
+        const activeUserCount = combined.total_active_users || combined.active_device_installs_latest;
+        combined.retention_rate = totalBase > 0
+          ? Number(((activeUserCount / totalBase) * 100).toFixed(1))
+          : 0;
+        combined.churn_rate = Number((100 - combined.retention_rate).toFixed(1));
+      }
+
+      const latestRecord = await db.collection('play_install_metrics').findOne({}, { sort: { metric_date: -1 } }).catch(() => null);
+      const lastSyncDate = latestRecord?.metric_date || todayStr;
+
+      // Structured breakdown for Today's App Downloads across AISA and AI Legal
+      const resolveAppStats = (appCode, mergedData, defaultHistFallback) => {
+        const fromLoop = appsData.find(a => a.app_code === appCode);
+        const todayTotal = fromLoop?.today_installs ?? Math.max(appTotals[appCode]?.today_total || 0, mergedData?.today_installs || 0);
+        let todayAndroid = fromLoop?.today_android ?? Math.max(appTotals[appCode]?.today_android || 0, mergedData?.today_android || 0);
+        let todayIos = fromLoop?.today_ios ?? Math.max(appTotals[appCode]?.today_ios || 0, mergedData?.today_ios || 0);
+        if (todayTotal > (todayAndroid + todayIos)) {
+          todayAndroid = todayTotal - todayIos;
+        }
+        const yesterdayTotal = fromLoop?.yesterday_installs ?? Math.max(appTotals[appCode]?.yesterday_total || 0, mergedData?.yesterday_installs || 0);
+        let yesterdayAndroid = fromLoop?.yesterday_android ?? Math.max(appTotals[appCode]?.yesterday_android || 0, mergedData?.yesterday_android || 0);
+        let yesterdayIos = fromLoop?.yesterday_ios ?? Math.max(appTotals[appCode]?.yesterday_ios || 0, mergedData?.yesterday_ios || 0);
+        if (yesterdayTotal > (yesterdayAndroid + yesterdayIos)) {
+          yesterdayAndroid = yesterdayTotal - yesterdayIos;
+        }
+        const totalAllTime = fromLoop
+          ? (fromLoop.android_store_downloads + fromLoop.ios_store_downloads)
+          : (mergedData ? ((mergedData.total_android_installs || 0) + (mergedData.total_ios_installs || 0)) : defaultHistFallback);
+
+        return {
+          app_code: appCode,
+          app_name: appCode === 'ailegal' ? 'AI Legal' : 'AISA Assistant',
+          icon: appCode === 'ailegal' ? '⚖️' : '🤖',
+          today_total: todayTotal,
+          today_android: todayAndroid,
+          today_ios: todayIos,
+          yesterday_total: yesterdayTotal,
+          yesterday_android: yesterdayAndroid,
+          yesterday_ios: yesterdayIos,
+          total_all_time: totalAllTime
+        };
       };
 
-      const appActiveUsers = merged?.active_users || appFb?.active_users || currentActive;
-      const appNetLost = merged ? merged.net_lost_devices : Math.max(0, totalAndroidInstalls - appActiveUsers);
-      const appRetentionPct = merged ? merged.retention_rate : (totalAndroidInstalls > 0 ? Number(((appActiveUsers / totalAndroidInstalls) * 100).toFixed(1)) : 0);
-      appInfo.net_lost_devices = appNetLost;
-      appInfo.retention_rate = appRetentionPct;
-      appInfo.churn_rate = Number((100 - appRetentionPct).toFixed(1));
-      appInfo.active_users = appActiveUsers;
+      const aiLegalBreakdown = resolveAppStats('ailegal', mergedAilegal, (histByApp.ailegal?.total_user_installs_latest || 1669) + 117);
+      const aisaBreakdown = resolveAppStats('aisa', mergedAisa, (histByApp.aisa?.total_user_installs_latest || 257) + 56);
 
-      appsData.push(appInfo);
-
-      combined.daily_user_installs += todayTotal;
-      combined.daily_device_installs += todayTotal;
-      combined.net_user_installs += todayTotal;
-      combined.net_device_installs += todayTotal;
-      combined.total_user_installs_latest += totalAndroidInstalls;
-      combined.android_store_downloads += baseInstalls;
-      combined.android_live_installs += liveAndroid;
-      combined.active_device_installs_latest += currentActive;
-      combined.total_active_users = (combined.total_active_users || 0) + appActiveUsers;
-      combined.active_users = (combined.active_users || 0) + appActiveUsers;
-      combined.net_lost_devices += appNetLost;
-      combined.daily_user_uninstalls += (appInfo.daily_user_uninstalls || 0);
-      combined.daily_device_uninstalls += (hist.daily_device_uninstalls || 0);
-      combined.install_events += totalAndroidInstalls;
-      combined.uninstall_events += (appInfo.uninstall_events || 0);
-      combined.total_uninstalls_raw = (combined.total_uninstalls_raw || 0) + (appInfo.total_uninstalls_raw || 0);
-      combined.ios_store_downloads += iosStoreDownloads;
-      combined.ios_live_installs += liveIos;
-      combined.ios_total_downloads += totalIosInstalls;
-      combined.ios_first_time_downloads += (iosFirstTime || iosStoreDownloads);
-      combined.ios_redownloads += iosRedownloads;
-      combined.ios_page_views += iosViews;
-      combined.ios_impressions += iosImpressions;
-      combined.today_installs += todayTotal;
-      combined.today_android = (combined.today_android || 0) + todayAndroid;
-      combined.today_ios = (combined.today_ios || 0) + todayIos;
-      combined.yesterday_installs += yesterdayTotal;
-      combined.yesterday_android = (combined.yesterday_android || 0) + yesterdayAndroid;
-      combined.yesterday_ios = (combined.yesterday_ios || 0) + yesterdayIos;
-      combined.realtime_active_devices += appRealtime;
-    }
-
-    if (appsData.length > 0) {
-      combined.avg_active_devices = combined.active_device_installs_latest;
-      combined.avg_daily_user_loss = Number((appsData.reduce((acc, a) => acc + a.avg_daily_user_loss, 0) / appsData.length).toFixed(2));
-      const totalBase = (combined.total_active_users || combined.active_device_installs_latest) + combined.net_lost_devices;
-      const activeUserCount = combined.total_active_users || combined.active_device_installs_latest;
-      combined.retention_rate = totalBase > 0
-        ? Number(((activeUserCount / totalBase) * 100).toFixed(1))
-        : 0;
-      combined.churn_rate = Number((100 - combined.retention_rate).toFixed(1));
-    }
-
-    const latestRecord = await db.collection('play_install_metrics').findOne({}, { sort: { metric_date: -1 } }).catch(() => null);
-    const lastSyncDate = latestRecord?.metric_date || todayStr;
-
-    // Structured breakdown for Today's App Downloads across AISA and AI Legal
-    const resolveAppStats = (appCode, mergedData, defaultHistFallback) => {
-      const fromLoop = appsData.find(a => a.app_code === appCode);
-      const todayTotal = fromLoop?.today_installs ?? Math.max(appTotals[appCode]?.today_total || 0, mergedData?.today_installs || 0);
-      let todayAndroid = fromLoop?.today_android ?? Math.max(appTotals[appCode]?.today_android || 0, mergedData?.today_android || 0);
-      let todayIos = fromLoop?.today_ios ?? Math.max(appTotals[appCode]?.today_ios || 0, mergedData?.today_ios || 0);
-      if (todayTotal > (todayAndroid + todayIos)) {
-        todayAndroid = todayTotal - todayIos;
-      }
-      const yesterdayTotal = fromLoop?.yesterday_installs ?? Math.max(appTotals[appCode]?.yesterday_total || 0, mergedData?.yesterday_installs || 0);
-      let yesterdayAndroid = fromLoop?.yesterday_android ?? Math.max(appTotals[appCode]?.yesterday_android || 0, mergedData?.yesterday_android || 0);
-      let yesterdayIos = fromLoop?.yesterday_ios ?? Math.max(appTotals[appCode]?.yesterday_ios || 0, mergedData?.yesterday_ios || 0);
-      if (yesterdayTotal > (yesterdayAndroid + yesterdayIos)) {
-        yesterdayAndroid = yesterdayTotal - yesterdayIos;
-      }
-      const totalAllTime = fromLoop
-        ? (fromLoop.android_store_downloads + fromLoop.ios_store_downloads)
-        : (mergedData ? ((mergedData.total_android_installs || 0) + (mergedData.total_ios_installs || 0)) : defaultHistFallback);
-
-      return {
-        app_code: appCode,
-        app_name: appCode === 'ailegal' ? 'AI Legal' : 'AISA Assistant',
-        icon: appCode === 'ailegal' ? '⚖️' : '🤖',
-        today_total: todayTotal,
-        today_android: todayAndroid,
-        today_ios: todayIos,
-        yesterday_total: yesterdayTotal,
-        yesterday_android: yesterdayAndroid,
-        yesterday_ios: yesterdayIos,
-        total_all_time: totalAllTime
+      const todayBreakdown = {
+        as_of_date: todayStr,
+        as_of_ist: liveData.todayIst || todayStr,
+        total_today: aiLegalBreakdown.today_total + aisaBreakdown.today_total,
+        total_yesterday: aiLegalBreakdown.yesterday_total + aisaBreakdown.yesterday_total,
+        total_all_time: aiLegalBreakdown.total_all_time + aisaBreakdown.total_all_time,
+        combined_android_today: aiLegalBreakdown.today_android + aisaBreakdown.today_android,
+        combined_ios_today: aiLegalBreakdown.today_ios + aisaBreakdown.today_ios,
+        combined_android_yesterday: aiLegalBreakdown.yesterday_android + aisaBreakdown.yesterday_android,
+        combined_ios_yesterday: aiLegalBreakdown.yesterday_ios + aisaBreakdown.yesterday_ios,
+        apps: {
+          ailegal: aiLegalBreakdown,
+          aisa: aisaBreakdown
+        }
       };
-    };
 
-    const aiLegalBreakdown = resolveAppStats('ailegal', mergedAilegal, (histByApp.ailegal?.total_user_installs_latest || 1669) + 117);
-    const aisaBreakdown = resolveAppStats('aisa', mergedAisa, (histByApp.aisa?.total_user_installs_latest || 257) + 56);
+      const resBody = {
+        data: {
+          source: {
+            provider: fbData ? 'firebase_sdk_ga4_and_store_telemetry' : 'hybrid_google_play_and_live_telemetry',
+            source_timezone: 'Asia/Kolkata',
+            last_sync_at: lastSyncDate,
+            latest_event_at: latestEvent ? latestEvent.toISOString() : new Date().toISOString(),
+            data_through_date: todayStr,
+            freshness_status: fbData ? 'live_firebase_sdk_feed_active' : 'live_feed_active',
+            live_events_tracked: (liveData.totalCount || 0) + (fbData?.total_installs_30d || 0),
+            realtime_active_devices: codes.length === 1 ? (appsData[0]?.realtime_active_devices || 0) : combined.realtime_active_devices,
+            firebase_property_id: fbData ? fbData.property_id : null
+          },
+          period: {
+            start_date: startDate || undefined,
+            end_date: endDate || undefined
+          },
+          combined,
+          apps: appsData,
+          today_breakdown: todayBreakdown
+        }
+      };
 
-    const todayBreakdown = {
-      as_of_date: todayStr,
-      as_of_ist: liveData.todayIst || todayStr,
-      total_today: aiLegalBreakdown.today_total + aisaBreakdown.today_total,
-      total_yesterday: aiLegalBreakdown.yesterday_total + aisaBreakdown.yesterday_total,
-      total_all_time: aiLegalBreakdown.total_all_time + aisaBreakdown.total_all_time,
-      combined_android_today: aiLegalBreakdown.today_android + aisaBreakdown.today_android,
-      combined_ios_today: aiLegalBreakdown.today_ios + aisaBreakdown.today_ios,
-      combined_android_yesterday: aiLegalBreakdown.yesterday_android + aisaBreakdown.yesterday_android,
-      combined_ios_yesterday: aiLegalBreakdown.yesterday_ios + aisaBreakdown.yesterday_ios,
-      apps: {
-        ailegal: aiLegalBreakdown,
-        aisa: aisaBreakdown
-      }
-    };
+      overviewCache.set(cacheKey, { timestamp: Date.now(), body: resBody });
+      return resBody;
+    })();
 
-    return res.json({
-      data: {
-        source: {
-          provider: fbData ? 'firebase_sdk_ga4_and_store_telemetry' : 'hybrid_google_play_and_live_telemetry',
-          source_timezone: 'Asia/Kolkata',
-          last_sync_at: lastSyncDate,
-          latest_event_at: latestEvent ? latestEvent.toISOString() : new Date().toISOString(),
-          data_through_date: todayStr,
-          freshness_status: fbData ? 'live_firebase_sdk_feed_active' : 'live_feed_active',
-          live_events_tracked: (liveData.totalCount || 0) + (fbData?.total_installs_30d || 0),
-          realtime_active_devices: codes.length === 1 ? (appsData[0]?.realtime_active_devices || 0) : combined.realtime_active_devices,
-          firebase_property_id: fbData ? fbData.property_id : null
-        },
-        period: {
-          start_date: startDate,
-          end_date: endDate
-        },
-        combined,
-        apps: appsData,
-        today_breakdown: todayBreakdown
-      }
-    });
+    inFlightOverview.set(cacheKey, workPromise);
+    try {
+      const body = await workPromise;
+      return res.json(body);
+    } finally {
+      inFlightOverview.delete(cacheKey);
+    }
   } catch (err) {
     console.error('[GooglePlayOverview] Error:', err);
     return res.status(500).json({ detail: err.message });
   }
 });
 
+// Timeseries Base Caching and Promise Deduplication (TTL 45s)
+const timeseriesCache = new Map();
+const inFlightTimeseries = new Map();
+const TIMESERIES_CACHE_TTL_MS = 45 * 1000;
+
+async function computeTimeseriesBase(db, codes) {
+  const codesKey = [...codes].sort().join(',');
+  const cached = timeseriesCache.get(codesKey);
+  const now = Date.now();
+  if (cached && (now - cached.timestamp < TIMESERIES_CACHE_TTL_MS)) {
+    return cached.data;
+  }
+  if (inFlightTimeseries.has(codesKey)) {
+    return inFlightTimeseries.get(codesKey);
+  }
+
+  const p = (async () => {
+    try {
+      const mergedPromises = codes.map(code => hybridTelemetry.getMergedAppTelemetry(db, code).catch(() => null));
+      const [mergedResults, iosRecords, fbData] = await Promise.all([
+        Promise.all(mergedPromises),
+        db.collection('app_store_metrics')
+          .find({ app_code: { $in: codes } })
+          .sort({ metric_date: 1 })
+          .toArray()
+          .catch(() => []),
+        firebaseAnalytics.getFirebaseTelemetry().catch(() => null)
+      ]);
+
+      const mergedByApp = {};
+      codes.forEach((c, idx) => { mergedByApp[c] = mergedResults[idx]; });
+
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const yesterdayStr = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+      const iosHistByDate = {};
+      for (const r of iosRecords) {
+        const d = r.metric_date;
+        if (!d) continue;
+        if (!iosHistByDate[d]) iosHistByDate[d] = 0;
+        iosHistByDate[d] += (r.total_downloads || 0);
+      }
+
+      const iosMergedDaily = {};
+      let totalMergedIosTarget = 0;
+      let mergedTodayIos = 0;
+      let mergedYesterdayIos = 0;
+
+      for (const code of codes) {
+        const merged = mergedByApp[code];
+        if (merged) {
+          totalMergedIosTarget += (merged.total_ios_installs || 0);
+          mergedTodayIos += (merged.today_ios || 0);
+          mergedYesterdayIos += (merged.yesterday_ios || 0);
+          if (merged.ios_daily) {
+            for (const [d, count] of Object.entries(merged.ios_daily)) {
+              iosMergedDaily[d] = (iosMergedDaily[d] || 0) + (count || 0);
+            }
+          }
+        }
+      }
+
+      const dateMap = {};
+      for (const code of codes) {
+        const merged = mergedByApp[code];
+        const timeline = merged?.timeline || [];
+        for (const t of timeline) {
+          if (!dateMap[t.date]) {
+            dateMap[t.date] = {
+              daily_user_installs: 0,
+              daily_user_uninstalls: 0,
+              installs_on_active_devices: 0,
+              total_user_installs: 0
+            };
+          }
+          dateMap[t.date].daily_user_installs += (t.daily_user_installs || 0);
+          dateMap[t.date].daily_user_uninstalls += (t.daily_user_uninstalls || 0);
+          dateMap[t.date].installs_on_active_devices += (t.installs_on_active_devices || 0);
+          dateMap[t.date].total_user_installs += (t.total_user_installs || 0);
+        }
+      }
+
+      const allDateSet = new Set([
+        ...Object.keys(dateMap),
+        ...Object.keys(iosHistByDate),
+        ...Object.keys(iosMergedDaily)
+      ]);
+      if (yesterdayStr) allDateSet.add(yesterdayStr);
+      if (todayStr) allDateSet.add(todayStr);
+      const sortedDates = Array.from(allDateSet).sort();
+
+      const metrics = {
+        total_installs: { android: [], ios: [] },
+        active_devices: { android: [], ios: [] },
+        user_loss: { android: [], ios: [] },
+        daily_installs: { android: [], ios: [] }
+      };
+
+      let iosCum = 0;
+      let lastAndroidCum = 0;
+      let lastAndroidActive = 0;
+
+      for (const d of sortedDates) {
+        const data = dateMap[d];
+        if (data && data.total_user_installs > 0) {
+          lastAndroidCum = data.total_user_installs;
+        }
+        if (data && data.installs_on_active_devices > 0) {
+          lastAndroidActive = data.installs_on_active_devices;
+        }
+
+        const aDaily = data?.daily_user_installs || 0;
+        const aTotal = data?.total_user_installs || lastAndroidCum;
+        const aActive = data?.installs_on_active_devices || lastAndroidActive;
+        const aLoss = data?.daily_user_uninstalls || 0;
+
+        let dayIos = 0;
+        if (iosMergedDaily[d] !== undefined) {
+          dayIos = iosMergedDaily[d];
+        } else if (iosHistByDate[d] !== undefined) {
+          dayIos = iosHistByDate[d];
+        }
+        if (d === yesterdayStr && mergedYesterdayIos > 0) {
+          dayIos = Math.max(dayIos, mergedYesterdayIos);
+        } else if (d === todayStr && mergedTodayIos > 0) {
+          dayIos = Math.max(dayIos, mergedTodayIos);
+        }
+
+        iosCum += dayIos;
+        if (d === todayStr && totalMergedIosTarget > 0 && iosCum < totalMergedIosTarget) {
+          iosCum = totalMergedIosTarget;
+        }
+
+        metrics.daily_installs.android.push({ date: d, value: aDaily });
+        metrics.daily_installs.ios.push({ date: d, value: dayIos });
+
+        metrics.total_installs.android.push({ date: d, value: aTotal });
+        metrics.total_installs.ios.push({ date: d, value: iosCum });
+
+        metrics.active_devices.android.push({ date: d, value: aActive });
+        metrics.active_devices.ios.push({ date: d, value: dayIos });
+
+        metrics.user_loss.android.push({ date: d, value: aLoss });
+        metrics.user_loss.ios.push({ date: d, value: 0 });
+      }
+
+      const calculatedData = {
+        metrics,
+        todayStr,
+        realtime_active_devices: fbData ? fbData.realtime_active : 0
+      };
+
+      timeseriesCache.set(codesKey, { timestamp: Date.now(), data: calculatedData });
+      return calculatedData;
+    } finally {
+      inFlightTimeseries.delete(codesKey);
+    }
+  })();
+
+  inFlightTimeseries.set(codesKey, p);
+  return p;
+}
+
 // GET /api/admin/analytics/google-play/timeseries
 router.get(['/analytics/google-play/timeseries', '/google-play/timeseries'], verifyAdminToken, async (req, res) => {
   try {
     const db = await getUnifiedDb();
-    const fbData = await firebaseAnalytics.getFirebaseTelemetry().catch(() => null);
     const rawCodes = req.query.app_codes || 'aisa,ailegal';
     const codes = rawCodes.split(',').map(c => c.trim().toLowerCase()).filter(Boolean);
     const metric = req.query.metric || 'total_installs';
     const startDate = req.query.start_date;
     const endDate = req.query.end_date;
     const granularity = req.query.granularity || 'day';
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const yesterdayStr = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
-    const mergedByApp = {};
-    for (const code of codes) {
-      mergedByApp[code] = await hybridTelemetry.getMergedAppTelemetry(db, code).catch(() => null);
-    }
+    const baseData = await computeTimeseriesBase(db, codes);
 
-    const iosRecords = await db.collection('app_store_metrics')
-      .find({ app_code: { $in: codes } })
-      .sort({ metric_date: 1 })
-      .toArray()
-      .catch(() => []);
-
-    const iosHistByDate = {};
-    for (const r of iosRecords) {
-      const d = r.metric_date;
-      if (!d) continue;
-      if (!iosHistByDate[d]) iosHistByDate[d] = 0;
-      iosHistByDate[d] += (r.total_downloads || 0);
-    }
-
-    const iosMergedDaily = {};
-    let totalMergedIosTarget = 0;
-    let mergedTodayIos = 0;
-    let mergedYesterdayIos = 0;
-
-    for (const code of codes) {
-      const merged = mergedByApp[code];
-      if (merged) {
-        totalMergedIosTarget += (merged.total_ios_installs || 0);
-        mergedTodayIos += (merged.today_ios || 0);
-        mergedYesterdayIos += (merged.yesterday_ios || 0);
-        if (merged.ios_daily) {
-          for (const [d, count] of Object.entries(merged.ios_daily)) {
-            iosMergedDaily[d] = (iosMergedDaily[d] || 0) + (count || 0);
-          }
+    if (metric === 'all') {
+      const allMetrics = {};
+      for (const mKey of ['total_installs', 'active_devices', 'user_loss', 'daily_installs']) {
+        let aPts = baseData.metrics[mKey].android;
+        let iPts = baseData.metrics[mKey].ios;
+        if (startDate) {
+          aPts = aPts.filter(p => p.date >= startDate);
+          iPts = iPts.filter(p => p.date >= startDate);
         }
-      }
-    }
-
-    const dateMap = {};
-
-    for (const code of codes) {
-      const merged = mergedByApp[code];
-      const timeline = merged?.timeline || [];
-      for (const t of timeline) {
-        if (!dateMap[t.date]) {
-          dateMap[t.date] = {
-            daily_user_installs: 0,
-            daily_user_uninstalls: 0,
-            installs_on_active_devices: 0,
-            total_user_installs: 0
-          };
+        if (endDate) {
+          aPts = aPts.filter(p => p.date <= endDate);
+          iPts = iPts.filter(p => p.date <= endDate);
         }
-        dateMap[t.date].daily_user_installs += (t.daily_user_installs || 0);
-        dateMap[t.date].daily_user_uninstalls += (t.daily_user_uninstalls || 0);
-        dateMap[t.date].installs_on_active_devices += (t.installs_on_active_devices || 0);
-        dateMap[t.date].total_user_installs += (t.total_user_installs || 0);
+        allMetrics[mKey] = { android: aPts, ios: iPts };
       }
+      return res.json({
+        data: allMetrics,
+        meta: {
+          source_timezone: 'Asia/Kolkata',
+          data_through_date: baseData.todayStr,
+          correlation_id: 'real-time-firebase-telemetry',
+          realtime_active_devices: baseData.realtime_active_devices
+        }
+      });
     }
 
-    const allDateSet = new Set([
-      ...Object.keys(dateMap),
-      ...Object.keys(iosHistByDate),
-      ...Object.keys(iosMergedDaily)
-    ]);
-    if (yesterdayStr) allDateSet.add(yesterdayStr);
-    if (todayStr) allDateSet.add(todayStr);
-    const sortedDates = Array.from(allDateSet).sort();
+    const metricKey = (metric === 'active_device_installs') ? 'active_devices' : (metric === 'daily_user_uninstalls' ? 'user_loss' : metric);
+    const selected = baseData.metrics[metricKey] || baseData.metrics.total_installs;
 
-    let androidPoints = [];
-    let iosPoints = [];
-    let iosCum = 0;
-    let lastAndroidCum = 0;
-    let lastAndroidActive = 0;
-
-    for (const d of sortedDates) {
-      const data = dateMap[d];
-      if (data && data.total_user_installs > 0) {
-        lastAndroidCum = data.total_user_installs;
-      }
-      if (data && data.installs_on_active_devices > 0) {
-        lastAndroidActive = data.installs_on_active_devices;
-      }
-      let aVal = data?.daily_user_installs || 0;
-      if (metric === 'total_installs') aVal = (data?.total_user_installs || lastAndroidCum);
-      else if (metric === 'active_devices' || metric === 'active_device_installs') aVal = (data?.installs_on_active_devices || lastAndroidActive);
-      else if (metric === 'user_loss' || metric === 'daily_user_uninstalls') aVal = data?.daily_user_uninstalls || 0;
-
-      androidPoints.push({ date: d, value: aVal });
-
-      let dayIos = 0;
-      if (iosMergedDaily[d] !== undefined) {
-        dayIos = iosMergedDaily[d];
-      } else if (iosHistByDate[d] !== undefined) {
-        dayIos = iosHistByDate[d];
-      }
-      if (d === yesterdayStr && mergedYesterdayIos > 0) {
-        dayIos = Math.max(dayIos, mergedYesterdayIos);
-      } else if (d === todayStr && mergedTodayIos > 0) {
-        dayIos = Math.max(dayIos, mergedTodayIos);
-      }
-
-      iosCum += dayIos;
-      if (d === todayStr && totalMergedIosTarget > 0 && iosCum < totalMergedIosTarget) {
-        iosCum = totalMergedIosTarget;
-      }
-
-      let iosVal = dayIos;
-      if (metric === 'total_installs') iosVal = iosCum;
-      else if (metric === 'active_devices' || metric === 'active_device_installs') iosVal = dayIos;
-      else if (metric === 'user_loss' || metric === 'daily_user_uninstalls') iosVal = 0;
-
-      iosPoints.push({ date: d, value: iosVal });
-    }
+    let androidPoints = selected.android;
+    let iosPoints = selected.ios;
 
     if (startDate) {
       androidPoints = androidPoints.filter(p => p.date >= startDate);
@@ -1427,6 +1602,7 @@ router.get(['/analytics/google-play/timeseries', '/google-play/timeseries'], ver
       androidPoints = androidPoints.filter(p => p.date <= endDate);
       iosPoints = iosPoints.filter(p => p.date <= endDate);
     }
+
     return res.json({
       data: {
         metric,
@@ -1441,9 +1617,9 @@ router.get(['/analytics/google-play/timeseries', '/google-play/timeseries'], ver
       },
       meta: {
         source_timezone: 'Asia/Kolkata',
-        data_through_date: todayStr,
+        data_through_date: baseData.todayStr,
         correlation_id: 'real-time-firebase-telemetry',
-        realtime_active_devices: fbData ? fbData.realtime_active : 0
+        realtime_active_devices: baseData.realtime_active_devices
       }
     });
   } catch (err) {
@@ -1454,43 +1630,53 @@ router.get(['/analytics/google-play/timeseries', '/google-play/timeseries'], ver
 
 let cachedDownloadTargets = null;
 let lastTargetsFetchTime = 0;
+let inFlightTargetsPromise = null;
+
 async function getAuthoritativeDownloadTargets(db) {
   const now = Date.now();
   if (cachedDownloadTargets && (now - lastTargetsFetchTime < 60000)) {
     return cachedDownloadTargets;
   }
-  try {
-    const [mergedAilegal, mergedAisa] = await Promise.all([
-      hybridTelemetry.getMergedAppTelemetry(db, 'ailegal').catch(() => null),
-      hybridTelemetry.getMergedAppTelemetry(db, 'aisa').catch(() => null)
-    ]);
-    const targets = {
-      ailegal: {
-        android: mergedAilegal?.total_android_installs || 6965,
-        ios: mergedAilegal?.total_ios_installs || 381,
-        total: (mergedAilegal?.total_android_installs || 6965) + (mergedAilegal?.total_ios_installs || 381)
-      },
-      aisa: {
-        android: mergedAisa?.total_android_installs || 214,
-        ios: mergedAisa?.total_ios_installs || 77,
-        total: (mergedAisa?.total_android_installs || 214) + (mergedAisa?.total_ios_installs || 77)
-      }
-    };
-    targets.all = {
-      android: targets.ailegal.android + targets.aisa.android,
-      ios: targets.ailegal.ios + targets.aisa.ios,
-      total: targets.ailegal.total + targets.aisa.total
-    };
-    cachedDownloadTargets = targets;
-    lastTargetsFetchTime = now;
-    return targets;
-  } catch (err) {
-    return {
-      ailegal: { android: 6965, ios: 381, total: 7346 },
-      aisa: { android: 214, ios: 77, total: 291 },
-      all: { android: 7179, ios: 458, total: 7637 }
-    };
+  if (inFlightTargetsPromise) {
+    return inFlightTargetsPromise;
   }
+  inFlightTargetsPromise = (async () => {
+    try {
+      const [mergedAilegal, mergedAisa] = await Promise.all([
+        hybridTelemetry.getMergedAppTelemetry(db, 'ailegal').catch(() => null),
+        hybridTelemetry.getMergedAppTelemetry(db, 'aisa').catch(() => null)
+      ]);
+      const targets = {
+        ailegal: {
+          android: mergedAilegal?.total_android_installs || 6965,
+          ios: mergedAilegal?.total_ios_installs || 381,
+          total: (mergedAilegal?.total_android_installs || 6965) + (mergedAilegal?.total_ios_installs || 381)
+        },
+        aisa: {
+          android: mergedAisa?.total_android_installs || 214,
+          ios: mergedAisa?.total_ios_installs || 77,
+          total: (mergedAisa?.total_android_installs || 214) + (mergedAisa?.total_ios_installs || 77)
+        }
+      };
+      targets.all = {
+        android: targets.ailegal.android + targets.aisa.android,
+        ios: targets.ailegal.ios + targets.aisa.ios,
+        total: targets.ailegal.total + targets.aisa.total
+      };
+      cachedDownloadTargets = targets;
+      lastTargetsFetchTime = Date.now();
+      return targets;
+    } catch (err) {
+      return {
+        ailegal: { android: 6965, ios: 381, total: 7346 },
+        aisa: { android: 214, ios: 77, total: 291 },
+        all: { android: 7179, ios: 458, total: 7637 }
+      };
+    } finally {
+      inFlightTargetsPromise = null;
+    }
+  })();
+  return inFlightTargetsPromise;
 }
 
 // GET /api/admin/analytics/google-play/geo
@@ -1499,7 +1685,7 @@ router.get(['/analytics/google-play/geo', '/google-play/geo'], verifyAdminToken,
     const db = await getUnifiedDb();
     const rawCodes = req.query.app_codes || 'all';
     const appCode = rawCodes.includes(',') ? 'all' : rawCodes.trim().toLowerCase();
-    const targets = await getAuthoritativeDownloadTargets(db);
+    const targets = cachedDownloadTargets || await getAuthoritativeDownloadTargets(db);
     const geoData = await firebaseAnalytics.getGeoTelemetry(appCode, false, targets);
     return res.json({
       status: 'success',
