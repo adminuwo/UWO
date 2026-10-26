@@ -1481,7 +1481,9 @@ async function computeTimeseriesBase(db, codes) {
         total_installs: { android: [], ios: [] },
         active_devices: { android: [], ios: [] },
         user_loss: { android: [], ios: [] },
-        daily_installs: { android: [], ios: [] }
+        daily_installs: { android: [], ios: [] },
+        marketing_installs: { android: [], ios: [] },
+        google_play_installs: { android: [], ios: [] }
       };
 
       let iosCum = 0;
@@ -1530,6 +1532,30 @@ async function computeTimeseriesBase(db, codes) {
 
         metrics.user_loss.android.push({ date: d, value: aLoss });
         metrics.user_loss.ios.push({ date: d, value: 0 });
+
+        let mktAndroid = 0;
+        let mktIos = 0;
+        let playAndroid = 0;
+        let playIos = iosHistByDate[d] || 0;
+
+        for (const code of codes) {
+          const merged = mergedByApp[code];
+          const mktDay = merged?.marketing_daily?.[d];
+          if (mktDay) {
+            mktAndroid += (mktDay.android || 0);
+            mktIos += (mktDay.ios || 0);
+          }
+          const playDay = merged?.play_daily?.[d];
+          if (playDay) {
+            playAndroid += (playDay.daily_user_installs || 0);
+          }
+        }
+
+        metrics.marketing_installs.android.push({ date: d, value: mktAndroid });
+        metrics.marketing_installs.ios.push({ date: d, value: mktIos });
+
+        metrics.google_play_installs.android.push({ date: d, value: playAndroid });
+        metrics.google_play_installs.ios.push({ date: d, value: playIos });
       }
 
       const calculatedData = {
@@ -1564,9 +1590,9 @@ router.get(['/analytics/google-play/timeseries', '/google-play/timeseries'], ver
 
     if (metric === 'all') {
       const allMetrics = {};
-      for (const mKey of ['total_installs', 'active_devices', 'user_loss', 'daily_installs']) {
-        let aPts = baseData.metrics[mKey].android;
-        let iPts = baseData.metrics[mKey].ios;
+      for (const mKey of ['total_installs', 'active_devices', 'user_loss', 'daily_installs', 'marketing_installs', 'google_play_installs']) {
+        let aPts = baseData.metrics[mKey]?.android || [];
+        let iPts = baseData.metrics[mKey]?.ios || [];
         if (startDate) {
           aPts = aPts.filter(p => p.date >= startDate);
           iPts = iPts.filter(p => p.date >= startDate);

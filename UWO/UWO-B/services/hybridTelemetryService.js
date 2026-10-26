@@ -69,7 +69,13 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
           {
             $group: {
               _id: {
-                date: { $substr: [{ $ifNull: ['$timestamp', '$installed_at'] }, 0, 10] },
+                date: {
+                  $cond: {
+                    if: { $eq: [{ $type: '$timestamp' }, 'date'] },
+                    then: { $dateToString: { format: '%Y-%m-%d', date: '$timestamp' } },
+                    else: { $substr: [{ $ifNull: ['$timestamp', '$installed_at'] }, 0, 10] }
+                  }
+                },
                 plat: { $toLower: '$platform' }
               },
               count: { $sum: 1 }
@@ -81,7 +87,13 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
           {
             $group: {
               _id: {
-                date: { $substr: [{ $ifNull: ['$created_at', '$installed_at'] }, 0, 10] },
+                date: {
+                  $cond: {
+                    if: { $eq: [{ $type: '$created_at' }, 'date'] },
+                    then: { $dateToString: { format: '%Y-%m-%d', date: '$created_at' } },
+                    else: { $substr: [{ $ifNull: ['$created_at', '$installed_at'] }, 0, 10] }
+                  }
+                },
                 plat: { $toLower: '$platform' }
               },
               count: { $sum: 1 }
@@ -176,10 +188,15 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
   let runningCum = baselineDiff;
 
   for (const r of dedupedPlayRecords) {
-    const dailyInstalls = r.install_events || r.daily_device_installs || r.daily_user_installs || 0;
+    const d = r.metric_date;
+    const playDaily = r.install_events || r.daily_device_installs || r.daily_user_installs || 0;
+    const liveAndroid = Math.max(liveDbDaily[d]?.android || 0, liveDbDaily[d]?.total || 0, fbDaily[d]?.android || 0);
+    // On the latest Play export cutoff date, take max so premature batch exports (like Oct 21 with 59 vs 262) do not truncate verified marketing installs
+    const dailyInstalls = (d === playMaxDate) ? Math.max(playDaily, liveAndroid) : playDaily;
     runningCum += dailyInstalls;
     mergedTimeline.push({
-      ...playDailyMap[r.metric_date],
+      ...playDailyMap[d],
+      daily_user_installs: dailyInstalls,
       total_user_installs: runningCum
     });
   }
@@ -212,7 +229,7 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
     });
   }
 
-  const totalAndroidInstalls = playInstallsTotal + postPlayInstalls;
+  const totalAndroidInstalls = Math.max(playInstallsTotal + postPlayInstalls, runningCum);
   const activeDevices = runningActive > 0 ? runningActive : (appFb?.active_users || playLatestActive || 0);
 
   // 6. Apple App Store Metrics for iOS Store Downloads (fetched concurrently at start)
@@ -307,6 +324,8 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
     store_visitors: playPerf?.visitors || 0,
     store_installers: playPerf?.installers || 0,
     ios_daily: iosDailyMap,
+    play_daily: playDailyMap,
+    marketing_daily: liveDbDaily,
     timeline: mergedTimeline
   };
 

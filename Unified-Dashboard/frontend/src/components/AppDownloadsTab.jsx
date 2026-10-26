@@ -95,6 +95,7 @@ export const AppDownloadsTab = () => {
   const [geoSearchQuery, setGeoSearchQuery] = useState('');
   const [showChurnColumn, setShowChurnColumn] = useState(false);
   const [barGraphPlatformView, setBarGraphPlatformView] = useState('all'); // 'all' | 'android' | 'ios'
+  const [barGraphSourceView, setBarGraphSourceView] = useState('unified'); // 'unified' | 'marketing' | 'google_play'
   const [hoveredBarIndex, setHoveredBarIndex] = useState(null);
 
   // Request counter ref to prevent race conditions during rapid filter switching
@@ -381,8 +382,6 @@ export const AppDownloadsTab = () => {
   const sevenDayBarData = React.useMemo(() => {
     const totalAndroidPts = timeseriesData.total_installs?.android || [];
     const totalIosPts = timeseriesData.total_installs?.ios || [];
-    const dailyAndroidPts = timeseriesData.daily_installs?.android || [];
-    const dailyIosPts = timeseriesData.daily_installs?.ios || [];
 
     if (!totalAndroidPts || totalAndroidPts.length === 0) return null;
 
@@ -395,8 +394,47 @@ export const AppDownloadsTab = () => {
     // Anchor point: point right before the last 7 days (all downloads before last 7 days)
     const anchorA = windowSliceA[0];
     const anchorI = windowSliceI[0] || { value: 0 };
-    const pre7Android = anchorA.value || 0;
-    const pre7Ios = anchorI.value || 0;
+    const anchorDate = anchorA.date;
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const yesterdayDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+    // Select active daily series based on source filter
+    let dailyAndroidPts = timeseriesData.daily_installs?.android || [];
+    let dailyIosPts = timeseriesData.daily_installs?.ios || [];
+
+    if (barGraphSourceView === 'marketing') {
+      dailyAndroidPts = timeseriesData.marketing_installs?.android || [];
+      dailyIosPts = timeseriesData.marketing_installs?.ios || [];
+    } else if (barGraphSourceView === 'google_play') {
+      dailyAndroidPts = timeseriesData.google_play_installs?.android || [];
+      dailyIosPts = timeseriesData.google_play_installs?.ios || [];
+    }
+
+    const dailyMapA = {};
+    dailyAndroidPts.forEach(p => { dailyMapA[p.date] = p.value; });
+    const dailyMapI = {};
+    dailyIosPts.forEach(p => { dailyMapI[p.date] = p.value; });
+
+    let pre7Android = 0;
+    let pre7Ios = 0;
+
+    if (barGraphSourceView === 'marketing') {
+      // Historical marketing attribution prior to the 7-day window
+      pre7Android = (timeseriesData.marketing_installs?.android || []).filter(p => p.date <= anchorDate).reduce((s, p) => s + (p.value || 0), 0);
+      pre7Ios = (timeseriesData.marketing_installs?.ios || []).filter(p => p.date <= anchorDate).reduce((s, p) => s + (p.value || 0), 0);
+    } else if (barGraphSourceView === 'google_play') {
+      // Historical Google Play Console / App Store batches prior to the 7-day window
+      pre7Android = (timeseriesData.google_play_installs?.android || []).filter(p => p.date <= anchorDate).reduce((s, p) => s + (p.value || 0), 0);
+      pre7Ios = (timeseriesData.google_play_installs?.ios || []).filter(p => p.date <= anchorDate).reduce((s, p) => s + (p.value || 0), 0);
+      if (pre7Android === 0) pre7Android = anchorA.value || 0;
+      if (pre7Ios === 0) pre7Ios = anchorI.value || 0;
+    } else {
+      // Unified Spliced Baseline
+      pre7Android = anchorA.value || 0;
+      pre7Ios = anchorI.value || 0;
+    }
+
     const pre7Total = pre7Android + pre7Ios;
 
     const bars = [
@@ -412,14 +450,6 @@ export const AppDownloadsTab = () => {
       }
     ];
 
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const yesterdayDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-
-    const dailyMapA = {};
-    dailyAndroidPts.forEach(p => { dailyMapA[p.date] = p.value; });
-    const dailyMapI = {};
-    dailyIosPts.forEach(p => { dailyMapI[p.date] = p.value; });
-
     for (let i = 1; i < windowSliceA.length; i++) {
       const curA = windowSliceA[i];
       const prevA = windowSliceA[i - 1];
@@ -433,20 +463,22 @@ export const AppDownloadsTab = () => {
       const isToday = (d === todayStr || i === windowSliceA.length - 1);
       const isYesterday = (d === yesterdayDate);
 
-      // Real-time telemetry edge fusion for today and yesterday if timeseries has reporting lag
-      if (isToday) {
-        if (typeof activeStats.todayIos === 'number' && activeStats.todayIos > 0) {
-          dIos = Math.max(dIos, activeStats.todayIos);
-        }
-        if (typeof activeStats.todayAndroid === 'number' && activeStats.todayAndroid > 0) {
-          dAndroid = Math.max(dAndroid, activeStats.todayAndroid);
-        }
-      } else if (isYesterday) {
-        if (typeof activeStats.yesterdayIos === 'number' && activeStats.yesterdayIos > 0) {
-          dIos = Math.max(dIos, activeStats.yesterdayIos);
-        }
-        if (typeof activeStats.yesterdayAndroid === 'number' && activeStats.yesterdayAndroid > 0) {
-          dAndroid = Math.max(dAndroid, activeStats.yesterdayAndroid);
+      // Real-time telemetry edge fusion for unified view only
+      if (barGraphSourceView === 'unified') {
+        if (isToday) {
+          if (typeof activeStats.todayIos === 'number' && activeStats.todayIos > 0) {
+            dIos = Math.max(dIos, activeStats.todayIos);
+          }
+          if (typeof activeStats.todayAndroid === 'number' && activeStats.todayAndroid > 0) {
+            dAndroid = Math.max(dAndroid, activeStats.todayAndroid);
+          }
+        } else if (isYesterday) {
+          if (typeof activeStats.yesterdayIos === 'number' && activeStats.yesterdayIos > 0) {
+            dIos = Math.max(dIos, activeStats.yesterdayIos);
+          }
+          if (typeof activeStats.yesterdayAndroid === 'number' && activeStats.yesterdayAndroid > 0) {
+            dAndroid = Math.max(dAndroid, activeStats.yesterdayAndroid);
+          }
         }
       }
 
@@ -475,6 +507,9 @@ export const AppDownloadsTab = () => {
         formattedDate = d.slice(5);
       }
 
+      // Detect unexported / pending Google Play batches
+      const isPendingBatch = barGraphSourceView === 'google_play' && dAndroid === 0 && d >= '2026-10-22';
+
       bars.push({
         id: `day-${d}`,
         label: isToday ? 'Today' : formattedDate,
@@ -482,6 +517,7 @@ export const AppDownloadsTab = () => {
         date: d,
         isToday,
         isYesterday,
+        isPendingBatch,
         android: dAndroid,
         ios: dIos,
         total: dTotal
@@ -493,16 +529,21 @@ export const AppDownloadsTab = () => {
     const sum7Ios = last7Bars.reduce((s, b) => s + b.ios, 0);
     const sum7Total = sum7Android + sum7Ios;
 
-    const lifetimeAndroid = Number(activeStats.androidStoreDownloads) || (pre7Android + sum7Android);
-    const lifetimeIos = Number(activeStats.iosStoreDownloads) || (pre7Ios + sum7Ios);
-    const allTimeAndroid = Math.max(lifetimeAndroid, pre7Android + sum7Android);
-    const allTimeIos = Math.max(lifetimeIos, pre7Ios + sum7Ios);
-    const allTimeTotal = allTimeAndroid + allTimeIos;
+    let allTimeAndroid = pre7Android + sum7Android;
+    let allTimeIos = pre7Ios + sum7Ios;
 
-    // Harmonize Pre-7D Baseline so Pre-7D + Last 7D matches all-time lifetime counts exactly
-    bars[0].android = Math.max(0, allTimeAndroid - sum7Android);
-    bars[0].ios = Math.max(0, allTimeIos - sum7Ios);
-    bars[0].total = bars[0].android + bars[0].ios;
+    if (barGraphSourceView === 'unified') {
+      const lifetimeAndroid = Number(activeStats.androidStoreDownloads) || (pre7Android + sum7Android);
+      const lifetimeIos = Number(activeStats.iosStoreDownloads) || (pre7Ios + sum7Ios);
+      allTimeAndroid = Math.max(lifetimeAndroid, pre7Android + sum7Android);
+      allTimeIos = Math.max(lifetimeIos, pre7Ios + sum7Ios);
+      // Harmonize Pre-7D Baseline so Pre-7D + Last 7D matches all-time lifetime counts exactly
+      bars[0].android = Math.max(0, allTimeAndroid - sum7Android);
+      bars[0].ios = Math.max(0, allTimeIos - sum7Ios);
+      bars[0].total = bars[0].android + bars[0].ios;
+    }
+
+    const allTimeTotal = allTimeAndroid + allTimeIos;
 
     return {
       bars,
@@ -516,7 +557,7 @@ export const AppDownloadsTab = () => {
       allTimeIos,
       allTimeTotal
     };
-  }, [timeseriesData, activeStats]);
+  }, [timeseriesData, activeStats, barGraphSourceView]);
 
   // Chart configs helper that combines Android & iOS in the same chart with legend toggles
   const makeCombinedChart = (seriesObj) => {
@@ -1217,70 +1258,140 @@ export const AppDownloadsTab = () => {
               </span>
             </div>
             <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#94a3b8' }}>
-              {selectedApp === 'all'
-                ? 'All downloads prior to the 7-day window on the left, followed by the previous 7 days segregated by platform across all applications.'
-                : `All downloads prior to the 7-day window on the left, followed by the previous 7 days segregated by platform for ${activeStats.name}.`}
+              {barGraphSourceView === 'marketing'
+                ? `Showing downloads driven exclusively by Marketing & Referral Campaigns for ${selectedApp === 'all' ? 'all applications' : activeStats.name}.`
+                : (barGraphSourceView === 'google_play'
+                    ? `Showing official Google Play Console & Apple App Store report batches for ${selectedApp === 'all' ? 'all applications' : activeStats.name}.`
+                    : (selectedApp === 'all'
+                        ? 'All downloads prior to the 7-day window on the left, followed by the previous 7 days segregated by platform across all applications.'
+                        : `All downloads prior to the 7-day window on the left, followed by the previous 7 days segregated by platform for ${activeStats.name}.`))}
             </p>
           </div>
 
-          {/* Platform Segregation Filter Toggles */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            background: 'rgba(15, 23, 42, 0.8)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: '10px',
-            padding: '3px',
-            gap: '4px'
-          }}>
-            <button
-              onClick={() => setBarGraphPlatformView('all')}
-              style={{
-                padding: '5px 12px',
-                borderRadius: '7px',
-                border: barGraphPlatformView === 'all' ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid transparent',
-                background: barGraphPlatformView === 'all' ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
-                color: barGraphPlatformView === 'all' ? '#34d399' : '#94a3b8',
-                fontSize: '11px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              Stacked (All)
-            </button>
-            <button
-              onClick={() => setBarGraphPlatformView('android')}
-              style={{
-                padding: '5px 12px',
-                borderRadius: '7px',
-                border: barGraphPlatformView === 'android' ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid transparent',
-                background: barGraphPlatformView === 'android' ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
-                color: barGraphPlatformView === 'android' ? '#34d399' : '#94a3b8',
-                fontSize: '11px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              🤖 Android
-            </button>
-            <button
-              onClick={() => setBarGraphPlatformView('ios')}
-              style={{
-                padding: '5px 12px',
-                borderRadius: '7px',
-                border: barGraphPlatformView === 'ios' ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid transparent',
-                background: barGraphPlatformView === 'ios' ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
-                color: barGraphPlatformView === 'ios' ? '#38bdf8' : '#94a3b8',
-                fontSize: '11px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              🍏 iOS
-            </button>
+          {/* Controls: Source Filter + Platform Filter */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            {/* Source Mode Filter */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              background: 'rgba(15, 23, 42, 0.8)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '10px',
+              padding: '3px',
+              gap: '4px'
+            }}>
+              <button
+                onClick={() => setBarGraphSourceView('unified')}
+                title="Blended official store consoles and verified real-time marketing attribution"
+                style={{
+                  padding: '5px 11px',
+                  borderRadius: '7px',
+                  border: barGraphSourceView === 'unified' ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid transparent',
+                  background: barGraphSourceView === 'unified' ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
+                  color: barGraphSourceView === 'unified' ? '#34d399' : '#94a3b8',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                ⚡ Unified (Blended)
+              </button>
+              <button
+                onClick={() => setBarGraphSourceView('marketing')}
+                title="Verified downloads driven by marketing referral campaigns & ads"
+                style={{
+                  padding: '5px 11px',
+                  borderRadius: '7px',
+                  border: barGraphSourceView === 'marketing' ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid transparent',
+                  background: barGraphSourceView === 'marketing' ? 'rgba(245, 158, 11, 0.2)' : 'transparent',
+                  color: barGraphSourceView === 'marketing' ? '#fbbf24' : '#94a3b8',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                🎯 Marketing Campaigns
+              </button>
+              <button
+                onClick={() => setBarGraphSourceView('google_play')}
+                title="Official Google Play Console & Apple App Store report batches"
+                style={{
+                  padding: '5px 11px',
+                  borderRadius: '7px',
+                  border: barGraphSourceView === 'google_play' ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid transparent',
+                  background: barGraphSourceView === 'google_play' ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
+                  color: barGraphSourceView === 'google_play' ? '#38bdf8' : '#94a3b8',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                📦 Google Play Batch
+              </button>
+            </div>
+
+            {/* Platform Segregation Filter Toggles */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              background: 'rgba(15, 23, 42, 0.8)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '10px',
+              padding: '3px',
+              gap: '4px'
+            }}>
+              <button
+                onClick={() => setBarGraphPlatformView('all')}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '7px',
+                  border: barGraphPlatformView === 'all' ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid transparent',
+                  background: barGraphPlatformView === 'all' ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
+                  color: barGraphPlatformView === 'all' ? '#34d399' : '#94a3b8',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                Stacked (All)
+              </button>
+              <button
+                onClick={() => setBarGraphPlatformView('android')}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '7px',
+                  border: barGraphPlatformView === 'android' ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid transparent',
+                  background: barGraphPlatformView === 'android' ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
+                  color: barGraphPlatformView === 'android' ? '#34d399' : '#94a3b8',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                🤖 Android
+              </button>
+              <button
+                onClick={() => setBarGraphPlatformView('ios')}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '7px',
+                  border: barGraphPlatformView === 'ios' ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid transparent',
+                  background: barGraphPlatformView === 'ios' ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
+                  color: barGraphPlatformView === 'ios' ? '#38bdf8' : '#94a3b8',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                🍏 iOS
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1300,10 +1411,12 @@ export const AppDownloadsTab = () => {
               width: '12px',
               height: '12px',
               borderRadius: '3px',
-              background: 'linear-gradient(to top, #059669, #34d399)',
-              border: '1px solid rgba(52, 211, 153, 0.4)'
+              background: barGraphSourceView === 'marketing' ? 'linear-gradient(to top, #d97706, #fbbf24)' : 'linear-gradient(to top, #059669, #34d399)',
+              border: barGraphSourceView === 'marketing' ? '1px solid rgba(251, 191, 36, 0.4)' : '1px solid rgba(52, 211, 153, 0.4)'
             }}></span>
-            <span style={{ color: '#34d399' }}>🤖 Android Store</span>
+            <span style={{ color: barGraphSourceView === 'marketing' ? '#fbbf24' : '#34d399' }}>
+              {barGraphSourceView === 'marketing' ? '🤖 Marketing Android' : (barGraphSourceView === 'google_play' ? '🤖 Google Play Console' : '🤖 Android Store')}
+            </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{
@@ -1313,7 +1426,9 @@ export const AppDownloadsTab = () => {
               background: 'linear-gradient(to top, #0284c7, #38bdf8)',
               border: '1px solid rgba(56, 189, 248, 0.4)'
             }}></span>
-            <span style={{ color: '#38bdf8' }}>🍏 Apple App Store (iOS)</span>
+            <span style={{ color: '#38bdf8' }}>
+              {barGraphSourceView === 'marketing' ? '🍏 Marketing iOS' : (barGraphSourceView === 'google_play' ? '🍏 Apple App Store' : '🍏 Apple App Store (iOS)')}
+            </span>
           </div>
         </div>
 
@@ -1360,6 +1475,8 @@ export const AppDownloadsTab = () => {
                 let heightPct = 0;
                 if (b.isPre) {
                   heightPct = 92; // Baseline anchors on the left
+                } else if (b.isPendingBatch) {
+                  heightPct = 14;
                 } else {
                   heightPct = Math.max(14, Math.round((val / maxDaily) * 80));
                 }
@@ -1371,7 +1488,7 @@ export const AppDownloadsTab = () => {
 
                 const displayNum = b.isPre
                   ? (val >= 1000 ? `${(val / 1000).toFixed(1)}k` : val)
-                  : formatNum(val);
+                  : (b.isPendingBatch ? 'Pending' : formatNum(val));
 
                 return (
                   <div
@@ -1408,14 +1525,26 @@ export const AppDownloadsTab = () => {
                         <div style={{ fontSize: '11px', fontWeight: '800', color: '#f8fafc', marginBottom: '2px' }}>
                           {b.label} {b.date ? `(${b.date})` : ''}
                         </div>
-                        <div style={{ fontSize: '13px', fontWeight: '800', color: b.isPre ? '#c084fc' : '#34d399' }}>
-                          {formatNum(b.total)} downloads
+                        <div style={{ fontSize: '13px', fontWeight: '800', color: b.isPre ? '#c084fc' : (b.isPendingBatch ? '#94a3b8' : (barGraphSourceView === 'marketing' ? '#fbbf24' : '#34d399')) }}>
+                          {b.isPendingBatch ? 'Awaiting 48h Batch' : `${formatNum(b.total)} downloads`}
                         </div>
                         <div style={{ fontSize: '10px', color: '#cbd5e1', marginTop: '3px' }}>
-                          🤖 {formatNum(b.android)} ({b.total > 0 ? ((b.android / b.total) * 100).toFixed(1) : 0}%) · 🍏 {formatNum(b.ios)} ({b.total > 0 ? ((b.ios / b.total) * 100).toFixed(1) : 0}%)
+                          {b.isPendingBatch ? (
+                            'Google Play reporting cutoff'
+                          ) : (
+                            `🤖 ${formatNum(b.android)} (${b.total > 0 ? ((b.android / b.total) * 100).toFixed(1) : 0}%) · 🍏 ${formatNum(b.ios)} (${b.total > 0 ? ((b.ios / b.total) * 100).toFixed(1) : 0}%)`
+                          )}
                         </div>
                         <div style={{ fontSize: '9px', color: '#94a3b8', marginTop: '2px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                          {b.isPre ? 'Historical Aggregate' : (b.isToday ? 'Live Leading Edge' : 'Daily Volume')}
+                          {b.isPre
+                            ? 'Historical Aggregate'
+                            : (b.isPendingBatch
+                                ? 'Google Play Batch Pending'
+                                : (barGraphSourceView === 'marketing'
+                                    ? 'Marketing Attribution'
+                                    : (barGraphSourceView === 'google_play'
+                                        ? 'Official Store Batch'
+                                        : (b.isToday ? 'Live Leading Edge' : 'Daily Volume'))))}
                         </div>
                       </div>
                     )}
@@ -1425,7 +1554,7 @@ export const AppDownloadsTab = () => {
                       fontSize: '11px',
                       fontWeight: '800',
                       marginBottom: '6px',
-                      color: b.isPre ? '#c084fc' : (b.isToday ? '#38bdf8' : '#e2e8f0'),
+                      color: b.isPre ? '#c084fc' : (b.isPendingBatch ? '#94a3b8' : (b.isToday ? '#38bdf8' : '#e2e8f0')),
                       filter: isHovered ? 'drop-shadow(0 0 6px rgba(52, 211, 153, 0.6))' : 'none',
                       transition: 'all 0.15s ease'
                     }}>
@@ -1443,19 +1572,35 @@ export const AppDownloadsTab = () => {
                       flexDirection: 'column',
                       justifyContent: 'flex-end',
                       boxShadow: isHovered
-                        ? (b.isPre ? '0 0 16px rgba(168, 85, 247, 0.4)' : '0 0 16px rgba(16, 185, 129, 0.4)')
+                        ? (b.isPre ? '0 0 16px rgba(168, 85, 247, 0.4)' : (barGraphSourceView === 'marketing' ? '0 0 16px rgba(245, 158, 11, 0.4)' : '0 0 16px rgba(16, 185, 129, 0.4)'))
                         : '0 4px 10px rgba(0, 0, 0, 0.25)',
                       transition: 'height 0.4s ease, filter 0.2s ease',
                       filter: isHovered ? 'brightness(1.15)' : 'none',
-                      background: b.isPre
-                        ? 'linear-gradient(to top, #4338ca, #6366f1, #a855f7)'
-                        : (barGraphPlatformView === 'android'
-                          ? 'linear-gradient(to top, #059669, #10b981, #34d399)'
-                          : (barGraphPlatformView === 'ios'
-                            ? 'linear-gradient(to top, #0284c7, #0ea5e9, #38bdf8)'
-                            : 'transparent'))
+                      background: b.isPendingBatch
+                        ? 'rgba(148, 163, 184, 0.12)'
+                        : (b.isPre
+                          ? 'linear-gradient(to top, #4338ca, #6366f1, #a855f7)'
+                          : (barGraphPlatformView === 'android'
+                            ? (barGraphSourceView === 'marketing'
+                                ? 'linear-gradient(to top, #d97706, #f59e0b, #fbbf24)'
+                                : 'linear-gradient(to top, #059669, #10b981, #34d399)')
+                            : (barGraphPlatformView === 'ios'
+                              ? 'linear-gradient(to top, #0284c7, #0ea5e9, #38bdf8)'
+                              : 'transparent'))),
+                      border: b.isPendingBatch ? '1px dashed rgba(148, 163, 184, 0.35)' : 'none'
                     }}>
-                      {b.isPre ? (
+                      {b.isPendingBatch ? (
+                        <div style={{
+                          height: '100%',
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: 'rgba(15, 23, 42, 0.5)'
+                        }}>
+                          <span style={{ fontSize: '9px', color: '#94a3b8', fontWeight: '700' }}>⏳</span>
+                        </div>
+                      ) : b.isPre ? (
                         barGraphPlatformView === 'all' ? (
                           <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
                             {/* iOS Slice in Pre-7D */}
@@ -1507,9 +1652,13 @@ export const AppDownloadsTab = () => {
                               title={`🤖 Android: ${formatNum(b.android)}`}
                               style={{
                                 flex: 1,
-                                background: b.isToday
-                                  ? 'linear-gradient(to top, #0d9488, #14b8a6, #2dd4bf)'
-                                  : 'linear-gradient(to top, #059669, #10b981, #34d399)'
+                                background: barGraphSourceView === 'marketing'
+                                  ? (b.isToday
+                                      ? 'linear-gradient(to top, #b45309, #d97706, #fbbf24)'
+                                      : 'linear-gradient(to top, #d97706, #f59e0b, #fbbf24)')
+                                  : (b.isToday
+                                      ? 'linear-gradient(to top, #0d9488, #14b8a6, #2dd4bf)'
+                                      : 'linear-gradient(to top, #059669, #10b981, #34d399)')
                               }}
                             />
                           </div>
@@ -1563,7 +1712,9 @@ export const AppDownloadsTab = () => {
             borderTop: '1px solid rgba(255, 255, 255, 0.08)'
           }}>
             <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '10px', padding: '10px 14px', textAlign: 'center' }}>
-              <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '500', display: 'block' }}>Pre-7D Baseline</span>
+              <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '500', display: 'block' }}>
+                {barGraphSourceView === 'marketing' ? 'Pre-7D (Campaigns)' : (barGraphSourceView === 'google_play' ? 'Pre-7D (Store Batch)' : 'Pre-7D Baseline')}
+              </span>
               <span style={{ fontSize: '16px', fontWeight: '800', color: '#c084fc', display: 'block', marginTop: '2px' }}>
                 {formatNum(sevenDayBarData.pre7Total)}
               </span>
@@ -1573,8 +1724,10 @@ export const AppDownloadsTab = () => {
             </div>
 
             <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '10px', padding: '10px 14px', textAlign: 'center' }}>
-              <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '500', display: 'block' }}>Last 7D Android</span>
-              <span style={{ fontSize: '16px', fontWeight: '800', color: '#34d399', display: 'block', marginTop: '2px' }}>
+              <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '500', display: 'block' }}>
+                {barGraphSourceView === 'marketing' ? 'Last 7D Campaigns (Android)' : (barGraphSourceView === 'google_play' ? 'Last 7D Google Play' : 'Last 7D Android')}
+              </span>
+              <span style={{ fontSize: '16px', fontWeight: '800', color: barGraphSourceView === 'marketing' ? '#fbbf24' : '#34d399', display: 'block', marginTop: '2px' }}>
                 +{formatNum(sevenDayBarData.sum7Android)}
               </span>
               <span style={{ fontSize: '10px', color: '#64748b' }}>
@@ -1583,7 +1736,9 @@ export const AppDownloadsTab = () => {
             </div>
 
             <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '10px', padding: '10px 14px', textAlign: 'center' }}>
-              <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '500', display: 'block' }}>Last 7D iOS</span>
+              <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '500', display: 'block' }}>
+                {barGraphSourceView === 'marketing' ? 'Last 7D Campaigns (iOS)' : (barGraphSourceView === 'google_play' ? 'Last 7D App Store' : 'Last 7D iOS')}
+              </span>
               <span style={{ fontSize: '16px', fontWeight: '800', color: '#38bdf8', display: 'block', marginTop: '2px' }}>
                 +{formatNum(sevenDayBarData.sum7Ios)}
               </span>
@@ -1594,13 +1749,21 @@ export const AppDownloadsTab = () => {
 
             <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '10px', padding: '10px 14px', textAlign: 'center' }}>
               <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '500', display: 'block' }}>
-                {selectedApp === 'all' ? 'All-Time Combined' : `All-Time ${activeStats.name}`}
+                {barGraphSourceView === 'marketing'
+                  ? 'All-Time Marketing'
+                  : (barGraphSourceView === 'google_play'
+                      ? 'All-Time Store Consoles'
+                      : (selectedApp === 'all' ? 'All-Time Combined' : `All-Time ${activeStats.name}`))}
               </span>
               <span style={{ fontSize: '16px', fontWeight: '800', color: '#f8fafc', display: 'block', marginTop: '2px' }}>
                 {formatNum(sevenDayBarData.allTimeTotal)}
               </span>
-              <span style={{ fontSize: '10px', color: '#34d399', fontWeight: '600' }}>
-                Historical + 7D
+              <span style={{ fontSize: '10px', color: barGraphSourceView === 'marketing' ? '#fbbf24' : '#34d399', fontWeight: '600' }}>
+                {barGraphSourceView === 'marketing'
+                  ? 'Attribution Total'
+                  : (barGraphSourceView === 'google_play'
+                      ? 'Official Batches Total'
+                      : 'Historical + 7D')}
               </span>
             </div>
           </div>
