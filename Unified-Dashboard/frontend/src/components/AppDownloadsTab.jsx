@@ -76,14 +76,14 @@ const CACHE_FRESHNESS_MS = 2 * 60 * 1000; // 2 minutes
 
 export const AppDownloadsTab = () => {
   const { authFetch } = useAuth();
-  const initialCache = APP_DOWNLOADS_CACHE['all'] || null;
+  const initialCache = APP_DOWNLOADS_CACHE['ailegal'] || null;
   const [analytics, setAnalytics] = useState(initialCache?.analytics || null);
   const [timeseriesData, setTimeseriesData] = useState(initialCache?.timeseriesData || {
     user_loss: { android: [], ios: [] },
     total_installs: { android: [], ios: [] },
     active_devices: { android: [], ios: [] }
   });
-  const [selectedApp, setSelectedApp] = useState('all');
+  const [selectedApp, setSelectedApp] = useState('ailegal');
   const [showAndroid, setShowAndroid] = useState(true);
   const [showIos, setShowIos] = useState(true);
   const [loading, setLoading] = useState(!initialCache);
@@ -112,18 +112,18 @@ export const AppDownloadsTab = () => {
       if (cached.geoData) setGeoData(cached.geoData);
       setIsSwitchingApp(false);
     } else {
-      // If we have 'all' cache, derive provisional app data immediately for 0ms visual transition!
-      const allCache = APP_DOWNLOADS_CACHE['all'];
-      if (allCache && allCache.analytics) {
+      // If we have an existing cache, derive provisional app data immediately for 0ms visual transition!
+      const anyCache = APP_DOWNLOADS_CACHE['all'] || APP_DOWNLOADS_CACHE['ailegal'];
+      if (anyCache && anyCache.analytics) {
         if (targetApp === 'all') {
-          setAnalytics(allCache.analytics);
-          if (allCache.timeseriesData) setTimeseriesData(allCache.timeseriesData);
-          if (allCache.geoData) setGeoData(allCache.geoData);
+          setAnalytics(anyCache.analytics);
+          if (anyCache.timeseriesData) setTimeseriesData(anyCache.timeseriesData);
+          if (anyCache.geoData) setGeoData(anyCache.geoData);
         } else {
-          const appInfo = allCache.analytics.apps?.find(a => a.app_code === targetApp);
+          const appInfo = anyCache.analytics.apps?.find(a => a.app_code === targetApp);
           if (appInfo) {
             setAnalytics(prev => ({
-              ...(prev || allCache.analytics),
+              ...(prev || anyCache.analytics),
               combined: appInfo,
               apps: [appInfo]
             }));
@@ -673,7 +673,7 @@ export const AppDownloadsTab = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         {/* App selector */}
         <div className="app-selector-pills" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-          {['all', 'ailegal', 'aisa'].map((app) => (
+          {['ailegal', 'aisa', 'all'].map((app) => (
             <button
               key={app}
               onClick={() => handleSelectApp(app)}
