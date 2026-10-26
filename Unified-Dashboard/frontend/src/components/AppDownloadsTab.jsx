@@ -506,9 +506,9 @@ export const AppDownloadsTab = () => {
 
     return {
       bars,
-      pre7Total,
-      pre7Android,
-      pre7Ios,
+      pre7Total: bars[0].total,
+      pre7Android: bars[0].android,
+      pre7Ios: bars[0].ios,
       sum7Android,
       sum7Ios,
       sum7Total,
