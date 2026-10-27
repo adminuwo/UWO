@@ -17,7 +17,7 @@ const googlePlaySync = require('./googlePlaySyncService');
 
 const mergedCache = new Map();
 const inFlightMerged = new Map();
-const MERGED_CACHE_TTL_MS = 45 * 1000; // 45 seconds cache to serve parallel endpoints in <1ms
+const MERGED_CACHE_TTL_MS = 60 * 60 * 1000; // Cached from DB, invalidated on Sync Live Data
 
 function invalidateMergedCache() {
   mergedCache.clear();

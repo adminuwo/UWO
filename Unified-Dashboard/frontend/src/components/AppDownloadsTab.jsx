@@ -91,9 +91,10 @@ export const AppDownloadsTab = () => {
   const [showAndroid, setShowAndroid] = useState(true);
   const [showIos, setShowIos] = useState(true);
   const [loading, setLoading] = useState(!initialCache);
+  const [syncing, setSyncing] = useState(false);
+  const [syncNotice, setSyncNotice] = useState(null);
   const [isSwitchingApp, setIsSwitchingApp] = useState(false);
   const [lastSynced, setLastSynced] = useState(initialCache?.lastSynced || null);
-  const [autoRefreshCountdown, setAutoRefreshCountdown] = useState(300);
   const [geoData, setGeoData] = useState(initialCache?.geoData || DEFAULT_GEO_DATA);
   const [activeGeoView, setActiveGeoView] = useState('india'); // 'india' | 'countries'
   const [geoSearchQuery, setGeoSearchQuery] = useState('');
@@ -215,7 +216,6 @@ export const AppDownloadsTab = () => {
 
       const syncTime = new Date();
       setLastSynced(syncTime);
-      setAutoRefreshCountdown(300);
 
       // Cache the result for instant subsequent tab and filter switches
       APP_DOWNLOADS_CACHE[targetApp] = {
@@ -236,20 +236,27 @@ export const AppDownloadsTab = () => {
   };
 
   const handleManualSyncAndRefresh = async () => {
-    setLoading(true);
-    setIsSwitchingApp(true);
+    if (syncing) return;
+    setSyncing(true);
+    setSyncNotice(null);
     delete APP_DOWNLOADS_CACHE['all'];
     delete APP_DOWNLOADS_CACHE['ailegal'];
     delete APP_DOWNLOADS_CACHE['aisa'];
     try {
-      await authFetch('/api/admin/unified-analytics/sync?provider=all', { method: 'POST' });
+      const res = await authFetch('/api/admin/unified-analytics/sync?provider=all', { method: 'POST' });
+      if (res && res.ok) {
+        setSyncNotice('✓ Live telemetry synced & saved to database');
+        setTimeout(() => setSyncNotice(null), 4500);
+      }
     } catch (e) {
-      console.warn('Sync trigger error (proceeding with fetch):', e);
+      console.warn('Sync trigger error (proceeding with DB fetch):', e);
+    } finally {
+      await fetchAnalytics(selectedApp, true);
+      setSyncing(false);
     }
-    await fetchAnalytics(selectedApp, false);
   };
 
-  // Instant-cache-first auto-refresh
+  // Load directly from database (or instant cache) on mount / app switch — no auto-refresh polling
   useEffect(() => {
     const cached = APP_DOWNLOADS_CACHE[selectedApp];
     if (cached) {
@@ -262,18 +269,7 @@ export const AppDownloadsTab = () => {
     } else {
       fetchAnalytics(selectedApp, false);
     }
-
-    const refreshInterval = setInterval(() => fetchAnalytics(selectedApp, true), 5 * 60 * 1000);
-    return () => clearInterval(refreshInterval);
   }, [selectedApp]);
-
-  // Countdown timer display
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setAutoRefreshCountdown(prev => (prev <= 1 ? 300 : prev - 1));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   // Safely extract the combined stats from our backend
   const combined = analytics?.combined || {};
@@ -685,15 +681,15 @@ export const AppDownloadsTab = () => {
 
   return (
     <div>
-      {/* Auto-Sync Status Bar */}
+      {/* Database Telemetry & Live Sync Bar */}
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         background: 'rgba(16, 185, 129, 0.06)', border: '1px solid rgba(16, 185, 129, 0.2)',
         borderRadius: '8px', padding: '8px 16px', marginBottom: '16px', flexWrap: 'wrap', gap: '8px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981', flexShrink: 0 }}></span>
-          <span style={{ fontSize: '12px', color: '#34d399', fontWeight: '600' }}>Firebase SDK + Store Telemetry Active</span>
+          <span style={{ fontSize: '12px', color: '#34d399', fontWeight: '600' }}>Database Telemetry Active (MongoDB)</span>
           {analytics?.source?.realtime_active_devices > 0 && (
             <span style={{
               fontSize: '11px',
@@ -710,28 +706,40 @@ export const AppDownloadsTab = () => {
           )}
           {lastSynced && (
             <span style={{ fontSize: '11px', color: '#64748b' }}>
-              • Last synced: {lastSynced.toLocaleTimeString()}
+              • Loaded from DB at {lastSynced.toLocaleTimeString()}
+            </span>
+          )}
+          {syncNotice && (
+            <span style={{
+              fontSize: '11px',
+              color: '#34d399',
+              background: 'rgba(16, 185, 129, 0.18)',
+              border: '1px solid rgba(16, 185, 129, 0.35)',
+              borderRadius: '6px',
+              padding: '2px 8px',
+              fontWeight: '600'
+            }}>
+              {syncNotice}
             </span>
           )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontSize: '11px', color: '#64748b' }}>
-            Auto-refresh in <strong style={{ color: '#94a3b8' }}>{Math.floor(autoRefreshCountdown / 60)}:{String(autoRefreshCountdown % 60).padStart(2, '0')}</strong>
-          </span>
-
-
           <button
             onClick={handleManualSyncAndRefresh}
-            disabled={loading}
+            disabled={syncing}
+            title="Pull fresh live telemetry from Firebase GA4, Google Play, and App Store into MongoDB"
             style={{
-              background: loading ? '#1e293b' : 'rgba(16, 185, 129, 0.15)',
-              color: loading ? '#64748b' : '#10b981',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
-              borderRadius: '6px', padding: '4px 12px',
-              fontSize: '11px', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer'
+              background: syncing ? '#1e293b' : 'linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(5, 150, 105, 0.2) 100%)',
+              color: syncing ? '#94a3b8' : '#34d399',
+              border: '1px solid rgba(16, 185, 129, 0.45)',
+              borderRadius: '6px', padding: '5px 14px',
+              fontSize: '11.5px', fontWeight: '700', cursor: syncing ? 'wait' : 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              boxShadow: syncing ? 'none' : '0 2px 8px rgba(16, 185, 129, 0.15)',
+              transition: 'all 0.2s ease'
             }}
           >
-            {loading ? '⟳ Syncing...' : '⟳ Refresh Now'}
+            {syncing ? '⟳ Syncing Live Data to DB...' : '⚡ Sync Live Data'}
           </button>
         </div>
       </div>

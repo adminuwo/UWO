@@ -144,9 +144,12 @@ export const ActiveSubscriptions = ({ initialSearch = '', onJumpToTx = null }) =
       });
       const data = await res.json();
       if (res.ok && data.success) {
+        const proc = data.processed ?? data.records_processed ?? 0;
+        const act = data.total_active_subscriptions ?? 0;
+        const tot = data.total_subscriptions ?? 0;
         setSyncNotice({
           type: 'success',
-          msg: `Live Production Sync Complete! Processed ${data.processed} subscriptions (Active: ${data.total_active_subscriptions}/${data.total_subscriptions}).`
+          msg: `Live Production Sync Complete! Processed ${proc} subscriptions (Active: ${act}/${tot}).`
         });
       } else {
         setSyncNotice({
@@ -263,19 +266,7 @@ export const ActiveSubscriptions = ({ initialSearch = '', onJumpToTx = null }) =
     let label = 'Active';
     let dotColor = '#10b981';
 
-    if (sub.is_manually_assigned || sub.is_paid === false) {
-      bg = 'rgba(99, 102, 241, 0.18)';
-      border = 'rgba(99, 102, 241, 0.45)';
-      text = '#a5b4fc';
-      label = sub.is_expiring_soon ? `Expiring Soon (${sub.days_remaining}d) [Manual]` : 'Manually Assigned';
-      dotColor = '#818cf8';
-    } else if (status === 'in_grace_period' || sub.is_grace_period) {
-      bg = 'rgba(245, 158, 11, 0.15)';
-      border = 'rgba(245, 158, 11, 0.4)';
-      text = '#fbbf24';
-      label = 'In Grace Period';
-      dotColor = '#f59e0b';
-    } else if (status === 'expired') {
+    if (status === 'expired') {
       bg = 'rgba(239, 68, 68, 0.15)';
       border = 'rgba(239, 68, 68, 0.4)';
       text = '#f87171';
@@ -287,6 +278,24 @@ export const ActiveSubscriptions = ({ initialSearch = '', onJumpToTx = null }) =
       text = '#94a3b8';
       label = 'Cancelled';
       dotColor = '#64748b';
+    } else if (status === 'failed') {
+      bg = 'rgba(239, 68, 68, 0.15)';
+      border = 'rgba(239, 68, 68, 0.4)';
+      text = '#f87171';
+      label = 'Failed';
+      dotColor = '#ef4444';
+    } else if (status === 'in_grace_period' || sub.is_grace_period) {
+      bg = 'rgba(245, 158, 11, 0.15)';
+      border = 'rgba(245, 158, 11, 0.4)';
+      text = '#fbbf24';
+      label = 'In Grace Period';
+      dotColor = '#f59e0b';
+    } else if (sub.is_manually_assigned || sub.is_paid === false) {
+      bg = 'rgba(99, 102, 241, 0.18)';
+      border = 'rgba(99, 102, 241, 0.45)';
+      text = '#a5b4fc';
+      label = sub.is_expiring_soon ? `Expiring Soon (${sub.days_remaining}d) [Manual]` : 'Manually Assigned';
+      dotColor = '#818cf8';
     } else if (sub.is_expiring_soon) {
       bg = 'rgba(249, 115, 22, 0.15)';
       border = 'rgba(249, 115, 22, 0.4)';

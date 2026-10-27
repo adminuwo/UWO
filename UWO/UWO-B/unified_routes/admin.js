@@ -16,33 +16,27 @@ googlePlaySync.startPlayStoreAutoSyncWorker(getUnifiedDb, 15);
 // Launch Automated Apple App Store Connect Auto-Sync Worker (runs every 60 minutes)
 appStoreSync.startAppStoreAutoSyncWorker(getUnifiedDb, 60);
 
-// Background Telemetry Cache Warmer
-// Keeps in-memory caches warm so client requests never encounter cold DB/GA4 stalls (<20ms response)
-let telemetryWarmerTimer = null;
+// Database Telemetry Cache Warmer (runs on startup and after explicit Sync)
 async function triggerTelemetryWarmup() {
   try {
     const db = await getUnifiedDb();
     if (!db) return;
     const codes = ['aisa', 'ailegal'];
     await Promise.all([
-      firebaseAnalytics.getFirebaseTelemetry().catch(() => null),
+      firebaseAnalytics.getFirebaseTelemetry(false).catch(() => null),
       getLiveDownloadsData(db).catch(() => null),
       hybridTelemetry.getMergedAppTelemetry(db, 'ailegal').catch(() => null),
       hybridTelemetry.getMergedAppTelemetry(db, 'aisa').catch(() => null),
       getAuthoritativeDownloadTargets(db).catch(() => null),
       computeTimeseriesBase(db, codes).catch(() => null),
-      firebaseAnalytics.getGeoTelemetry('all').catch(() => null)
+      firebaseAnalytics.getGeoTelemetry('all', false).catch(() => null)
     ]);
   } catch (e) {
-    // Non-fatal background warm-up
+    // Non-fatal startup warm-up from MongoDB
   }
 }
 
-setTimeout(triggerTelemetryWarmup, 2000);
-if (!telemetryWarmerTimer) {
-  telemetryWarmerTimer = setInterval(triggerTelemetryWarmup, 30 * 1000);
-  if (telemetryWarmerTimer.unref) telemetryWarmerTimer.unref();
-}
+setTimeout(triggerTelemetryWarmup, 1500);
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-jwt-key-change-this-in-production-32-bytes';
 
@@ -853,7 +847,7 @@ let liveDownloadsCacheTime = 0;
 let inFlightLiveDownloadsPromise = null;
 
 async function getLiveDownloadsData(db) {
-  if (liveDownloadsCache && (Date.now() - liveDownloadsCacheTime < 60000)) {
+  if (liveDownloadsCache && (Date.now() - liveDownloadsCacheTime < 3600000)) {
     return liveDownloadsCache;
   }
   if (inFlightLiveDownloadsPromise) {
@@ -877,24 +871,55 @@ async function getLiveDownloadsData(db) {
       const yesterdayStrings = getDayStrings(yesterday);
       const todayStr = todayStrings.utc;
 
-      // Query real live incoming install events with minimal projected fields to optimize network payload
-      const proj = {
-        projection: {
-          timestamp: 1,
-          installed_at: 1,
-          created_at: 1,
-          device_id: 1,
-          fingerprint: 1,
-          event_id: 1,
-          app_code: 1,
-          product_id: 1,
-          platform: 1
+      const buildAggPipeline = (tsField, fallbackField) => [
+        {
+          $project: {
+            dt: { $ifNull: [`$${tsField}`, `$${fallbackField}`, '$created_at'] },
+            rawApp: { $toLower: { $ifNull: ['$app_code', '$product_id', 'ailegal'] } },
+            rawPlat: { $toLower: { $ifNull: ['$platform', 'android'] } }
+          }
+        },
+        {
+          $addFields: {
+            parsedDate: {
+              $cond: {
+                if: { $eq: [{ $type: '$dt' }, 'date'] },
+                then: '$dt',
+                else: { $dateFromString: { dateString: { $toString: '$dt' }, onError: null, onNull: null } }
+              }
+            }
+          }
+        },
+        { $match: { parsedDate: { $ne: null } } },
+        {
+          $group: {
+            _id: {
+              dUtc: { $dateToString: { format: '%Y-%m-%d', date: '$parsedDate' } },
+              dIst: { $dateToString: { format: '%Y-%m-%d', date: '$parsedDate', timezone: 'Asia/Kolkata' } },
+              appCode: {
+                $cond: [
+                  { $regexMatch: { input: '$rawApp', regex: /aisa/i } },
+                  'aisa',
+                  'ailegal'
+                ]
+              },
+              plat: {
+                $cond: [
+                  { $eq: ['$rawPlat', 'ios'] },
+                  'ios',
+                  'android'
+                ]
+              }
+            },
+            count: { $sum: 1 },
+            maxDate: { $max: '$parsedDate' }
+          }
         }
-      };
+      ];
 
-      const [marketingList, downloadsList] = await Promise.all([
-        db.collection('marketing_installs').find({}, proj).toArray().catch(() => []),
-        db.collection('app_downloads').find({}, proj).toArray().catch(() => [])
+      const [mktAgg, dlAgg] = await Promise.all([
+        db.collection('marketing_installs').aggregate(buildAggPipeline('timestamp', 'installed_at')).toArray().catch(() => []),
+        db.collection('app_downloads').aggregate(buildAggPipeline('created_at', 'installed_at')).toArray().catch(() => [])
       ]);
 
       const appTotals = {
@@ -906,62 +931,51 @@ async function getLiveDownloadsData(db) {
         ailegal: {},
       };
       let latestEvent = null;
+      let totalCount = 0;
 
-      // Deduplicate live events by device_id, fingerprint, or event_id across collections
-      const seenEvents = new Set();
-
-      function processRecord(rec) {
-        let dt = null;
-        if (rec.timestamp) {
-          dt = rec.timestamp instanceof Date ? rec.timestamp : new Date(rec.timestamp);
-        } else if (rec.installed_at) {
-          dt = rec.installed_at instanceof Date ? rec.installed_at : new Date(rec.installed_at);
-        } else if (rec.created_at) {
-          dt = rec.created_at instanceof Date ? rec.created_at : new Date(rec.created_at);
+      // Merge aggregated buckets (take max when both collections record same bucket, or sum distinct buckets)
+      const bucketMap = new Map();
+      for (const row of mktAgg) {
+        const key = `${row._id.dUtc}_${row._id.dIst}_${row._id.appCode}_${row._id.plat}`;
+        bucketMap.set(key, { ...row._id, count: row.count, maxDate: row.maxDate });
+      }
+      for (const row of dlAgg) {
+        const key = `${row._id.dUtc}_${row._id.dIst}_${row._id.appCode}_${row._id.plat}`;
+        const ex = bucketMap.get(key);
+        if (ex) {
+          ex.count = Math.max(ex.count, row.count);
+          if (row.maxDate && (!ex.maxDate || row.maxDate > ex.maxDate)) ex.maxDate = row.maxDate;
+        } else {
+          bucketMap.set(key, { ...row._id, count: row.count, maxDate: row.maxDate });
         }
-        if (!dt || isNaN(dt.getTime())) return;
-        if (!latestEvent || dt > latestEvent) latestEvent = dt;
+      }
 
-        const dedupKey = (rec.device_id || rec.fingerprint || rec.event_id || rec._id.toString()) + '_' + dt.toISOString().slice(0, 13);
-        if (seenEvents.has(dedupKey)) return;
-        seenEvents.add(dedupKey);
-
-        const { utc: dUtc, ist: dIst } = getDayStrings(dt);
-        const dStr = dUtc;
-        const rawApp = (rec.app_code || rec.product_id || '').toLowerCase();
-        const appCode = rawApp.includes('aisa') ? 'aisa' : 'ailegal';
-        const platRaw = String(rec.platform || 'android').toLowerCase().trim();
-        const plat = platRaw === 'ios' ? 'ios' : 'android';
+      for (const b of bucketMap.values()) {
+        const { dUtc, dIst, appCode, plat, count, maxDate } = b;
+        if (maxDate && (!latestEvent || maxDate > latestEvent)) latestEvent = maxDate;
+        totalCount += count;
 
         if (!appTotals[appCode]) {
           appTotals[appCode] = { android: 0, ios: 0, today_total: 0, today_android: 0, today_ios: 0, yesterday_total: 0, yesterday_android: 0, yesterday_ios: 0, total: 0 };
         }
         if (!dailyByApp[appCode]) dailyByApp[appCode] = {};
-        if (!dailyByApp[appCode][dStr]) dailyByApp[appCode][dStr] = { android: 0, ios: 0 };
+        if (!dailyByApp[appCode][dUtc]) dailyByApp[appCode][dUtc] = { android: 0, ios: 0 };
 
-        appTotals[appCode][plat] += 1;
-        appTotals[appCode].total += 1;
+        appTotals[appCode][plat] += count;
+        appTotals[appCode].total += count;
+        dailyByApp[appCode][dUtc][plat] += count;
 
-        const isToday = (dIst === todayStrings.ist);
-        const isYesterday = (dIst === yesterdayStrings.ist);
-
-        if (isToday) {
-          appTotals[appCode].today_total += 1;
-          if (plat === 'android') appTotals[appCode].today_android += 1;
-          else appTotals[appCode].today_ios += 1;
-        } else if (isYesterday) {
-          appTotals[appCode].yesterday_total += 1;
-          if (plat === 'android') appTotals[appCode].yesterday_android = (appTotals[appCode].yesterday_android || 0) + 1;
-          else appTotals[appCode].yesterday_ios = (appTotals[appCode].yesterday_ios || 0) + 1;
+        if (dIst === todayStrings.ist) {
+          appTotals[appCode].today_total += count;
+          if (plat === 'android') appTotals[appCode].today_android += count;
+          else appTotals[appCode].today_ios += count;
+        } else if (dIst === yesterdayStrings.ist) {
+          appTotals[appCode].yesterday_total += count;
+          if (plat === 'android') appTotals[appCode].yesterday_android += count;
+          else appTotals[appCode].yesterday_ios += count;
         }
-
-        dailyByApp[appCode][dStr][plat] += 1;
       }
 
-      marketingList.forEach(processRecord);
-      downloadsList.forEach(processRecord);
-
-      const totalCount = seenEvents.size;
       const result = { appTotals, dailyByApp, latestEvent, todayStr, todayIst: todayStrings.ist, totalCount };
       liveDownloadsCache = result;
       liveDownloadsCacheTime = Date.now();
@@ -974,10 +988,10 @@ async function getLiveDownloadsData(db) {
   return inFlightLiveDownloadsPromise;
 }
 
-// In-memory overview caching and promise deduplication (TTL 45s)
+// In-memory overview caching and promise deduplication (invalidated on Sync)
 const overviewCache = new Map();
 const inFlightOverview = new Map();
-const OVERVIEW_CACHE_TTL_MS = 45 * 1000;
+const OVERVIEW_CACHE_TTL_MS = 60 * 60 * 1000;
 
 // GET /api/admin/analytics/google-play/overview
 router.get(['/analytics/google-play/overview', '/google-play/overview'], verifyAdminToken, async (req, res) => {
@@ -1386,10 +1400,10 @@ router.get(['/analytics/google-play/overview', '/google-play/overview'], verifyA
   }
 });
 
-// Timeseries Base Caching and Promise Deduplication (TTL 45s)
+// Timeseries Base Caching and Promise Deduplication (invalidated on Sync)
 const timeseriesCache = new Map();
 const inFlightTimeseries = new Map();
-const TIMESERIES_CACHE_TTL_MS = 45 * 1000;
+const TIMESERIES_CACHE_TTL_MS = 60 * 60 * 1000;
 
 async function computeTimeseriesBase(db, codes) {
   const codesKey = [...codes].sort().join(',');
@@ -1796,8 +1810,17 @@ router.post(['/analytics/google-play/sync', '/google-play/sync'], verifyAdminTok
     const db = await getUnifiedDb();
     const bucket = req.query.bucket || process.env.GOOGLE_PLAY_GCS_BUCKET_ID || 'pubsite_prod_5002243960657921085';
     const syncResult = await googlePlaySync.syncGooglePlayBucket(db, bucket);
-    // Also refresh Firebase SDK cache
-    await firebaseAnalytics.getFirebaseTelemetry(true).catch(() => null);
+    // Sync live Firebase & Geo telemetry and persist to MongoDB
+    await Promise.all([
+      firebaseAnalytics.getFirebaseTelemetry(true).catch(() => null),
+      firebaseAnalytics.getGeoTelemetry('all', true).catch(() => null)
+    ]);
+    hybridTelemetry.invalidateMergedCache();
+    overviewCache.clear();
+    timeseriesCache.clear();
+    liveDownloadsCache = null;
+    cachedDownloadTargets = null;
+    await triggerTelemetryWarmup();
 
     return res.json({
       success: syncResult.success,
@@ -1898,27 +1921,35 @@ router.post('/unified-analytics/sync', verifyAdminToken, async (req, res) => {
   try {
     const db = await getUnifiedDb();
     const bucket = req.query.bucket || process.env.GOOGLE_PLAY_GCS_BUCKET_ID || 'pubsite_prod_5002243960657921085';
-    let playSyncResult = null;
-    let appStoreSyncResult = null;
+    const provider = req.query.provider || 'all';
 
-    if (!req.query.provider || req.query.provider === 'all' || req.query.provider === 'google-play') {
-      playSyncResult = await googlePlaySync.syncGooglePlayBucket(db, bucket).catch(err => ({ error: err.message }));
-    }
-    if (!req.query.provider || req.query.provider === 'all' || req.query.provider === 'app-store') {
-      appStoreSyncResult = await appStoreSync.scanLocalAppStoreReports(db).catch(err => ({ error: err.message }));
-    }
+    // Run live Firebase GA4, Geo, Google Play GCS, and App Store syncs in parallel and persist to MongoDB
+    const [playSyncResult, appStoreSyncResult, fbSynced] = await Promise.all([
+      (provider === 'all' || provider === 'google-play')
+        ? googlePlaySync.syncGooglePlayBucket(db, bucket).catch(err => ({ error: err.message }))
+        : Promise.resolve(null),
+      (provider === 'all' || provider === 'app-store')
+        ? appStoreSync.scanLocalAppStoreReports(db).catch(err => ({ error: err.message }))
+        : Promise.resolve(null),
+      firebaseAnalytics.getFirebaseTelemetry(true).catch(() => null),
+      firebaseAnalytics.getGeoTelemetry('all', true).catch(() => null)
+    ]);
 
-    // Force refresh Firebase SDK telemetry cache & clear merged telemetry cache
-    await firebaseAnalytics.getFirebaseTelemetry(true).catch(() => null);
+    // Clear all in-memory caches and warm directly from the updated MongoDB collections
     hybridTelemetry.invalidateMergedCache();
+    overviewCache.clear();
+    timeseriesCache.clear();
+    liveDownloadsCache = null;
     cachedDownloadTargets = null;
+    await triggerTelemetryWarmup();
 
     return res.json({
       success: true,
-      provider: req.query.provider || 'all',
+      provider,
       play_sync: playSyncResult,
       app_store_sync: appStoreSyncResult,
-      message: 'Unified analytics, store reports, and live Firebase synchronization completed successfully.',
+      firebase_synced: Boolean(fbSynced),
+      message: 'Live telemetry synced and saved to MongoDB successfully.',
       synced_at: new Date().toISOString()
     });
   } catch (err) {

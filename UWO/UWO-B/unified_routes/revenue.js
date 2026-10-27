@@ -41,7 +41,7 @@ function buildMatchStage(query) {
   const match = {
     status: { $in: ['completed', 'captured', 'paid', 'success', 'succeeded'] },
     is_test: { $ne: true },
-    external_transaction_id: { $not: /^(txn_admin_|pay_fake|pay_mock|manual_|test_)/i },
+    external_transaction_id: { $not: /^(txn_admin_|pay_fake|pay_mock|mock_|manual_|test_)/i },
     'metadata.gateway': { $ne: 'Admin Direct Assignment' }
   };
 
@@ -857,10 +857,16 @@ router.post(['/sync', '/transactions/sync-live', '/sync-live'], async (req, res)
   try {
     const result = await runRevenueSync({ forceFull: true });
     if (!result.success && result.skipped) {
+      const st = getRevenueSyncStatus();
       return res.json({
         success: true,
         message: 'Revenue sync is already actively executing in background.',
-        ...getRevenueSyncStatus()
+        processed: st.last_records_processed || 0,
+        created: st.last_records_created || 0,
+        updated: st.last_records_updated || 0,
+        total_transactions: st.total_transactions_in_db || 0,
+        total_subscriptions: st.total_subscriptions_in_db || 0,
+        ...st
       });
     }
     if (!result.success) {
@@ -1005,10 +1011,16 @@ router.post('/subscriptions/sync', async (req, res) => {
   try {
     const result = await subscriptionSyncService.runSync();
     if (!result.success && result.skipped) {
+      const st = subscriptionSyncService.getStatus();
       return res.json({
         success: true,
         message: 'Subscription sync is already actively executing in background.',
-        ...subscriptionSyncService.getStatus()
+        processed: st.records_processed || 0,
+        created: st.records_created || 0,
+        updated: st.records_updated || 0,
+        total_subscriptions: st.total_subscriptions || 0,
+        total_active_subscriptions: st.total_active_subscriptions || 0,
+        ...st
       });
     }
     if (!result.success) {

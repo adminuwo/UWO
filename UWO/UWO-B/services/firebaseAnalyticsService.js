@@ -1,11 +1,11 @@
 const { BetaAnalyticsDataClient } = require('@google-analytics/data');
 const path = require('path');
 const fs = require('fs');
+const { getUnifiedDb } = require('../unified_routes/db');
 
 let clientInstance = null;
 let cachedData = null;
 let lastFetchTime = 0;
-const CACHE_TTL_MS = 60 * 1000; // 60 seconds TTL
 let inFlightFirebasePromise = null;
 let inFlightGeoRawPromise = null;
 
@@ -586,16 +586,28 @@ function calibrateGeoData(rawGroup, targets) {
 }
 
 async function fetchGeoDirectMetrics(forceRefresh = false, targets = null) {
+  if (!forceRefresh) {
+    if (cachedGeoRaw) {
+      return calibrateGeoData(cachedGeoRaw, targets);
+    }
+    try {
+      const db = await getUnifiedDb();
+      if (db) {
+        const storedGeo = await db.collection('firebase_telemetry_cache').findOne({ _id: 'firebase_geo_snapshot' }).catch(() => null);
+        if (storedGeo && storedGeo.data) {
+          cachedGeoRaw = storedGeo.data;
+          lastGeoFetchTime = Date.now();
+          return calibrateGeoData(cachedGeoRaw, targets);
+        }
+      }
+    } catch (e) {}
+  }
+
   const client = getClient();
   const propertyId = getPropertyId();
 
   if (!client || !propertyId) {
     return synthesizeGeoData(targets);
-  }
-
-  const now = Date.now();
-  if (!forceRefresh && cachedGeoRaw && (now - lastGeoFetchTime < GEO_CACHE_TTL_MS)) {
-    return calibrateGeoData(cachedGeoRaw, targets);
   }
 
   if (inFlightGeoRawPromise) {
@@ -624,7 +636,7 @@ async function fetchGeoDirectMetrics(forceRefresh = false, targets = null) {
         }
       });
 
-      const reportRes = await runWithTimeout(reportCall, 3500, null);
+      const reportRes = await runWithTimeout(reportCall, 5000, null);
       if (!reportRes || !reportRes[0]) {
         console.warn('[FirebaseAnalytics] fetchGeoDirectMetrics timed out or empty, using cached or fallback');
         return cachedGeoRaw || null;
@@ -691,6 +703,16 @@ async function fetchGeoDirectMetrics(forceRefresh = false, targets = null) {
 
       cachedGeoRaw = appRaw;
       lastGeoFetchTime = Date.now();
+      try {
+        const db = await getUnifiedDb();
+        if (db) {
+          await db.collection('firebase_telemetry_cache').updateOne(
+            { _id: 'firebase_geo_snapshot' },
+            { $set: { data: appRaw, updated_at: new Date() } },
+            { upsert: true }
+          ).catch(() => null);
+        }
+      } catch (e) {}
       return appRaw;
     } catch (err) {
       console.warn('[FirebaseAnalytics] fetchGeoDirectMetrics error, using calibrated baseline:', err.message);
@@ -774,13 +796,73 @@ async function getGeoTelemetry(appCode = 'all', forceRefresh = false, targets = 
   return fallback[key] || fallback.all;
 }
 
+async function persistFirebaseSnapshotToDb(liveData) {
+  if (!liveData) return;
+  try {
+    const db = await getUnifiedDb();
+    if (!db) return;
+
+    await db.collection('firebase_telemetry_cache').updateOne(
+      { _id: 'firebase_metrics_snapshot' },
+      { $set: { data: liveData, updated_at: new Date() } },
+      { upsert: true }
+    );
+
+    const bulkOps = [];
+    const byApp = liveData.by_app || {};
+    for (const [appCode, appObj] of Object.entries(byApp)) {
+      const dailyMetrics = appObj?.daily_metrics || {};
+      for (const [metricDate, m] of Object.entries(dailyMetrics)) {
+        bulkOps.push({
+          updateOne: {
+            filter: { app_code: appCode, metric_date: metricDate },
+            update: {
+              $set: {
+                app_code: appCode,
+                metric_date: metricDate,
+                android_installs: m.android || 0,
+                ios_installs: m.ios || 0,
+                total_installs: m.installs || ((m.android || 0) + (m.ios || 0)),
+                active_users: m.active || 0,
+                uninstalls: m.uninstalls || 0,
+                source: 'firebase_ga4_first_open',
+                updated_at: new Date()
+              }
+            },
+            upsert: true
+          }
+        });
+      }
+    }
+    if (bulkOps.length > 0) {
+      await db.collection('firebase_daily_installs').bulkWrite(bulkOps, { ordered: false }).catch(() => null);
+    }
+  } catch (err) {
+    console.warn('[FirebaseAnalytics] persistFirebaseSnapshotToDb warning:', err.message);
+  }
+}
+
 /**
- * Get Cached or Fresh Firebase Telemetry
+ * Get Database-Backed or Fresh Live Firebase Telemetry
+ * - Default (forceRefresh = false): Reads from in-memory cache or MongoDB ('firebase_telemetry_cache') immediately.
+ * - Sync (forceRefresh = true): Pulls live data from Firebase GA4 and persists to MongoDB.
  */
 async function getFirebaseTelemetry(forceRefresh = false) {
-  const now = Date.now();
-  if (!forceRefresh && cachedData && (now - lastFetchTime < CACHE_TTL_MS)) {
-    return cachedData;
+  if (!forceRefresh) {
+    if (cachedData) {
+      return cachedData;
+    }
+    try {
+      const db = await getUnifiedDb();
+      if (db) {
+        const stored = await db.collection('firebase_telemetry_cache').findOne({ _id: 'firebase_metrics_snapshot' }).catch(() => null);
+        if (stored && stored.data) {
+          cachedData = stored.data;
+          lastFetchTime = Date.now();
+          return cachedData;
+        }
+      }
+    } catch (e) {}
   }
 
   if (inFlightFirebasePromise) {
@@ -793,6 +875,7 @@ async function getFirebaseTelemetry(forceRefresh = false) {
       if (liveData) {
         cachedData = liveData;
         lastFetchTime = Date.now();
+        await persistFirebaseSnapshotToDb(liveData);
       }
       return cachedData;
     } finally {

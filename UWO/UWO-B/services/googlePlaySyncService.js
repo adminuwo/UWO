@@ -121,7 +121,9 @@ function parseUtf16LeCsv(buffer) {
 /**
  * Sync installs, crashes, ratings, and store performance from GCS bucket
  */
-async function syncGooglePlayBucket(db, bucketName = DEFAULT_BUCKET_ID) {
+async function syncGooglePlayBucket(db, bucketName = DEFAULT_BUCKET_ID, options = {}) {
+  const existingInstallCount = db ? await db.collection('play_install_metrics').countDocuments().catch(() => 0) : 0;
+  const incrementalOnly = !options.fullSync && existingInstallCount > 50;
   const client = getStorageClient();
   if (!client) {
     return {
@@ -151,9 +153,8 @@ async function syncGooglePlayBucket(db, bucketName = DEFAULT_BUCKET_ID) {
         const [installFiles] = await bucket.getFiles({ prefix: installPrefix });
         syncSummary.files_found += (installFiles || []).length;
 
-        for (const file of installFiles || []) {
-          // Process overview files as primary source of daily metrics
-          if (!file.name.endsWith('_overview.csv')) continue;
+        const overviewInstallFiles = (installFiles || []).filter(f => f.name.endsWith('_overview.csv'));
+        for (const file of (incrementalOnly ? overviewInstallFiles.slice(-2) : overviewInstallFiles)) {
 
           try {
             const [buffer] = await file.download();
@@ -216,8 +217,8 @@ async function syncGooglePlayBucket(db, bucketName = DEFAULT_BUCKET_ID) {
       const crashPrefix = `stats/crashes/crashes_${package_name}_`;
       try {
         const [crashFiles] = await bucket.getFiles({ prefix: crashPrefix });
-        for (const file of crashFiles || []) {
-          if (!file.name.endsWith('_overview.csv')) continue;
+        const overviewCrashFiles = (crashFiles || []).filter(f => f.name.endsWith('_overview.csv'));
+        for (const file of (incrementalOnly ? overviewCrashFiles.slice(-2) : overviewCrashFiles)) {
           try {
             const [buffer] = await file.download();
             const { rows } = parseUtf16LeCsv(buffer);
@@ -246,8 +247,8 @@ async function syncGooglePlayBucket(db, bucketName = DEFAULT_BUCKET_ID) {
       const ratingPrefix = `stats/ratings/ratings_${package_name}_`;
       try {
         const [ratingFiles] = await bucket.getFiles({ prefix: ratingPrefix });
-        for (const file of ratingFiles || []) {
-          if (!file.name.endsWith('_overview.csv')) continue;
+        const overviewRatingFiles = (ratingFiles || []).filter(f => f.name.endsWith('_overview.csv'));
+        for (const file of (incrementalOnly ? overviewRatingFiles.slice(-2) : overviewRatingFiles)) {
           try {
             const [buffer] = await file.download();
             const { rows } = parseUtf16LeCsv(buffer);
@@ -276,8 +277,8 @@ async function syncGooglePlayBucket(db, bucketName = DEFAULT_BUCKET_ID) {
       const perfPrefix = `stats/store_performance/store_performance_${package_name}_`;
       try {
         const [perfFiles] = await bucket.getFiles({ prefix: perfPrefix });
-        for (const file of perfFiles || []) {
-          if (!file.name.endsWith('_traffic_source.csv') && !file.name.endsWith('_country.csv')) continue;
+        const validPerfFiles = (perfFiles || []).filter(f => f.name.endsWith('_traffic_source.csv') || f.name.endsWith('_country.csv'));
+        for (const file of (incrementalOnly ? validPerfFiles.slice(-4) : validPerfFiles)) {
           try {
             const [buffer] = await file.download();
             const { rows } = parseUtf16LeCsv(buffer);

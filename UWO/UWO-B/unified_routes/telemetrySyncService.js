@@ -16,7 +16,7 @@
 const { MongoClient } = require('mongodb');
 const { getUnifiedDb } = require('./db');
 
-const AISA_URI = process.env.AISA_MONGODB_URI || 'mongodb+srv://admin_db_user:ailegal050804@cluster0.265idhx.mongodb.net/AISA?appName=Cluster0';
+const AISA_URI = process.env.AISA_MONGODB_URI || 'mongodb+srv://admin_db_user:gwmmWiKmK4wCit1L@cluster0.u5wdauj.mongodb.net/AISA?appName=Cluster0';
 
 // Global state for monitoring
 let syncState = {

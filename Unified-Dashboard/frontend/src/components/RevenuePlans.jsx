@@ -149,9 +149,12 @@ export const RevenuePlans = ({ defaultSubTab = 'overview' }) => {
       });
       const data = await res.json();
       if (res.ok && data.success) {
+        const proc = data.processed ?? data.last_records_processed ?? 0;
+        const crt = data.created ?? data.last_records_created ?? 0;
+        const upd = data.updated ?? data.last_records_updated ?? 0;
         setSyncNotice({
           type: 'success',
-          msg: `Live Sync Successful! Processed ${data.processed} transactions (Created: ${data.created}, Updated: ${data.updated}).`
+          msg: `Live Sync Successful! Processed ${proc} transactions (Created: ${crt}, Updated: ${upd}).`
         });
       } else {
         setSyncNotice({

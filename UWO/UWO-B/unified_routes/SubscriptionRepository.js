@@ -13,6 +13,8 @@
 
 const { getUnifiedDb } = require('./db');
 
+const DEFAULT_AISA_URI = 'mongodb+srv://admin_db_user:gwmmWiKmK4wCit1L@cluster0.u5wdauj.mongodb.net/AISA?appName=Cluster0';
+
 class SubscriptionRepository {
   constructor() {
     this.indexesEnsured = false;
@@ -156,7 +158,7 @@ class SubscriptionRepository {
 
     let planName = sub.plan_name;
     if (isFreeTier) {
-      planName = 'Advocate Free Plan';
+      planName = planName || (sub.product_code === 'aisa' ? 'AISA Free Plan' : 'Advocate Free Plan');
     } else if (tier === 'BASIC' && (!planName || planName === 'Advocate Plan' || planName === 'Advocate Professional Plan')) {
       planName = 'Advocate Basic Plan';
     } else if (tier === 'STARTER' && (!planName || planName === 'Advocate Plan')) {
@@ -172,6 +174,9 @@ class SubscriptionRepository {
     // =========================================================================
     const txId = String(sub.transaction_id || '').trim();
     const isFakeOrAdminTx = !txId || 
+                            txId.includes('mock') ||
+                            txId.includes('bypass') ||
+                            txId.includes('test') ||
                             txId.startsWith('txn_admin') || 
                             txId.startsWith('pay_fake') || 
                             txId.startsWith('pay_mock') || 
@@ -304,17 +309,6 @@ class SubscriptionRepository {
 
   /**
    * Fetches paginated subscriptions with multi-field search and filters
-   * 
-   * @param {Object} queryParams
-   * @param {string} [queryParams.product] - 'all' or product_code
-   * @param {string} [queryParams.status] - 'all', 'active', 'paid', 'manual', 'expired', 'trialing'
-   * @param {string} [queryParams.platform] - 'all', 'ios', 'web', 'android'
-   * @param {string} [queryParams.search] - Search string
-   * @param {number} [queryParams.page=1]
-   * @param {number} [queryParams.limit=25]
-   * @param {string} [queryParams.sort_by='created_at']
-   * @param {number} [queryParams.sort_order=-1]
-   * @param {Object} [customDb=null]
    */
   async findSubscriptions(queryParams = {}, customDb = null) {
     if (!this.indexesEnsured) {
@@ -362,7 +356,7 @@ class SubscriptionRepository {
       is_test: { $ne: true },
       provider: { $in: ['razorpay', 'app_store', 'google_play', 'cashfree', 'apple_iap', 'stripe', 'razorpay_efv'] },
       source: { $nin: ['direct_invoice', 'admin', 'manual'] },
-      external_transaction_id: { $not: /^(txn_admin_|pay_fake|pay_mock|manual_|test_)/i },
+      external_transaction_id: { $not: /^(txn_admin_|pay_fake|pay_mock|mock_|manual_|test_)/i },
       'metadata.gateway': { $ne: 'Admin Direct Assignment' }
     }).project({ external_transaction_id: 1, gross_amount: 1, reporting_amount: 1, amount: 1 }).toArray().catch(() => []);
     const verifiedTxMap = new Map();
@@ -445,7 +439,7 @@ class SubscriptionRepository {
       is_test: { $ne: true },
       provider: { $in: ['razorpay', 'app_store', 'google_play', 'cashfree', 'apple_iap', 'stripe', 'razorpay_efv'] },
       source: { $nin: ['direct_invoice', 'admin', 'manual'] },
-      external_transaction_id: { $not: /^(txn_admin_|pay_fake|pay_mock|manual_|test_)/i },
+      external_transaction_id: { $not: /^(txn_admin_|pay_fake|pay_mock|mock_|manual_|test_)/i },
       'metadata.gateway': { $ne: 'Admin Direct Assignment' }
     }).project({ external_transaction_id: 1, gross_amount: 1, reporting_amount: 1, amount: 1 }).toArray().catch(() => []);
     const verifiedTxMap = new Map();
@@ -570,7 +564,7 @@ class SubscriptionRepository {
       is_test: { $ne: true },
       provider: { $in: ['razorpay', 'app_store', 'google_play', 'cashfree', 'apple_iap', 'stripe', 'razorpay_efv'] },
       source: { $nin: ['direct_invoice', 'admin', 'manual'] },
-      external_transaction_id: { $not: /^(txn_admin_|pay_fake|pay_mock|manual_|test_)/i },
+      external_transaction_id: { $not: /^(txn_admin_|pay_fake|pay_mock|mock_|manual_|test_)/i },
       'metadata.gateway': { $ne: 'Admin Direct Assignment' }
     }).project({ external_transaction_id: 1, gross_amount: 1, reporting_amount: 1, amount: 1 }).toArray().catch(() => []);
     const verifiedTxMap = new Map();
@@ -620,7 +614,6 @@ class SubscriptionRepository {
     for (const s of enriched) {
       const code = s.product_code || 'ailegal';
       if (!prodStats[code]) {
-        // Skip non-subscription products (e.g. EFV Framework, AI Mall, UWO Web belong strictly to Revenue)
         continue;
       }
       prodStats[code].total_count += 1;
@@ -770,7 +763,7 @@ class SubscriptionRepository {
     if (sub.subscription_id || sub.customer_id) {
       try {
         const { MongoClient, ObjectId } = require('mongodb');
-        const AISA_URI = process.env.AISA_MONGODB_URI || 'mongodb+srv://uwo_admin:uwo%4012345@cluster0.selr4is.mongodb.net/AISA?retryWrites=true&w=majority';
+        const AISA_URI = process.env.AISA_MONGODB_URI || DEFAULT_AISA_URI;
         const client = await MongoClient.connect(AISA_URI, { serverSelectionTimeoutMS: 5000 });
         const aisaDb = client.db('AISA');
         const aFilter = {};
@@ -816,7 +809,6 @@ class SubscriptionRepository {
     }
 
     const now = new Date();
-    // If currently active and expiry is in future, extend from existing expiry; otherwise extend from now
     let baseDate = now;
     if (sub.expiry_date && new Date(sub.expiry_date) > now) {
       baseDate = new Date(sub.expiry_date);
@@ -845,7 +837,7 @@ class SubscriptionRepository {
     if (sub.subscription_id || sub.customer_id) {
       try {
         const { MongoClient, ObjectId } = require('mongodb');
-        const AISA_URI = process.env.AISA_MONGODB_URI || 'mongodb+srv://uwo_admin:uwo%4012345@cluster0.selr4is.mongodb.net/AISA?retryWrites=true&w=majority';
+        const AISA_URI = process.env.AISA_MONGODB_URI || DEFAULT_AISA_URI;
         const client = await MongoClient.connect(AISA_URI, { serverSelectionTimeoutMS: 5000 });
         const aisaDb = client.db('AISA');
         const aFilter = {};
@@ -857,7 +849,9 @@ class SubscriptionRepository {
         await aisaDb.collection('subscriptions').updateOne(aFilter, {
           $set: {
             status: 'active',
+            subscriptionStatus: 'active',
             expiryDate: newExpiryDate,
+            renewalDate: newExpiryDate,
             autoRenew: true,
             updatedAt: now
           }
