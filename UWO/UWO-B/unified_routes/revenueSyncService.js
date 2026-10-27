@@ -24,10 +24,11 @@ if (!process.env.K_SERVICE && process.env.NODE_ENV !== 'test') {
 const { getUnifiedDb } = require('./db');
 const { subscriptionSyncService } = require('./SubscriptionSyncService');
 
-const AISA_URI_PRIMARY = process.env.AISA_MONGODB_URI || 'mongodb+srv://admin_db_user:gwmmWiKmK4wCit1L@cluster0.u5wdauj.mongodb.net/AISA?appName=Cluster0';
-const AISA_URI_FALLBACK = 'mongodb+srv://uwo_admin:uwo%4012345@cluster0.selr4is.mongodb.net/AISA?retryWrites=true&w=majority';
-const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || 'rzp_live_SBFlInxBiRfOGd';
-const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || 'GQYnxmOl910sC76rShXhRk3o';
+const getAisaUris = () => {
+  const primary = process.env.AISA_MONGODB_URI;
+  const fallback = process.env.AISA_MONGODB_URI_FALLBACK || (process.env.MONGO_URI ? process.env.MONGO_URI.replace('/UWO-web', '/AISA') : '');
+  return [primary, fallback].filter(Boolean);
+};
 
 let activeSyncPromise = null;
 
@@ -199,7 +200,7 @@ async function runRevenueSync(options = {}) {
       // 1. Attempt connection to AISA Atlas DB (Resilient with timeout)
       // -------------------------------------------------------------------------
       let aisaDb = null;
-      const urisToTry = [AISA_URI_PRIMARY, AISA_URI_FALLBACK];
+      const urisToTry = getAisaUris();
       for (const uri of urisToTry) {
         try {
           aisaClient = await MongoClient.connect(uri, {
@@ -578,10 +579,15 @@ async function runRevenueSync(options = {}) {
       // -------------------------------------------------------------------------
       let rzp = null;
       try {
+        const rzpKeyId = process.env.RAZORPAY_KEY_ID;
+        const rzpKeySecret = process.env.RAZORPAY_KEY_SECRET;
+        if (!rzpKeyId || !rzpKeySecret) {
+          throw new Error('RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET not configured in environment.');
+        }
         const Razorpay = require('razorpay');
         rzp = new Razorpay({
-          key_id: RAZORPAY_KEY_ID,
-          key_secret: RAZORPAY_KEY_SECRET
+          key_id: rzpKeyId,
+          key_secret: rzpKeySecret
         });
 
         console.log('[RevenueSyncService] Fetching real-time transactions from Razorpay API...');

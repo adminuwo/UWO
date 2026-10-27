@@ -83,8 +83,8 @@ const { subscriptionSyncService } = require('./SubscriptionSyncService');
 
 const getRazorpayInstance = () => {
   return new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID || 'rzp_live_SBFlInxBiRfOGd',
-    key_secret: process.env.RAZORPAY_KEY_SECRET || 'GQYnxmOl910sC76rShXhRk3o'
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET
   });
 };
 
@@ -238,7 +238,7 @@ router.post('/subscriptions/create', async (req, res) => {
       subscription_id: subscription.id,
       plan_id: subscription.plan_id,
       status: subscription.status,
-      key_id: process.env.RAZORPAY_KEY_ID || 'rzp_live_SBFlInxBiRfOGd',
+      key_id: process.env.RAZORPAY_KEY_ID,
       subscription
     });
   } catch (err) {
@@ -271,7 +271,7 @@ router.post('/subscriptions/verify', async (req, res) => {
       });
     }
 
-    const secret = process.env.RAZORPAY_KEY_SECRET || 'GQYnxmOl910sC76rShXhRk3o';
+    const secret = process.env.RAZORPAY_KEY_SECRET || '';
     const text = `${razorpay_payment_id}|${razorpay_subscription_id}`;
     const expectedSignature = crypto
       .createHmac('sha256', secret)

@@ -96,8 +96,8 @@ JWT_SECRET=e3e2160ee7a687af7c08e0d4408ea3b56ef3eba604a34687fa50d424c07a1356
 WALLET_SERVICE_SECRET=uwo_internal_wallet_service_secret_2026
 
 # Payment Gateway
-RAZORPAY_KEY_ID=rzp_live_SBFlInxBiRfOGd
-RAZORPAY_KEY_SECRET=GQYnxmOl910sC76rShXhRk3o
+RAZORPAY_KEY_ID=<your_razorpay_key_id>
+RAZORPAY_KEY_SECRET=<your_razorpay_key_secret>
 RAZORPAY_WEBHOOK_SECRET=UWO_Wallet_sec_a6f1452d3891e54a2d2d6e1a486b8d13
 RAZORPAY_MODE=live
 ```

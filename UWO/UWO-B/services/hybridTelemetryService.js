@@ -190,7 +190,7 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
   for (const r of dedupedPlayRecords) {
     const d = r.metric_date;
     const playDaily = r.install_events || r.daily_device_installs || r.daily_user_installs || 0;
-    const liveAndroid = Math.max(liveDbDaily[d]?.android || 0, liveDbDaily[d]?.total || 0, fbDaily[d]?.android || 0);
+    const liveAndroid = Math.max(liveDbDaily[d]?.android || 0, fbDaily[d]?.android || 0);
     // On the latest Play export cutoff date, take max so premature batch exports (like Oct 21 with 59 vs 262) do not truncate verified marketing installs
     const dailyInstalls = (d === playMaxDate) ? Math.max(playDaily, liveAndroid) : playDaily;
     runningCum += dailyInstalls;
@@ -205,7 +205,7 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
   for (const d of postDates) {
     const fbDay = fbDaily[d] || {};
     const dbDay = liveDbDaily[d] || {};
-    const dayAndroid = Math.max(dbDay.android || 0, dbDay.total || 0, fbDay.android || fbDay.installs || 0);
+    const dayAndroid = Math.max(dbDay.android || 0, fbDay.android || fbDay.installs || 0);
     const dayUninstalls = fbDay.uninstalls || 0;
 
     postPlayInstalls += dayAndroid;
@@ -259,11 +259,11 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
   const totalIosInstalls = iosBaselineTotal + postIosInstalls;
 
   // Today & Yesterday installs
-  const todayAndroid = Math.max(liveDbDaily[todayStr]?.android || 0, liveDbDaily[todayStr]?.total || 0, fbDaily[todayStr]?.android || 0);
+  const todayAndroid = Math.max(liveDbDaily[todayStr]?.android || 0, fbDaily[todayStr]?.android || 0);
   const todayIos = Math.max(liveDbDaily[todayStr]?.ios || 0, fbDaily[todayStr]?.ios || 0);
   const todayInstalls = todayAndroid + todayIos;
 
-  const yesterdayAndroid = Math.max(liveDbDaily[yesterdayStr]?.android || 0, liveDbDaily[yesterdayStr]?.total || 0, fbDaily[yesterdayStr]?.android || playDailyMap[yesterdayStr]?.daily_user_installs || 0);
+  const yesterdayAndroid = Math.max(liveDbDaily[yesterdayStr]?.android || 0, fbDaily[yesterdayStr]?.android || playDailyMap[yesterdayStr]?.daily_user_installs || 0);
   const yesterdayIos = Math.max(liveDbDaily[yesterdayStr]?.ios || 0, fbDaily[yesterdayStr]?.ios || 0);
   const yesterdayInstalls = yesterdayAndroid + yesterdayIos;
 

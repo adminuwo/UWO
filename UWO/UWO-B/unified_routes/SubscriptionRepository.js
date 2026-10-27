@@ -13,7 +13,7 @@
 
 const { getUnifiedDb } = require('./db');
 
-const DEFAULT_AISA_URI = 'mongodb+srv://admin_db_user:gwmmWiKmK4wCit1L@cluster0.u5wdauj.mongodb.net/AISA?appName=Cluster0';
+const getAisaUri = () => process.env.AISA_MONGODB_URI || '';
 
 class SubscriptionRepository {
   constructor() {
@@ -760,11 +760,11 @@ class SubscriptionRepository {
     );
 
     // Sync to AISA MongoDB if applicable
-    if (sub.subscription_id || sub.customer_id) {
+    const aisaUri = getAisaUri();
+    if (aisaUri && (sub.subscription_id || sub.customer_id)) {
       try {
         const { MongoClient, ObjectId } = require('mongodb');
-        const AISA_URI = process.env.AISA_MONGODB_URI || DEFAULT_AISA_URI;
-        const client = await MongoClient.connect(AISA_URI, { serverSelectionTimeoutMS: 5000 });
+        const client = await MongoClient.connect(aisaUri, { serverSelectionTimeoutMS: 5000 });
         const aisaDb = client.db('AISA');
         const aFilter = {};
         if (ObjectId.isValid(sub.subscription_id)) {
@@ -834,11 +834,11 @@ class SubscriptionRepository {
     );
 
     // Sync to AISA MongoDB if applicable
-    if (sub.subscription_id || sub.customer_id) {
+    const aisaUri = getAisaUri();
+    if (aisaUri && (sub.subscription_id || sub.customer_id)) {
       try {
         const { MongoClient, ObjectId } = require('mongodb');
-        const AISA_URI = process.env.AISA_MONGODB_URI || DEFAULT_AISA_URI;
-        const client = await MongoClient.connect(AISA_URI, { serverSelectionTimeoutMS: 5000 });
+        const client = await MongoClient.connect(aisaUri, { serverSelectionTimeoutMS: 5000 });
         const aisaDb = client.db('AISA');
         const aFilter = {};
         if (ObjectId.isValid(sub.subscription_id)) {

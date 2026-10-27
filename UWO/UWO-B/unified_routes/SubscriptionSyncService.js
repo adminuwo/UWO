@@ -25,8 +25,11 @@ if (!process.env.K_SERVICE && process.env.NODE_ENV !== 'test') {
 const { getUnifiedDb } = require('./db');
 const { subscriptionRepository } = require('./SubscriptionRepository');
 
-const AISA_URI_PRIMARY = process.env.AISA_MONGODB_URI || 'mongodb+srv://admin_db_user:gwmmWiKmK4wCit1L@cluster0.u5wdauj.mongodb.net/AISA?appName=Cluster0';
-const AISA_URI_FALLBACK = 'mongodb+srv://uwo_admin:uwo%4012345@cluster0.selr4is.mongodb.net/AISA?retryWrites=true&w=majority';
+const getAisaUris = () => {
+  const primary = process.env.AISA_MONGODB_URI;
+  const fallback = process.env.AISA_MONGODB_URI_FALLBACK || (process.env.MONGO_URI ? process.env.MONGO_URI.replace('/UWO-web', '/AISA') : '');
+  return [primary, fallback].filter(Boolean);
+};
 const RAZORPAY_WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET || 'affiliate-payment';
 
 // Helper function to format customer name from email
@@ -129,7 +132,7 @@ class SubscriptionSyncService {
 
         let aisaDb = externalAisaDb;
         if (!aisaDb) {
-          for (const uri of [AISA_URI_PRIMARY, AISA_URI_FALLBACK]) {
+          for (const uri of getAisaUris()) {
             try {
               aisaClient = await MongoClient.connect(uri, {
                 serverSelectionTimeoutMS: 8000,
@@ -517,8 +520,8 @@ class SubscriptionSyncService {
         }
 
         // 5. Direct Razorpay Reconciler (uses pre-fetched livePayments if provided, or fetches from Razorpay)
-        const rzpKeyId = process.env.RAZORPAY_KEY_ID || 'rzp_live_SBFlInxBiRfOGd';
-        const rzpKeySecret = process.env.RAZORPAY_KEY_SECRET || 'GQYnxmOl910sC76rShXhRk3o';
+        const rzpKeyId = process.env.RAZORPAY_KEY_ID;
+        const rzpKeySecret = process.env.RAZORPAY_KEY_SECRET;
         if (rzpKeyId && rzpKeySecret) {
           try {
             let rawRzpItems = options.livePayments;

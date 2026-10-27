@@ -1,3 +1,8 @@
+const path = require('path');
+try {
+  require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+} catch (e) {}
+
 const { MongoClient } = require('mongodb');
 const dns = require('dns');
 
@@ -45,7 +50,11 @@ async function getUnifiedDb() {
   const isTest = process.env.NODE_ENV === 'test' || process.env.TEST_LOCAL_DB === 'true';
   const uri = isTest
     ? (process.env.TEST_MONGODB_URI || 'mongodb://localhost:27017/unified_test_db')
-    : (process.env.UNIFIED_MONGODB_URI || process.env.MONGODB_URL || 'mongodb+srv://admin_db_user:uSYUbw06q4coR6Nv@unified-dashboard.wisisoq.mongodb.net/?appName=Unified-Dashboard');
+    : (process.env.UNIFIED_MONGODB_URI || process.env.MONGODB_URL || process.env.MONGO_URI);
+
+  if (!uri) {
+    throw new Error('[UnifiedDB] Missing UNIFIED_MONGODB_URI or MONGODB_URL in environment variables.');
+  }
 
   const defaultDbName = isTest ? 'unified_test_db' : (process.env.UNIFIED_MONGODB_DB_NAME || process.env.MONGODB_DB_NAME || 'unified_service_db');
 
