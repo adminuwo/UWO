@@ -275,10 +275,16 @@ export const AppDownloadsTab = () => {
   const combined = analytics?.combined || {};
   const isLoaded = !!analytics;
 
-  // Extract separate Today's download stats for AI Legal and AISA
+  // Extract separate Today's download stats for AI Legal and AISA (merging apps array & today_breakdown)
   const todayBreakdown = analytics?.today_breakdown || {};
-  const aiLegalStats = todayBreakdown?.apps?.ailegal || analytics?.apps?.find(a => a.app_code === 'ailegal') || {};
-  const aisaStats = todayBreakdown?.apps?.aisa || analytics?.apps?.find(a => a.app_code === 'aisa') || {};
+  const aiLegalStats = {
+    ...(analytics?.apps?.find(a => a.app_code === 'ailegal') || {}),
+    ...(todayBreakdown?.apps?.ailegal || {})
+  };
+  const aisaStats = {
+    ...(analytics?.apps?.find(a => a.app_code === 'aisa') || {}),
+    ...(todayBreakdown?.apps?.aisa || {})
+  };
 
   const aiLegalToday = Number(aiLegalStats.today_total ?? aiLegalStats.today_installs ?? 0);
   const aiLegalTodayAndroid = Number(aiLegalStats.today_android ?? aiLegalStats.today_android_installs ?? 0);
@@ -301,9 +307,9 @@ export const AppDownloadsTab = () => {
   const totalTodayAndroid = isLoaded ? (aiLegalTodayAndroid + aisaTodayAndroid) : '...';
   const totalTodayIos = isLoaded ? (aiLegalTodayIos + aisaTodayIos) : '...';
 
-  const aiLegalAllTime = aiLegalStats.total_all_time || ((aiLegalStats.android_store_downloads || 0) + (aiLegalStats.ios_store_downloads || 0)) || 1786;
-  const aisaAllTime = aisaStats.total_all_time || ((aisaStats.android_store_downloads || 0) + (aisaStats.ios_store_downloads || 0)) || 465;
-  const totalAllTime = todayBreakdown?.total_all_time || (Number(aiLegalAllTime) + Number(aisaAllTime)) || 2099;
+  const aiLegalAllTime = aiLegalStats.total_all_time || ((aiLegalStats.android_store_downloads || 0) + (aiLegalStats.ios_store_downloads || 0)) || 0;
+  const aisaAllTime = aisaStats.total_all_time || ((aisaStats.android_store_downloads || 0) + (aisaStats.ios_store_downloads || 0)) || 0;
+  const totalAllTime = todayBreakdown?.total_all_time || (Number(aiLegalAllTime) + Number(aisaAllTime)) || 0;
 
 
   // App-specific dynamic stats resolution based on active selectedApp filter
@@ -400,8 +406,12 @@ export const AppDownloadsTab = () => {
     const anchorI = windowSliceI[0] || { value: 0 };
     const anchorDate = anchorA.date;
 
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const yesterdayDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    let todayStr = new Date().toISOString().slice(0, 10);
+    let yesterdayDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    try {
+      todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+      yesterdayDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date(Date.now() - 24 * 60 * 60 * 1000));
+    } catch (e) {}
 
     // Select active daily series based on source filter
     let dailyAndroidPts = timeseriesData.daily_installs?.android || [];
@@ -435,8 +445,8 @@ export const AppDownloadsTab = () => {
       // Historical marketing attribution prior to the 7-day window
       const mktA = (timeseriesData.marketing_installs?.android || []).filter(p => p.date <= anchorDate).reduce((s, p) => s + (p.value || 0), 0);
       const mktI = (timeseriesData.marketing_installs?.ios || []).filter(p => p.date <= anchorDate).reduce((s, p) => s + (p.value || 0), 0);
-      pre7Android = mktA > 0 ? mktA : 10270;
-      pre7Ios = mktI > 0 ? mktI : 430;
+      pre7Android = mktA > 0 ? mktA : 0;
+      pre7Ios = mktI > 0 ? mktI : 0;
     } else if (barGraphSourceView === 'google_play') {
       // Historical Google Play Console / App Store batches prior to the 7-day window
       pre7Android = anchorA.value || 0;
@@ -1981,7 +1991,7 @@ export const AppDownloadsTab = () => {
                     </span>
                     {selectedApp === 'all' && (
                       <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
-                        AI Legal: <strong style={{ color: '#34d399' }}>{formatNum(aiLegalStats.android_store_downloads || 12976)}</strong> · AISA: <strong style={{ color: '#c084fc' }}>{formatNum(aisaStats.android_store_downloads || 461)}</strong>
+                        AI Legal: <strong style={{ color: '#34d399' }}>{formatNum(aiLegalStats.android_store_downloads ?? 0)}</strong> · AISA: <strong style={{ color: '#c084fc' }}>{formatNum(aisaStats.android_store_downloads ?? 0)}</strong>
                       </div>
                     )}
                   </div>
@@ -2020,7 +2030,7 @@ export const AppDownloadsTab = () => {
                     </span>
                     {selectedApp === 'all' && (
                       <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
-                        AI Legal: <strong style={{ color: '#38bdf8' }}>{formatNum(aiLegalStats.ios_store_downloads || 462)}</strong> · AISA: <strong style={{ color: '#c084fc' }}>{formatNum(aisaStats.ios_store_downloads || 87)}</strong>
+                        AI Legal: <strong style={{ color: '#38bdf8' }}>{formatNum(aiLegalStats.ios_store_downloads ?? 0)}</strong> · AISA: <strong style={{ color: '#c084fc' }}>{formatNum(aisaStats.ios_store_downloads ?? 0)}</strong>
                       </div>
                     )}
                   </div>

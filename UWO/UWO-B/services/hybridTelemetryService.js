@@ -67,16 +67,28 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
         db ? db.collection('marketing_installs').aggregate([
           { $match: matchCriteria },
           {
+            $project: {
+              dt: { $ifNull: ['$timestamp', '$installed_at', '$created_at'] },
+              plat: { $toLower: { $ifNull: ['$platform', 'android'] } }
+            }
+          },
+          {
+            $addFields: {
+              parsedDate: {
+                $cond: {
+                  if: { $eq: [{ $type: '$dt' }, 'date'] },
+                  then: '$dt',
+                  else: { $dateFromString: { dateString: { $toString: '$dt' }, onError: null, onNull: null } }
+                }
+              }
+            }
+          },
+          { $match: { parsedDate: { $ne: null } } },
+          {
             $group: {
               _id: {
-                date: {
-                  $cond: {
-                    if: { $eq: [{ $type: '$timestamp' }, 'date'] },
-                    then: { $dateToString: { format: '%Y-%m-%d', date: '$timestamp' } },
-                    else: { $substr: [{ $ifNull: ['$timestamp', '$installed_at'] }, 0, 10] }
-                  }
-                },
-                plat: { $toLower: '$platform' }
+                date: { $dateToString: { format: '%Y-%m-%d', date: '$parsedDate', timezone: 'Asia/Kolkata' } },
+                plat: '$plat'
               },
               count: { $sum: 1 }
             }
@@ -85,16 +97,28 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
         db ? db.collection('app_downloads').aggregate([
           { $match: { app_code: appCode } },
           {
+            $project: {
+              dt: { $ifNull: ['$created_at', '$installed_at'] },
+              plat: { $toLower: { $ifNull: ['$platform', 'android'] } }
+            }
+          },
+          {
+            $addFields: {
+              parsedDate: {
+                $cond: {
+                  if: { $eq: [{ $type: '$dt' }, 'date'] },
+                  then: '$dt',
+                  else: { $dateFromString: { dateString: { $toString: '$dt' }, onError: null, onNull: null } }
+                }
+              }
+            }
+          },
+          { $match: { parsedDate: { $ne: null } } },
+          {
             $group: {
               _id: {
-                date: {
-                  $cond: {
-                    if: { $eq: [{ $type: '$created_at' }, 'date'] },
-                    then: { $dateToString: { format: '%Y-%m-%d', date: '$created_at' } },
-                    else: { $substr: [{ $ifNull: ['$created_at', '$installed_at'] }, 0, 10] }
-                  }
-                },
-                plat: { $toLower: '$platform' }
+                date: { $dateToString: { format: '%Y-%m-%d', date: '$parsedDate', timezone: 'Asia/Kolkata' } },
+                plat: '$plat'
               },
               count: { $sum: 1 }
             }
@@ -107,9 +131,13 @@ async function getMergedAppTelemetry(db, appCode, forceRefresh = false) {
       const appFb = fbData?.by_app?.[appCode] || null;
 
       const now = new Date();
-      const todayStr = now.toISOString().slice(0, 10);
+      let todayStr = now.toISOString().slice(0, 10);
       const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      const yesterdayStr = yesterday.toISOString().slice(0, 10);
+      let yesterdayStr = yesterday.toISOString().slice(0, 10);
+      try {
+        todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(now);
+        yesterdayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(yesterday);
+      } catch (e) {}
 
       // Process Google Play Console records (for baseline before live leading edge)
       let playDailyMap = {};

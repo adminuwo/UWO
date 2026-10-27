@@ -475,11 +475,11 @@ const COUNTRY_FLAGS = {
   'Russia': '🇷🇺'
 };
 
-// Default targets matching App Downloads overview
+// Default targets (populated dynamically from database / hybrid telemetry)
 const DEFAULT_APP_TARGETS = {
-  ailegal: { android: 6965, ios: 381, total: 7346 },
-  aisa: { android: 214, ios: 77, total: 291 },
-  all: { android: 7179, ios: 458, total: 7637 }
+  ailegal: { android: 0, ios: 0, total: 0 },
+  aisa: { android: 0, ios: 0, total: 0 },
+  all: { android: 0, ios: 0, total: 0 }
 };
 
 function normalizeState(rawState) {

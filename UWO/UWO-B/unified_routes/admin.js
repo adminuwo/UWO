@@ -1174,9 +1174,13 @@ router.get(['/analytics/google-play/overview', '/google-play/overview'], verifyA
           yesterdayIos = Math.max(yesterdayIos, merged.yesterday_ios || 0);
           if (todayTotal > (todayAndroid + todayIos)) {
             todayAndroid = todayTotal - todayIos;
+          } else if ((todayAndroid + todayIos) > todayTotal) {
+            todayTotal = todayAndroid + todayIos;
           }
           if (yesterdayTotal > (yesterdayAndroid + yesterdayIos)) {
             yesterdayAndroid = yesterdayTotal - yesterdayIos;
+          } else if ((yesterdayAndroid + yesterdayIos) > yesterdayTotal) {
+            yesterdayTotal = yesterdayAndroid + yesterdayIos;
           }
           appRealtime = merged.realtime_active_devices;
           const timelineDays = Math.max(1, merged.timeline?.length || 30);
@@ -1197,9 +1201,13 @@ router.get(['/analytics/google-play/overview', '/google-play/overview'], verifyA
             yesterdayIos = Math.max(yesterdayIos, appFb?.daily_metrics?.[yesterdayStr]?.ios || 0);
             if (todayTotal > (todayAndroid + todayIos)) {
               todayAndroid = todayTotal - todayIos;
+            } else if ((todayAndroid + todayIos) > todayTotal) {
+              todayTotal = todayAndroid + todayIos;
             }
             if (yesterdayTotal > (yesterdayAndroid + yesterdayIos)) {
               yesterdayAndroid = yesterdayTotal - yesterdayIos;
+            } else if ((yesterdayAndroid + yesterdayIos) > yesterdayTotal) {
+              yesterdayTotal = yesterdayAndroid + yesterdayIos;
             }
             currentActive = appFb?.active_users || fbData.total_active_users || 0;
             dailyLoss = Number(((appFb?.total_uninstalls || fbData.total_uninstalls || 0) / 30).toFixed(2));
@@ -1323,9 +1331,13 @@ router.get(['/analytics/google-play/overview', '/google-play/overview'], verifyA
         if (yesterdayTotal > (yesterdayAndroid + yesterdayIos)) {
           yesterdayAndroid = yesterdayTotal - yesterdayIos;
         }
-        const totalAllTime = fromLoop
-          ? (fromLoop.android_store_downloads + fromLoop.ios_store_downloads)
-          : (mergedData ? ((mergedData.total_android_installs || 0) + (mergedData.total_ios_installs || 0)) : defaultHistFallback);
+        const androidStore = fromLoop
+          ? (fromLoop.android_store_downloads || 0)
+          : (mergedData?.total_android_installs || 0);
+        const iosStore = fromLoop
+          ? (fromLoop.ios_store_downloads || 0)
+          : (mergedData?.total_ios_installs || 0);
+        const totalAllTime = (androidStore + iosStore) || defaultHistFallback || 0;
 
         return {
           app_code: appCode,
@@ -1337,12 +1349,14 @@ router.get(['/analytics/google-play/overview', '/google-play/overview'], verifyA
           yesterday_total: yesterdayTotal,
           yesterday_android: yesterdayAndroid,
           yesterday_ios: yesterdayIos,
+          android_store_downloads: androidStore,
+          ios_store_downloads: iosStore,
           total_all_time: totalAllTime
         };
       };
 
-      const aiLegalBreakdown = resolveAppStats('ailegal', mergedAilegal, (histByApp.ailegal?.total_user_installs_latest || 1669) + 117);
-      const aisaBreakdown = resolveAppStats('aisa', mergedAisa, (histByApp.aisa?.total_user_installs_latest || 257) + 56);
+      const aiLegalBreakdown = resolveAppStats('ailegal', mergedAilegal, histByApp.ailegal?.total_user_installs_latest || 0);
+      const aisaBreakdown = resolveAppStats('aisa', mergedAisa, histByApp.aisa?.total_user_installs_latest || 0);
 
       const todayBreakdown = {
         as_of_date: todayStr,
@@ -1432,8 +1446,12 @@ async function computeTimeseriesBase(db, codes) {
       const mergedByApp = {};
       codes.forEach((c, idx) => { mergedByApp[c] = mergedResults[idx]; });
 
-      const todayStr = new Date().toISOString().slice(0, 10);
-      const yesterdayStr = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      let todayStr = new Date().toISOString().slice(0, 10);
+      let yesterdayStr = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      try {
+        todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+        yesterdayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date(Date.now() - 24 * 60 * 60 * 1000));
+      } catch (e) {}
 
       const iosHistByDate = {};
       for (const r of iosRecords) {
@@ -1717,14 +1735,14 @@ async function getAuthoritativeDownloadTargets(db) {
       ]);
       const targets = {
         ailegal: {
-          android: mergedAilegal?.total_android_installs || 6965,
-          ios: mergedAilegal?.total_ios_installs || 381,
-          total: (mergedAilegal?.total_android_installs || 6965) + (mergedAilegal?.total_ios_installs || 381)
+          android: mergedAilegal?.total_android_installs || 0,
+          ios: mergedAilegal?.total_ios_installs || 0,
+          total: (mergedAilegal?.total_android_installs || 0) + (mergedAilegal?.total_ios_installs || 0)
         },
         aisa: {
-          android: mergedAisa?.total_android_installs || 214,
-          ios: mergedAisa?.total_ios_installs || 77,
-          total: (mergedAisa?.total_android_installs || 214) + (mergedAisa?.total_ios_installs || 77)
+          android: mergedAisa?.total_android_installs || 0,
+          ios: mergedAisa?.total_ios_installs || 0,
+          total: (mergedAisa?.total_android_installs || 0) + (mergedAisa?.total_ios_installs || 0)
         }
       };
       targets.all = {
@@ -1737,9 +1755,9 @@ async function getAuthoritativeDownloadTargets(db) {
       return targets;
     } catch (err) {
       return {
-        ailegal: { android: 6965, ios: 381, total: 7346 },
-        aisa: { android: 214, ios: 77, total: 291 },
-        all: { android: 7179, ios: 458, total: 7637 }
+        ailegal: { android: 0, ios: 0, total: 0 },
+        aisa: { android: 0, ios: 0, total: 0 },
+        all: { android: 0, ios: 0, total: 0 }
       };
     } finally {
       inFlightTargetsPromise = null;
