@@ -8,7 +8,6 @@ import { OverlapAnalytics } from './components/OverlapAnalytics';
 import { ApplicationKeys } from './components/ApplicationKeys';
 import { UserDirectory } from './components/UserDirectory';
 import { RevenuePlans } from './components/RevenuePlans';
-import { ActiveSubscriptions } from './components/ActiveSubscriptions';
 import { CentralLogs } from './components/CentralLogs';
 import { ApiSandbox } from './components/ApiSandbox';
 import { ChatTrackingTab } from './components/ChatTrackingTab';
@@ -37,12 +36,12 @@ export function App() {
     app_downloads: { title: 'App Downloads & Installs', subtitle: 'Platform distribution across Android, iOS, Windows and Web PWA' },
     users: { title: 'Central User Directory', subtitle: 'View registered user identities across applications' },
     revenue: { title: 'Revenue & Subscriptions', subtitle: 'Payment transactions (₹ INR) and application subscriptions' },
-    active_subscriptions: { title: 'Active Subscriptions Intelligence', subtitle: 'Real-time product-wise subscription ledger, dynamic lifecycle status & recurring revenue telemetry' },
     logs: { title: 'Central Application Logs', subtitle: 'Real-time security and audit logs from connected apps' },
     sandbox: { title: 'API Sandbox Tester', subtitle: 'Test Unified Backend REST endpoints interactively' },
   };
 
-  const activeTabInfo = tabTitles[currentTab] || tabTitles.overview;
+  const currentActiveTab = tabTitles[currentTab] ? currentTab : 'unified_analytics';
+  const activeTabInfo = tabTitles[currentActiveTab];
 
   const handleTabChange = (newTab) => {
     setTab(newTab);
@@ -61,7 +60,7 @@ export function App() {
       )}
 
       <Sidebar
-        currentTab={currentTab}
+        currentTab={currentActiveTab}
         setTab={handleTabChange}
         mobileOpen={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
@@ -76,19 +75,18 @@ export function App() {
         />
 
         <main className="main-content">
-          {currentTab === 'unified_analytics' && <UnifiedAnalytics />}
-          {currentTab === 'overview' && <Overview />}
-          {currentTab === 'marketing' && <MarketingCampaignsTab />}
-          {currentTab === 'overlap' && <OverlapAnalytics />}
-          {currentTab === 'auth_tester' && <AuthTokenTester />}
-          {currentTab === 'applications' && <ApplicationKeys />}
-          {currentTab === 'chat_tracking' && <ChatTrackingTab />}
-          {currentTab === 'app_downloads' && <AppDownloadsTab />}
-          {currentTab === 'users' && <UserDirectory />}
-          {currentTab === 'revenue' && <RevenuePlans />}
-          {currentTab === 'active_subscriptions' && <ActiveSubscriptions />}
-          {currentTab === 'logs' && <CentralLogs />}
-          {currentTab === 'sandbox' && <ApiSandbox />}
+          {currentActiveTab === 'unified_analytics' && <UnifiedAnalytics />}
+          {currentActiveTab === 'overview' && <Overview />}
+          {currentActiveTab === 'marketing' && <MarketingCampaignsTab />}
+          {currentActiveTab === 'overlap' && <OverlapAnalytics />}
+          {currentActiveTab === 'auth_tester' && <AuthTokenTester />}
+          {currentActiveTab === 'applications' && <ApplicationKeys />}
+          {currentActiveTab === 'chat_tracking' && <ChatTrackingTab />}
+          {currentActiveTab === 'app_downloads' && <AppDownloadsTab />}
+          {currentActiveTab === 'users' && <UserDirectory />}
+          {currentActiveTab === 'revenue' && <RevenuePlans />}
+          {currentActiveTab === 'logs' && <CentralLogs />}
+          {currentActiveTab === 'sandbox' && <ApiSandbox />}
         </main>
       </div>
     </div>

@@ -1,11 +1,27 @@
 const { BetaAnalyticsDataClient } = require('@google-analytics/data');
 const path = require('path');
 const fs = require('fs');
+const { getUnifiedDb } = require('../unified_routes/db');
 
 let clientInstance = null;
 let cachedData = null;
 let lastFetchTime = 0;
-const CACHE_TTL_MS = 60 * 1000; // 60 seconds TTL
+let inFlightFirebasePromise = null;
+let inFlightGeoRawPromise = null;
+
+function runWithTimeout(promise, timeoutMs, fallbackVal = null) {
+  let timer;
+  const timeoutPromise = new Promise(resolve => {
+    timer = setTimeout(() => {
+      console.warn(`[FirebaseAnalytics] Operation timed out after ${timeoutMs}ms, using fallback.`);
+      resolve(fallbackVal);
+    }, timeoutMs);
+  });
+  return Promise.race([
+    promise.finally(() => clearTimeout(timer)),
+    timeoutPromise
+  ]);
+}
 
 // Exact Data Streams verified from Firebase Console & Google Analytics Property 545341929
 const STREAM_REGISTRY = {
@@ -112,11 +128,17 @@ async function getLiveRealtimeUsers() {
   if (!client || !propertyId) return { total: 0, android: 0, ios: 0, by_app: { ailegal: { total: 0, android: 0, ios: 0 }, aisa: { total: 0, android: 0, ios: 0 } } };
 
   try {
-    const [res] = await client.runRealtimeReport({
+    const reportPromise = client.runRealtimeReport({
       property: `properties/${propertyId}`,
       dimensions: [{ name: 'streamId' }, { name: 'streamName' }, { name: 'platform' }],
       metrics: [{ name: 'activeUsers' }]
     });
+
+    const reportRes = await runWithTimeout(reportPromise, 3500, null);
+    if (!reportRes || !reportRes[0]) {
+      return { total: 0, android: 0, ios: 0, by_app: { ailegal: { total: 0, android: 0, ios: 0 }, aisa: { total: 0, android: 0, ios: 0 } } };
+    }
+    const [res] = reportRes;
 
     let android = 0;
     let ios = 0;
@@ -173,24 +195,30 @@ async function fetchFirebaseDirectMetrics(days = 30) {
     const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const yesterdayStrRaw = yesterday.toISOString().slice(0, 10).replace(/-/g, '');
 
-    // 1. Fetch Events & Installs with streamId and streamName
-    const [eventsRes] = await client.runReport({
-      property: `properties/${propertyId}`,
-      dateRanges: [{ startDate: '2026-07-01', endDate: 'today' }],
-      dimensions: [{ name: 'date' }, { name: 'eventName' }, { name: 'platform' }, { name: 'streamId' }, { name: 'streamName' }],
-      metrics: [{ name: 'eventCount' }]
-    });
+    // 1. Fetch Events, Traffic, and Realtime in parallel with timeout guard
+    const [eventsResWrap, trafficResWrap, realtimeRes] = await Promise.all([
+      runWithTimeout(client.runReport({
+        property: `properties/${propertyId}`,
+        dateRanges: [{ startDate: '2026-07-01', endDate: 'today' }],
+        dimensions: [{ name: 'date' }, { name: 'eventName' }, { name: 'platform' }, { name: 'streamId' }, { name: 'streamName' }],
+        metrics: [{ name: 'eventCount' }]
+      }), 4000, null),
+      runWithTimeout(client.runReport({
+        property: `properties/${propertyId}`,
+        dateRanges: [{ startDate: '2026-07-01', endDate: 'today' }],
+        dimensions: [{ name: 'streamId' }, { name: 'streamName' }],
+        metrics: [{ name: 'activeUsers' }, { name: 'sessions' }]
+      }), 4000, null),
+      getLiveRealtimeUsers()
+    ]);
 
-    // 2. Fetch Active Users & Sessions per stream
-    const [trafficRes] = await client.runReport({
-      property: `properties/${propertyId}`,
-      dateRanges: [{ startDate: '2026-07-01', endDate: 'today' }],
-      dimensions: [{ name: 'streamId' }, { name: 'streamName' }],
-      metrics: [{ name: 'activeUsers' }, { name: 'sessions' }]
-    });
-
-    // 3. Realtime Report
-    const realtime = await getLiveRealtimeUsers();
+    if (!eventsResWrap || !eventsResWrap[0]) {
+      console.warn('[FirebaseAnalytics] Events report timed out or failed, falling back.');
+      return cachedData || null;
+    }
+    const [eventsRes] = eventsResWrap;
+    const trafficRes = trafficResWrap ? trafficResWrap[0] : { rows: [] };
+    const realtime = realtimeRes || { total: 0, android: 0, ios: 0, by_app: { ailegal: { total: 0, android: 0, ios: 0 }, aisa: { total: 0, android: 0, ios: 0 } } };
 
     const byApp = {
       ailegal: {
@@ -447,11 +475,11 @@ const COUNTRY_FLAGS = {
   'Russia': '🇷🇺'
 };
 
-// Default targets matching App Downloads overview
+// Default targets (populated dynamically from database / hybrid telemetry)
 const DEFAULT_APP_TARGETS = {
-  ailegal: { android: 6965, ios: 381, total: 7346 },
-  aisa: { android: 214, ios: 77, total: 291 },
-  all: { android: 7179, ios: 458, total: 7637 }
+  ailegal: { android: 0, ios: 0, total: 0 },
+  aisa: { android: 0, ios: 0, total: 0 },
+  all: { android: 0, ios: 0, total: 0 }
 };
 
 function normalizeState(rawState) {
@@ -558,6 +586,23 @@ function calibrateGeoData(rawGroup, targets) {
 }
 
 async function fetchGeoDirectMetrics(forceRefresh = false, targets = null) {
+  if (!forceRefresh) {
+    if (cachedGeoRaw) {
+      return calibrateGeoData(cachedGeoRaw, targets);
+    }
+    try {
+      const db = await getUnifiedDb();
+      if (db) {
+        const storedGeo = await db.collection('firebase_telemetry_cache').findOne({ _id: 'firebase_geo_snapshot' }).catch(() => null);
+        if (storedGeo && storedGeo.data) {
+          cachedGeoRaw = storedGeo.data;
+          lastGeoFetchTime = Date.now();
+          return calibrateGeoData(cachedGeoRaw, targets);
+        }
+      }
+    } catch (e) {}
+  }
+
   const client = getClient();
   const propertyId = getPropertyId();
 
@@ -565,95 +610,121 @@ async function fetchGeoDirectMetrics(forceRefresh = false, targets = null) {
     return synthesizeGeoData(targets);
   }
 
-  const now = Date.now();
-  if (!forceRefresh && cachedGeoRaw && (now - lastGeoFetchTime < GEO_CACHE_TTL_MS)) {
-    return calibrateGeoData(cachedGeoRaw, targets);
+  if (inFlightGeoRawPromise) {
+    const raw = await inFlightGeoRawPromise;
+    if (!raw) return synthesizeGeoData(targets);
+    return calibrateGeoData(raw, targets);
   }
 
-  try {
-    const [res] = await client.runReport({
-      property: `properties/${propertyId}`,
-      dateRanges: [{ startDate: '2026-07-01', endDate: 'today' }],
-      dimensions: [
-        { name: 'country' },
-        { name: 'region' },
-        { name: 'streamId' },
-        { name: 'platform' }
-      ],
-      metrics: [{ name: 'eventCount' }],
-      dimensionFilter: {
-        filter: {
-          fieldName: 'eventName',
-          stringFilter: { matchType: 'EXACT', value: 'first_open' }
+  inFlightGeoRawPromise = (async () => {
+    try {
+      const reportCall = client.runReport({
+        property: `properties/${propertyId}`,
+        dateRanges: [{ startDate: '2026-07-01', endDate: 'today' }],
+        dimensions: [
+          { name: 'country' },
+          { name: 'region' },
+          { name: 'streamId' },
+          { name: 'platform' }
+        ],
+        metrics: [{ name: 'eventCount' }],
+        dimensionFilter: {
+          filter: {
+            fieldName: 'eventName',
+            stringFilter: { matchType: 'EXACT', value: 'first_open' }
+          }
         }
+      });
+
+      const reportRes = await runWithTimeout(reportCall, 5000, null);
+      if (!reportRes || !reportRes[0]) {
+        console.warn('[FirebaseAnalytics] fetchGeoDirectMetrics timed out or empty, using cached or fallback');
+        return cachedGeoRaw || null;
       }
-    });
+      const [res] = reportRes;
 
-    const streamMap = {
-      '15361501715': 'ailegal',
-      '15843076287': 'ailegal',
-      '15842883067': 'ailegal',
-      '15843012506': 'aisa',
-      '15842956481': 'aisa',
-      '15843098831': 'aisa',
-      '15248694028': 'aisa'
-    };
+      const streamMap = {
+        '15361501715': 'ailegal',
+        '15843076287': 'ailegal',
+        '15842883067': 'ailegal',
+        '15843012506': 'aisa',
+        '15842956481': 'aisa',
+        '15843098831': 'aisa',
+        '15248694028': 'aisa'
+      };
 
-    const appRaw = {
-      all: { countries: {}, states: {} },
-      ailegal: { countries: {}, states: {} },
-      aisa: { countries: {}, states: {} }
-    };
+      const appRaw = {
+        all: { countries: {}, states: {} },
+        ailegal: { countries: {}, states: {} },
+        aisa: { countries: {}, states: {} }
+      };
 
-    for (const row of res.rows || []) {
-      const countryRaw = row.dimensionValues[0]?.value || 'Unknown';
-      const country = countryRaw === '(not set)' ? 'Other / Global' : countryRaw;
-      const regionRaw = normalizeState(row.dimensionValues[1]?.value);
-      const streamId = row.dimensionValues[2]?.value || '';
-      const rawPlat = (row.dimensionValues[3]?.value || 'android').toLowerCase();
-      const count = parseInt(row.metricValues[0]?.value || '0', 10);
-      const isIos = rawPlat.includes('ios');
-      const appCode = streamMap[streamId] || 'ailegal';
+      for (const row of res.rows || []) {
+        const countryRaw = row.dimensionValues[0]?.value || 'Unknown';
+        const country = countryRaw === '(not set)' ? 'Other / Global' : countryRaw;
+        const regionRaw = normalizeState(row.dimensionValues[1]?.value);
+        const streamId = row.dimensionValues[2]?.value || '';
+        const rawPlat = (row.dimensionValues[3]?.value || 'android').toLowerCase();
+        const count = parseInt(row.metricValues[0]?.value || '0', 10);
+        const isIos = rawPlat.includes('ios');
+        const appCode = streamMap[streamId] || 'ailegal';
 
-      const targetsList = [appRaw.all, appRaw[appCode]].filter(Boolean);
-      for (const t of targetsList) {
-        if (!t.countries[country]) {
-          t.countries[country] = {
-            country,
-            flag: COUNTRY_FLAGS[country] || '🌐',
-            installs: 0,
-            android: 0,
-            ios: 0
-          };
-        }
-        t.countries[country].installs += count;
-        if (isIos) t.countries[country].ios += count;
-        else t.countries[country].android += count;
-
-        if (country.toLowerCase() === 'india' && regionRaw && regionRaw !== '(not set)' && regionRaw !== 'Unknown') {
-          if (!t.states[regionRaw]) {
-            t.states[regionRaw] = {
-              state: regionRaw,
-              zone: STATE_ZONE_MAP[regionRaw] || 'Central',
+        const targetsList = [appRaw.all, appRaw[appCode]].filter(Boolean);
+        for (const t of targetsList) {
+          if (!t.countries[country]) {
+            t.countries[country] = {
+              country,
+              flag: COUNTRY_FLAGS[country] || '🌐',
               installs: 0,
               android: 0,
               ios: 0
             };
           }
-          t.states[regionRaw].installs += count;
-          if (isIos) t.states[regionRaw].ios += count;
-          else t.states[regionRaw].android += count;
+          t.countries[country].installs += count;
+          if (isIos) t.countries[country].ios += count;
+          else t.countries[country].android += count;
+
+          if (country.toLowerCase() === 'india' && regionRaw && regionRaw !== '(not set)' && regionRaw !== 'Unknown') {
+            if (!t.states[regionRaw]) {
+              t.states[regionRaw] = {
+                state: regionRaw,
+                zone: STATE_ZONE_MAP[regionRaw] || 'Central',
+                installs: 0,
+                android: 0,
+                ios: 0
+              };
+            }
+            t.states[regionRaw].installs += count;
+            if (isIos) t.states[regionRaw].ios += count;
+            else t.states[regionRaw].android += count;
+          }
         }
       }
-    }
 
-    cachedGeoRaw = appRaw;
-    lastGeoFetchTime = now;
-    return calibrateGeoData(appRaw, targets);
-  } catch (err) {
-    console.warn('[FirebaseAnalytics] fetchGeoDirectMetrics error, using calibrated baseline:', err.message);
-    return synthesizeGeoData(targets);
-  }
+      cachedGeoRaw = appRaw;
+      lastGeoFetchTime = Date.now();
+      try {
+        const db = await getUnifiedDb();
+        if (db) {
+          await db.collection('firebase_telemetry_cache').updateOne(
+            { _id: 'firebase_geo_snapshot' },
+            { $set: { data: appRaw, updated_at: new Date() } },
+            { upsert: true }
+          ).catch(() => null);
+        }
+      } catch (e) {}
+      return appRaw;
+    } catch (err) {
+      console.warn('[FirebaseAnalytics] fetchGeoDirectMetrics error, using calibrated baseline:', err.message);
+      return cachedGeoRaw || null;
+    } finally {
+      inFlightGeoRawPromise = null;
+    }
+  })();
+
+  const raw = await inFlightGeoRawPromise;
+  if (!raw) return synthesizeGeoData(targets);
+  return calibrateGeoData(raw, targets);
 }
 
 function synthesizeGeoData(targets = null) {
@@ -725,21 +796,94 @@ async function getGeoTelemetry(appCode = 'all', forceRefresh = false, targets = 
   return fallback[key] || fallback.all;
 }
 
+async function persistFirebaseSnapshotToDb(liveData) {
+  if (!liveData) return;
+  try {
+    const db = await getUnifiedDb();
+    if (!db) return;
+
+    await db.collection('firebase_telemetry_cache').updateOne(
+      { _id: 'firebase_metrics_snapshot' },
+      { $set: { data: liveData, updated_at: new Date() } },
+      { upsert: true }
+    );
+
+    const bulkOps = [];
+    const byApp = liveData.by_app || {};
+    for (const [appCode, appObj] of Object.entries(byApp)) {
+      const dailyMetrics = appObj?.daily_metrics || {};
+      for (const [metricDate, m] of Object.entries(dailyMetrics)) {
+        bulkOps.push({
+          updateOne: {
+            filter: { app_code: appCode, metric_date: metricDate },
+            update: {
+              $set: {
+                app_code: appCode,
+                metric_date: metricDate,
+                android_installs: m.android || 0,
+                ios_installs: m.ios || 0,
+                total_installs: m.installs || ((m.android || 0) + (m.ios || 0)),
+                active_users: m.active || 0,
+                uninstalls: m.uninstalls || 0,
+                source: 'firebase_ga4_first_open',
+                updated_at: new Date()
+              }
+            },
+            upsert: true
+          }
+        });
+      }
+    }
+    if (bulkOps.length > 0) {
+      await db.collection('firebase_daily_installs').bulkWrite(bulkOps, { ordered: false }).catch(() => null);
+    }
+  } catch (err) {
+    console.warn('[FirebaseAnalytics] persistFirebaseSnapshotToDb warning:', err.message);
+  }
+}
+
 /**
- * Get Cached or Fresh Firebase Telemetry
+ * Get Database-Backed or Fresh Live Firebase Telemetry
+ * - Default (forceRefresh = false): Reads from in-memory cache or MongoDB ('firebase_telemetry_cache') immediately.
+ * - Sync (forceRefresh = true): Pulls live data from Firebase GA4 and persists to MongoDB.
  */
 async function getFirebaseTelemetry(forceRefresh = false) {
-  const now = Date.now();
-  if (!forceRefresh && cachedData && (now - lastFetchTime < CACHE_TTL_MS)) {
-    return cachedData;
+  if (!forceRefresh) {
+    if (cachedData) {
+      return cachedData;
+    }
+    try {
+      const db = await getUnifiedDb();
+      if (db) {
+        const stored = await db.collection('firebase_telemetry_cache').findOne({ _id: 'firebase_metrics_snapshot' }).catch(() => null);
+        if (stored && stored.data) {
+          cachedData = stored.data;
+          lastFetchTime = Date.now();
+          return cachedData;
+        }
+      }
+    } catch (e) {}
   }
 
-  const liveData = await fetchFirebaseDirectMetrics(30);
-  if (liveData) {
-    cachedData = liveData;
-    lastFetchTime = now;
+  if (inFlightFirebasePromise) {
+    return inFlightFirebasePromise;
   }
-  return cachedData;
+
+  inFlightFirebasePromise = (async () => {
+    try {
+      const liveData = await fetchFirebaseDirectMetrics(30);
+      if (liveData) {
+        cachedData = liveData;
+        lastFetchTime = Date.now();
+        await persistFirebaseSnapshotToDb(liveData);
+      }
+      return cachedData;
+    } finally {
+      inFlightFirebasePromise = null;
+    }
+  })();
+
+  return inFlightFirebasePromise;
 }
 
 module.exports = {

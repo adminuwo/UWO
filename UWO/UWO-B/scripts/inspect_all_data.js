@@ -1,10 +1,11 @@
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 const dns = require('dns');
 try { dns.setServers(['8.8.8.8', '1.1.1.1']); } catch(e) {}
 const { MongoClient } = require('mongodb');
 const { getUnifiedDb } = require('../unified_routes/db');
 
-const MONGO_URI = 'mongodb+srv://uwo_admin:uwo%4012345@cluster0.selr4is.mongodb.net/UWO-web?retryWrites=true&w=majority';
-const AISA_URI = 'mongodb+srv://admin_db_user:ailegal050804@cluster0.265idhx.mongodb.net/AISA?appName=Cluster0';
+const MONGO_URI = process.env.MONGO_URI || "";
+const AISA_URI = process.env.AISA_MONGODB_URI || "";
 
 async function main() {
   console.log('================ 1. UNIFIED SERVICE DB ================');

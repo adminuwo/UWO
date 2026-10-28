@@ -13,6 +13,8 @@
 
 const { getUnifiedDb } = require('./db');
 
+const getAisaUri = () => process.env.AISA_MONGODB_URI || '';
+
 class SubscriptionRepository {
   constructor() {
     this.indexesEnsured = false;
@@ -154,11 +156,27 @@ class SubscriptionRepository {
 
     const isActive = ['active', 'trialing', 'in_grace_period'].includes(computedStatus);
 
+    let planName = sub.plan_name;
+    if (isFreeTier) {
+      planName = planName || (sub.product_code === 'aisa' ? 'AISA Free Plan' : 'Advocate Free Plan');
+    } else if (tier === 'BASIC' && (!planName || planName === 'Advocate Plan' || planName === 'Advocate Professional Plan')) {
+      planName = 'Advocate Basic Plan';
+    } else if (tier === 'STARTER' && (!planName || planName === 'Advocate Plan')) {
+      planName = 'Advocate Starter Plan';
+    } else if (tier === 'PROFESSIONAL' && (!planName || planName === 'Advocate Plan')) {
+      planName = 'Advocate Professional Plan';
+    } else if (tier === 'ENTERPRISE' && (!planName || planName === 'Advocate Plan')) {
+      planName = 'Advocate Enterprise Plan';
+    }
+
     // =========================================================================
     // VERIFIED PAYMENT VS MANUALLY ASSIGNED CLASSIFICATION
     // =========================================================================
     const txId = String(sub.transaction_id || '').trim();
     const isFakeOrAdminTx = !txId || 
+                            txId.includes('mock') ||
+                            txId.includes('bypass') ||
+                            txId.includes('test') ||
                             txId.startsWith('txn_admin') || 
                             txId.startsWith('pay_fake') || 
                             txId.startsWith('pay_mock') || 
@@ -170,8 +188,23 @@ class SubscriptionRepository {
                           sub.manually_assigned === true;
 
     let isVerifiedPayment = false;
+    let liveTxAmount = null;
+
     if (verifiedTxSet) {
-      isVerifiedPayment = Boolean(txId && verifiedTxSet.has(txId));
+      if (verifiedTxSet instanceof Map) {
+        if (txId && verifiedTxSet.has(txId)) {
+          isVerifiedPayment = true;
+          const val = verifiedTxSet.get(txId);
+          if (typeof val === 'number' && val > 0) {
+            liveTxAmount = val;
+          } else if (typeof val === 'object' && val !== null && Number(val.amount) > 0) {
+            liveTxAmount = Number(val.amount);
+          }
+        }
+      } else if (verifiedTxSet instanceof Set) {
+        isVerifiedPayment = Boolean(txId && verifiedTxSet.has(txId));
+      }
+
       if (!isVerifiedPayment && !isFreeTier && !isFakeOrAdminTx && !isDirectAdmin && txId.startsWith('APPLE-')) {
         isVerifiedPayment = true;
       }
@@ -188,17 +221,38 @@ class SubscriptionRepository {
       statusLabel = isExpiringSoon ? `Expiring Soon (${daysRemaining}d) [Manual]` : 'Active (Manually Assigned)';
     }
 
-    let planName = sub.plan_name;
+    // Determine nominal catalog plan amount based on tier (e.g. ₹99 Starter, ₹499 Basic, ₹999 Pro)
+    let nominalCatalogAmount = 499;
     if (isFreeTier) {
-      planName = 'Advocate Free Plan';
-    } else if (tier === 'BASIC' && (!planName || planName === 'Advocate Plan' || planName === 'Advocate Professional Plan')) {
-      planName = 'Advocate Basic Plan';
+      nominalCatalogAmount = 0;
+    } else if (tier === 'STARTER') {
+      nominalCatalogAmount = 99;
+    } else if (tier === 'BASIC') {
+      nominalCatalogAmount = 499;
+    } else if (tier === 'PROFESSIONAL') {
+      nominalCatalogAmount = 999;
+    } else if (tier === 'ENTERPRISE') {
+      nominalCatalogAmount = 2499;
+    } else if (sub.plan_amount && Number(sub.plan_amount) > 0) {
+      nominalCatalogAmount = Number(sub.plan_amount);
     }
 
-    // Nominal plan amount (e.g. ₹499 for basic, ₹999 for pro)
-    const rawNominalAmount = Number(sub.plan_amount || sub.amount || (tier === 'BASIC' ? 499 : (tier === 'PROFESSIONAL' ? 999 : 0)));
+    // Determine actual paid amount:
+    // 1. Live verified gateway transaction amount takes topmost priority
+    // 2. Subscription's own recorded `amount` (e.g. ₹99) takes second priority
+    // 3. Subscription's `plan_amount` if positive
+    // 4. Nominal catalog amount fallback
+    let actualPaidAmount = nominalCatalogAmount;
+    if (liveTxAmount !== null && liveTxAmount > 0) {
+      actualPaidAmount = liveTxAmount;
+    } else if (sub.amount !== undefined && sub.amount !== null && !isNaN(Number(sub.amount)) && Number(sub.amount) > 0) {
+      actualPaidAmount = Number(sub.amount);
+    } else if (sub.plan_amount !== undefined && sub.plan_amount !== null && !isNaN(Number(sub.plan_amount)) && Number(sub.plan_amount) > 0) {
+      actualPaidAmount = Number(sub.plan_amount);
+    }
+
     // Effective paid amount: ONLY verified paid subscriptions contribute to revenue; manual assignments are ₹0
-    const effectivePaidAmount = isPaid ? rawNominalAmount : 0;
+    const effectivePaidAmount = isPaid ? actualPaidAmount : 0;
 
     // Normalize provider and platform
     let resolvedProvider = sub.provider || 'razorpay';
@@ -229,9 +283,9 @@ class SubscriptionRepository {
       product_name: this.resolveProductName(sub.product_code),
       platform: resolvedPlatform,
       provider: resolvedProvider,
-      // Clean amount: Verified paid revenue ONLY; manual grants yield 0
+      // Clean amount: Verified paid revenue ONLY (₹99 for ₹99 payments); manual grants yield 0
       amount: effectivePaidAmount,
-      plan_amount: rawNominalAmount,
+      plan_amount: nominalCatalogAmount,
       currency: sub.currency || 'INR'
     };
   }
@@ -255,17 +309,6 @@ class SubscriptionRepository {
 
   /**
    * Fetches paginated subscriptions with multi-field search and filters
-   * 
-   * @param {Object} queryParams
-   * @param {string} [queryParams.product] - 'all' or product_code
-   * @param {string} [queryParams.status] - 'all', 'active', 'paid', 'manual', 'expired', 'trialing'
-   * @param {string} [queryParams.platform] - 'all', 'ios', 'web', 'android'
-   * @param {string} [queryParams.search] - Search string
-   * @param {number} [queryParams.page=1]
-   * @param {number} [queryParams.limit=25]
-   * @param {string} [queryParams.sort_by='created_at']
-   * @param {number} [queryParams.sort_order=-1]
-   * @param {Object} [customDb=null]
    */
   async findSubscriptions(queryParams = {}, customDb = null) {
     if (!this.indexesEnsured) {
@@ -307,15 +350,22 @@ class SubscriptionRepository {
       ];
     }
 
-    // Fetch verified gateway transactions cache to cross-reference payment status
+    // Fetch verified gateway transactions cache to cross-reference payment status and paid amounts
     const verifiedTxs = await db.collection('revenue_transactions').find({
       status: { $in: ['completed', 'captured', 'paid', 'success', 'succeeded'] },
+      is_test: { $ne: true },
       provider: { $in: ['razorpay', 'app_store', 'google_play', 'cashfree', 'apple_iap', 'stripe', 'razorpay_efv'] },
       source: { $nin: ['direct_invoice', 'admin', 'manual'] },
-      external_transaction_id: { $not: /^txn_admin_/i },
+      external_transaction_id: { $not: /^(txn_admin_|pay_fake|pay_mock|mock_|manual_|test_)/i },
       'metadata.gateway': { $ne: 'Admin Direct Assignment' }
-    }).project({ external_transaction_id: 1 }).toArray().catch(() => []);
-    const verifiedTxSet = new Set(verifiedTxs.map(t => t.external_transaction_id).filter(Boolean));
+    }).project({ external_transaction_id: 1, gross_amount: 1, reporting_amount: 1, amount: 1 }).toArray().catch(() => []);
+    const verifiedTxMap = new Map();
+    verifiedTxs.forEach(t => {
+      if (t.external_transaction_id) {
+        const amt = Number(t.gross_amount ?? t.reporting_amount ?? t.amount ?? 0);
+        verifiedTxMap.set(t.external_transaction_id, amt);
+      }
+    });
 
     // Fetch all matching records for dynamic status evaluation
     const allCandidates = await db.collection('subscriptions')
@@ -325,7 +375,7 @@ class SubscriptionRepository {
 
     // Apply live dynamic status computation with verified transactions cross-reference
     const now = new Date();
-    let enriched = allCandidates.map(s => this.computeDynamicStatus(s, now, verifiedTxSet));
+    let enriched = allCandidates.map(s => this.computeDynamicStatus(s, now, verifiedTxMap));
 
     // 4. Status & Payment Filter (Evaluated against computed_status or payment verification status)
     const statusFilter = queryParams.status ? String(queryParams.status).toLowerCase().trim() : 'all';
@@ -383,15 +433,22 @@ class SubscriptionRepository {
   async getMetrics(filters = {}, customDb = null) {
     const db = customDb || await getUnifiedDb();
 
-    // Fetch verified gateway transactions cache to cross-reference payment status
+    // Fetch verified gateway transactions cache to cross-reference payment status and amounts
     const verifiedTxs = await db.collection('revenue_transactions').find({
       status: { $in: ['completed', 'captured', 'paid', 'success', 'succeeded'] },
+      is_test: { $ne: true },
       provider: { $in: ['razorpay', 'app_store', 'google_play', 'cashfree', 'apple_iap', 'stripe', 'razorpay_efv'] },
       source: { $nin: ['direct_invoice', 'admin', 'manual'] },
-      external_transaction_id: { $not: /^txn_admin_/i },
+      external_transaction_id: { $not: /^(txn_admin_|pay_fake|pay_mock|mock_|manual_|test_)/i },
       'metadata.gateway': { $ne: 'Admin Direct Assignment' }
-    }).project({ external_transaction_id: 1 }).toArray().catch(() => []);
-    const verifiedTxSet = new Set(verifiedTxs.map(t => t.external_transaction_id).filter(Boolean));
+    }).project({ external_transaction_id: 1, gross_amount: 1, reporting_amount: 1, amount: 1 }).toArray().catch(() => []);
+    const verifiedTxMap = new Map();
+    verifiedTxs.forEach(t => {
+      if (t.external_transaction_id) {
+        const amt = Number(t.gross_amount ?? t.reporting_amount ?? t.amount ?? 0);
+        verifiedTxMap.set(t.external_transaction_id, amt);
+      }
+    });
 
     const query = {};
     if (filters.product && filters.product !== 'all') {
@@ -400,7 +457,7 @@ class SubscriptionRepository {
 
     const docs = await db.collection('subscriptions').find(query).toArray();
     const now = new Date();
-    const enriched = docs.map(s => this.computeDynamicStatus(s, now, verifiedTxSet));
+    const enriched = docs.map(s => this.computeDynamicStatus(s, now, verifiedTxMap));
 
     let totalActive = 0;
     let paidActive = 0;
@@ -504,16 +561,23 @@ class SubscriptionRepository {
     // Fetch verified gateway transactions cache
     const verifiedTxs = await db.collection('revenue_transactions').find({
       status: { $in: ['completed', 'captured', 'paid', 'success', 'succeeded'] },
+      is_test: { $ne: true },
       provider: { $in: ['razorpay', 'app_store', 'google_play', 'cashfree', 'apple_iap', 'stripe', 'razorpay_efv'] },
       source: { $nin: ['direct_invoice', 'admin', 'manual'] },
-      external_transaction_id: { $not: /^txn_admin_/i },
+      external_transaction_id: { $not: /^(txn_admin_|pay_fake|pay_mock|mock_|manual_|test_)/i },
       'metadata.gateway': { $ne: 'Admin Direct Assignment' }
-    }).project({ external_transaction_id: 1 }).toArray().catch(() => []);
-    const verifiedTxSet = new Set(verifiedTxs.map(t => t.external_transaction_id).filter(Boolean));
+    }).project({ external_transaction_id: 1, gross_amount: 1, reporting_amount: 1, amount: 1 }).toArray().catch(() => []);
+    const verifiedTxMap = new Map();
+    verifiedTxs.forEach(t => {
+      if (t.external_transaction_id) {
+        const amt = Number(t.gross_amount ?? t.reporting_amount ?? t.amount ?? 0);
+        verifiedTxMap.set(t.external_transaction_id, amt);
+      }
+    });
 
     const docs = await db.collection('subscriptions').find({}).toArray();
     const now = new Date();
-    const enriched = docs.map(s => this.computeDynamicStatus(s, now, verifiedTxSet));
+    const enriched = docs.map(s => this.computeDynamicStatus(s, now, verifiedTxMap));
 
     const totalActive = enriched.filter(s => s.is_active).length;
     const paidActive = enriched.filter(s => s.is_active && s.is_paid).length;
@@ -550,7 +614,6 @@ class SubscriptionRepository {
     for (const s of enriched) {
       const code = s.product_code || 'ailegal';
       if (!prodStats[code]) {
-        // Skip non-subscription products (e.g. EFV Framework, AI Mall, UWO Web belong strictly to Revenue)
         continue;
       }
       prodStats[code].total_count += 1;
@@ -697,11 +760,11 @@ class SubscriptionRepository {
     );
 
     // Sync to AISA MongoDB if applicable
-    if (sub.subscription_id || sub.customer_id) {
+    const aisaUri = getAisaUri();
+    if (aisaUri && (sub.subscription_id || sub.customer_id)) {
       try {
         const { MongoClient, ObjectId } = require('mongodb');
-        const AISA_URI = process.env.AISA_MONGODB_URI || 'mongodb+srv://admin_db_user:ailegal050804@cluster0.265idhx.mongodb.net/AISA?appName=Cluster0';
-        const client = await MongoClient.connect(AISA_URI, { serverSelectionTimeoutMS: 5000 });
+        const client = await MongoClient.connect(aisaUri, { serverSelectionTimeoutMS: 5000 });
         const aisaDb = client.db('AISA');
         const aFilter = {};
         if (ObjectId.isValid(sub.subscription_id)) {
@@ -746,7 +809,6 @@ class SubscriptionRepository {
     }
 
     const now = new Date();
-    // If currently active and expiry is in future, extend from existing expiry; otherwise extend from now
     let baseDate = now;
     if (sub.expiry_date && new Date(sub.expiry_date) > now) {
       baseDate = new Date(sub.expiry_date);
@@ -772,11 +834,11 @@ class SubscriptionRepository {
     );
 
     // Sync to AISA MongoDB if applicable
-    if (sub.subscription_id || sub.customer_id) {
+    const aisaUri = getAisaUri();
+    if (aisaUri && (sub.subscription_id || sub.customer_id)) {
       try {
         const { MongoClient, ObjectId } = require('mongodb');
-        const AISA_URI = process.env.AISA_MONGODB_URI || 'mongodb+srv://admin_db_user:ailegal050804@cluster0.265idhx.mongodb.net/AISA?appName=Cluster0';
-        const client = await MongoClient.connect(AISA_URI, { serverSelectionTimeoutMS: 5000 });
+        const client = await MongoClient.connect(aisaUri, { serverSelectionTimeoutMS: 5000 });
         const aisaDb = client.db('AISA');
         const aFilter = {};
         if (ObjectId.isValid(sub.subscription_id)) {
@@ -787,7 +849,9 @@ class SubscriptionRepository {
         await aisaDb.collection('subscriptions').updateOne(aFilter, {
           $set: {
             status: 'active',
+            subscriptionStatus: 'active',
             expiryDate: newExpiryDate,
+            renewalDate: newExpiryDate,
             autoRenew: true,
             updatedAt: now
           }

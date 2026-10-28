@@ -1,10 +1,11 @@
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 const { MongoClient } = require('mongodb');
 const dns = require('dns');
 dns.setServers(['8.8.8.8', '1.1.1.1']);
 
-const AISA_URI = 'mongodb+srv://admin_db_user:ailegal050804@cluster0.265idhx.mongodb.net/AISA?appName=Cluster0';
-const UNIFIED_URI = 'mongodb+srv://admin_db_user:uSYUbw06q4coR6Nv@unified-dashboard.wisisoq.mongodb.net/?appName=Unified-Dashboard';
-const UWO_URI = 'mongodb+srv://uwo_admin:uwo%4012345@cluster0.selr4is.mongodb.net/UWO-web?retryWrites=true&w=majority';
+const AISA_URI = process.env.AISA_MONGODB_URI || "";
+const UNIFIED_URI = process.env.UNIFIED_MONGODB_URI || "";
+const UWO_URI = process.env.MONGO_URI || "";
 
 async function inspectDb(name, uri, defaultDbName) {
   console.log(`\n=================== INSPECTING: ${name} ===================`);

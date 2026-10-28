@@ -1,8 +1,9 @@
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 const { MongoClient } = require('mongodb');
 const dns = require('dns');
 dns.setServers(['8.8.8.8', '1.1.1.1']);
 
-const AISA_URI = 'mongodb+srv://admin_db_user:ailegal050804@cluster0.265idhx.mongodb.net/AISA?appName=Cluster0';
+const AISA_URI = process.env.AISA_MONGODB_URI || "";
 
 async function main() {
   const client = await MongoClient.connect(AISA_URI, { serverSelectionTimeoutMS: 10000 });

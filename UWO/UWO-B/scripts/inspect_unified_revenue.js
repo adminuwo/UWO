@@ -1,8 +1,9 @@
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 const { MongoClient } = require('mongodb');
 const dns = require('dns');
 dns.setServers(['8.8.8.8', '1.1.1.1']);
 
-const UNIFIED_URI = 'mongodb+srv://admin_db_user:uSYUbw06q4coR6Nv@unified-dashboard.wisisoq.mongodb.net/?appName=Unified-Dashboard';
+const UNIFIED_URI = process.env.UNIFIED_MONGODB_URI || "";
 
 async function main() {
   const client = await MongoClient.connect(UNIFIED_URI, { serverSelectionTimeoutMS: 10000 });

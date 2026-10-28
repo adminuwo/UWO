@@ -1,3 +1,4 @@
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 const { getUnifiedDb } = require('../unified_routes/db');
 
 async function main() {
@@ -35,7 +36,7 @@ async function main() {
 
   // Check UWO-web payments collection
   const { MongoClient } = require('mongodb');
-  const MONGO_URI = 'mongodb+srv://uwo_admin:uwo%4012345@cluster0.selr4is.mongodb.net/UWO-web?retryWrites=true&w=majority';
+  const MONGO_URI = process.env.MONGO_URI || "";
   const uClient = await MongoClient.connect(MONGO_URI);
   const uDb = uClient.db('UWO-web');
   const uPayments = await uDb.collection('payments').find({}).toArray();

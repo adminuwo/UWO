@@ -2,15 +2,15 @@
  * SubscriptionSyncService.js
  * 
  * Centralized, reusable ingestion & lifecycle synchronization engine for:
- * 1. AISA Atlas Production DB: Payments, Subscriptions, Users, Plans
+ * 1. AISA Atlas Production DB: Payments, Invoices, Subscriptions, Users, Plans
  * 2. Apple App Store Server Notifications (StoreKit 2 Webhooks)
  * 3. Razorpay Checkout Verifications & Webhooks
  * 4. Automatic background synchronization worker & on-demand manual trigger
  * 
  * Guarantees:
  * - 100% Real Live Production Data (Zero Mock Data)
- * - Accurate product_code tagging ('ailegal' for advocate suites, 'aisa' for AISA assistant)
- * - Safe upsert logic preventing duplicate subscription documents
+ * - Accurate product_code tagging ('ailegal' for advocate/student suites, 'aisa' for AISA assistant)
+ * - Safe upsert and deduplication logic preventing duplicate subscription documents
  */
 
 const { MongoClient, ObjectId } = require('mongodb');
@@ -25,7 +25,11 @@ if (!process.env.K_SERVICE && process.env.NODE_ENV !== 'test') {
 const { getUnifiedDb } = require('./db');
 const { subscriptionRepository } = require('./SubscriptionRepository');
 
-const AISA_URI = process.env.AISA_MONGODB_URI || 'mongodb+srv://admin_db_user:ailegal050804@cluster0.265idhx.mongodb.net/AISA?appName=Cluster0';
+const getAisaUris = () => {
+  const primary = process.env.AISA_MONGODB_URI;
+  const fallback = process.env.AISA_MONGODB_URI_FALLBACK || (process.env.MONGO_URI ? process.env.MONGO_URI.replace('/UWO-web', '/AISA') : '');
+  return [primary, fallback].filter(Boolean);
+};
 const RAZORPAY_WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET || 'affiliate-payment';
 
 // Helper function to format customer name from email
@@ -51,6 +55,8 @@ const determineTier = (amount, productCode = 'ailegal') => {
   if (amt >= 400) return 'BASIC';
   return 'STARTER';
 };
+
+let activeSubSyncPromise = null;
 
 let syncState = {
   isRunning: false,
@@ -94,7 +100,7 @@ class SubscriptionSyncService {
   }
 
   /**
-   * Executes full production synchronization against AISA Atlas DB
+   * Executes full production synchronization against AISA Atlas DB & Razorpay Live API
    */
   async runSync(options = {}) {
     if (process.env.NODE_ENV === 'test') {
@@ -109,437 +115,613 @@ class SubscriptionSyncService {
       };
     }
 
-    if (syncState.isRunning) {
-      console.log('[SubscriptionSyncService] Sync already actively executing, skipping concurrent run.');
-      return { skipped: true, reason: 'Already in progress', ...this.getStatus() };
+    if (syncState.isRunning && activeSubSyncPromise) {
+      console.log('[SubscriptionSyncService] Sync already actively executing, awaiting active promise...');
+      return activeSubSyncPromise;
     }
 
     syncState.isRunning = true;
-    const startTime = Date.now();
-    let aisaClient = null;
+    activeSubSyncPromise = (async () => {
+      const startTime = Date.now();
+      let aisaClient = null;
+      const externalAisaDb = options.aisaDb || null;
 
-    try {
-      const unifiedDb = await getUnifiedDb();
-      await subscriptionRepository.ensureIndexes(unifiedDb);
+      try {
+        const unifiedDb = await getUnifiedDb();
+        await subscriptionRepository.ensureIndexes(unifiedDb);
 
-      aisaClient = await MongoClient.connect(AISA_URI, {
-        serverSelectionTimeoutMS: 10000,
-        connectTimeoutMS: 10000
-      });
-      const aisaDb = aisaClient.db('AISA');
-
-      // 1. Fetch Users Cache for real customer name, email, phone
-      const usersMap = {};
-      const userDocs = await aisaDb.collection('users')
-        .find({}, { projection: { _id: 1, name: 1, fullName: 1, email: 1, phone: 1 } })
-        .toArray();
-      for (const u of userDocs) {
-        usersMap[String(u._id)] = {
-          name: (u.fullName || u.name || '').trim() || (u.email ? u.email.split('@')[0] : 'Advocate User'),
-          email: u.email || 'customer@ailegal.app',
-          phone: u.phone || ''
-        };
-      }
-
-      // 2. Fetch Plans Cache
-      const plansMap = {};
-      const planDocs = await aisaDb.collection('plans').find({}).toArray();
-      for (const p of planDocs) {
-        plansMap[String(p._id)] = p;
-        if (p.planId) plansMap[p.planId] = p;
-      }
-
-      let processed = 0;
-      let created = 0;
-      let updated = 0;
-      const subOps = [];
-
-      // 3. Process All Subscriptions from AISA MongoDB
-      const aisaSubs = await aisaDb.collection('subscriptions').find({}).toArray();
-      for (const s of aisaSubs) {
-        processed++;
-        const sid = String(s._id);
-        const accId = s.accountId || s.userId ? String(s.accountId || s.userId) : null;
-        const user = accId && usersMap[accId] ? usersMap[accId] : { name: 'Advocate User', email: 'advocate@ailegal.app', phone: '' };
-
-        const tierRaw = String(s.tier || 'BASIC').toUpperCase();
-        let tierNormalized = tierRaw;
-        if (tierRaw.includes('PRO')) tierNormalized = 'PROFESSIONAL';
-        else if (tierRaw.includes('ENTERPRISE')) tierNormalized = 'ENTERPRISE';
-        else if (tierRaw.includes('FREE')) tierNormalized = 'FREE';
-        else if (tierRaw.includes('BASIC')) tierNormalized = 'BASIC';
-
-        const isFreeTier = tierNormalized === 'FREE' || String(s.plan_name || '').toLowerCase().includes('free');
-        const txId = String(s.transactionId || s.paymentId || s.transaction_id || '').trim();
-        const isFakeOrAdminTx = !txId || 
-                                txId.startsWith('txn_admin') || 
-                                txId.startsWith('pay_fake') || 
-                                txId.startsWith('pay_mock') || 
-                                txId.startsWith('manual');
-        const isDirectAdmin = s.platform === 'admin' || 
-                              s.provider === 'direct_invoice' || 
-                              s.source === 'direct_invoice' ||
-                              s.is_manual === true ||
-                              s.manually_assigned === true;
-
-        const isManuallyAssigned = isFreeTier || isFakeOrAdminTx || isDirectAdmin || Number(s.amount) === 0;
-        const isPaid = !isManuallyAssigned;
-
-        // Nominal plan amount
-        const planAmount = Number(s.plan_amount) || (tierNormalized === 'ENTERPRISE' ? 2399 : (tierNormalized === 'PROFESSIONAL' ? 999 : 499));
-        // Effective revenue amount is 0 for manually assigned plans; paid plans keep verified amount
-        const amount = isPaid ? (Number(s.amount) > 0 ? Number(s.amount) : planAmount) : 0;
-
-        const startDate = s.startDate ? new Date(s.startDate) : (s.createdAt ? new Date(s.createdAt) : new Date());
-        const expiryDate = s.expiryDate ? new Date(s.expiryDate) : null;
-
-        const subDoc = {
-          _id: `aisa_sub_${sid}`,
-          subscription_id: sid,
-          source: 'aisa_db',
-          product_code: 'ailegal',
-          product_name: 'AI Legal',
-          customer_id: accId,
-          customer_email: user.email,
-          customer_name: user.name,
-          customer_phone: user.phone,
-          workspace: s.workspace || 'advocate',
-          tier: isFreeTier ? 'FREE' : tierNormalized,
-          plan_name: isFreeTier ? 'Advocate Free Plan' : `Advocate ${tierNormalized.charAt(0) + tierNormalized.slice(1).toLowerCase()} Plan`,
-          billing_cycle: s.billingCycle || 'monthly',
-          billing_type: s.billingType || 'individual',
-          amount: amount,
-          plan_amount: planAmount,
-          is_paid: isPaid,
-          is_manually_assigned: isManuallyAssigned,
-          payment_status: isPaid ? 'verified_paid' : 'manually_assigned',
-          currency: s.currency || 'INR',
-          status: s.status || 'active',
-          platform: s.platform || 'ios',
-          provider: s.platform === 'ios' ? 'app_store' : 'razorpay',
-          transaction_id: txId,
-          order_id: s.orderId || '',
-          invoice_id: s.invoiceId || '',
-          start_date: startDate,
-          expiry_date: expiryDate,
-          auto_renew: !!s.autoRenew,
-          created_at: s.createdAt ? new Date(s.createdAt) : startDate,
-          updated_at: new Date()
-        };
-
-        const { _id: docId, ...subDataWithoutId } = subDoc;
-
-        subOps.push({
-          updateOne: {
-            filter: {
-              $or: [
-                { _id: docId },
-                { subscription_id: sid }
-              ]
-            },
-            update: {
-              $set: subDataWithoutId,
-              $setOnInsert: { _id: docId }
-            },
-            upsert: true
-          }
-        });
-      }
-
-
-      // 4. Process Real AISA Completed Revenue Transactions
-      const aisaTxs = await unifiedDb.collection('revenue_transactions').find({
-        product_code: 'aisa',
-        status: 'completed',
-        customer_email: { $ne: null }
-      }).sort({ transaction_date: -1 }).toArray().catch(() => []);
-
-      const aisaMap = {};
-      for (const t of aisaTxs) {
-        if (!aisaMap[t.customer_email]) aisaMap[t.customer_email] = t;
-      }
-
-      for (const [email, t] of Object.entries(aisaMap)) {
-        processed++;
-        const amt = Number(t.reporting_amount || t.gross_amount) || 499;
-        const tier = determineTier(amt);
-        const txDate = t.transaction_date ? new Date(t.transaction_date) : new Date();
-        const expiry = new Date(txDate.getTime() + 30 * 24 * 60 * 60 * 1000);
-        const sid = `aisa_sub_${t.external_transaction_id}`;
-
-        const aisaSubDoc = {
-          _id: sid,
-          subscription_id: sid,
-          source: 'aisa_payments',
-          product_code: 'aisa',
-          product_name: 'AISA Assistant',
-          customer_id: t.customer_id || null,
-          customer_email: email,
-          customer_name: formatNameFromEmail(email),
-          customer_phone: t.metadata?.vpa || '',
-          workspace: 'default',
-          tier: tier,
-          plan_name: `AISA Assistant ${tier.charAt(0) + tier.slice(1).toLowerCase()} Plan`,
-          billing_cycle: 'monthly',
-          billing_type: 'individual',
-          amount: amt,
-          currency: t.currency || 'INR',
-          status: 'active', // dynamically evaluated on read
-          platform: t.platform || 'web',
-          provider: t.provider || 'razorpay',
-          transaction_id: t.external_transaction_id,
-          order_id: t.external_order_id || '',
-          invoice_id: '',
-          start_date: txDate,
-          expiry_date: expiry,
-          auto_renew: false,
-          created_at: txDate,
-          updated_at: new Date()
-        };
-
-        const { _id: aDocId, ...aisaWithoutId } = aisaSubDoc;
-        subOps.push({
-          updateOne: {
-            filter: {
-              $or: [
-                { _id: aDocId },
-                { transaction_id: t.external_transaction_id },
-                { customer_email: email, product_code: 'aisa' }
-              ]
-            },
-            update: {
-              $set: aisaWithoutId,
-              $setOnInsert: { _id: aDocId }
-            },
-            upsert: true
-          }
-        });
-      }
-
-      // 5. Direct Razorpay Reconciler: Auto-ingest any captured AI-Legal payments missing from DB
-      if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
-        try {
-          const Razorpay = require('razorpay');
-          const rzp = new Razorpay({
-            key_id: process.env.RAZORPAY_KEY_ID,
-            key_secret: process.env.RAZORPAY_KEY_SECRET
-          });
-
-          const rzpPayments = await rzp.payments.all({ count: 50 });
-          const capturedPayments = (rzpPayments.items || []).filter(p => p.status === 'captured');
-
-          const alreadyTrackedTxIds = new Set(
-            subOps.map(op => {
-              const filter = op.updateOne?.filter;
-              if (filter?.transaction_id) return filter.transaction_id;
-              if (filter?.$or) {
-                const item = filter.$or.find(f => f.transaction_id);
-                if (item) return item.transaction_id;
+        let aisaDb = externalAisaDb;
+        if (!aisaDb) {
+          for (const uri of getAisaUris()) {
+            try {
+              aisaClient = await MongoClient.connect(uri, {
+                serverSelectionTimeoutMS: 8000,
+                connectTimeoutMS: 8000
+              });
+              aisaDb = aisaClient.db('AISA');
+              break;
+            } catch (connErr) {
+              console.warn('[SubscriptionSyncService] AISA DB connect notice:', connErr.message);
+              if (aisaClient) {
+                await aisaClient.close().catch(() => {});
+                aisaClient = null;
               }
-              return null;
-            }).filter(Boolean)
-          );
-
-          for (const p of capturedPayments) {
-            if (alreadyTrackedTxIds.has(p.id)) continue;
-
-            const amt = (p.amount || 0) / 100;
-            // Only consider genuine subscriber payments (₹100 or above)
-            if (amt < 100) continue;
-
-            const desc = (p.description || '').toLowerCase();
-            const notesStr = JSON.stringify(p.notes || {}).toLowerCase();
-            const isLegal = desc.includes('legal') || 
-                            desc.includes('advocate') || 
-                            notesStr.includes('legal') || 
-                            notesStr.includes('advocate') ||
-                            notesStr.includes('ailegal');
-
-            if (!isLegal) continue;
-
-            // Check if already present in unifiedDb subscriptions
-            const existsInDb = await unifiedDb.collection('subscriptions').findOne({
-              $or: [
-                { transaction_id: p.id },
-                { subscription_id: `rzp_sub_${p.id}` }
-              ]
-            });
-            if (existsInDb) {
-              alreadyTrackedTxIds.add(p.id);
-              continue;
             }
+          }
+        }
 
-            processed++;
-            const tier = determineTier(amt);
-            const txDate = p.created_at ? new Date(p.created_at * 1000) : new Date();
-            const expiry = new Date(txDate.getTime() + 30 * 24 * 60 * 60 * 1000);
-            const sid = `rzp_sub_${p.id}`;
+        const usersMap = options.usersMap || {};
+        const plansMap = options.plansMap || {};
+        const invoicesBySubId = options.invoicesBySubId || {};
+        const invoicesByTxId = options.invoicesByTxId || {};
+        let aisaSubs = [];
 
-            // Match user from AISA users cache if registered
-            const matchedUser = Object.values(usersMap).find(u => u.email && u.email.toLowerCase() === (p.email || '').toLowerCase());
-            const custName = matchedUser?.name || formatNameFromEmail(p.email);
-            const custId = matchedUser ? Object.keys(usersMap).find(k => usersMap[k] === matchedUser) : null;
+        if (aisaDb) {
+          const needUsers = Object.keys(usersMap).length === 0;
+          const needPlans = Object.keys(plansMap).length === 0;
+          const needInvoices = Object.keys(invoicesBySubId).length === 0 && Object.keys(invoicesByTxId).length === 0;
 
-            const rzpSubDoc = {
-              _id: sid,
-              subscription_id: sid,
-              source: 'razorpay_direct',
-              product_code: 'ailegal',
-              product_name: 'AI Legal',
-              customer_id: custId,
-              customer_email: p.email || 'customer@ailegal.app',
-              customer_name: custName,
-              customer_phone: p.contact || matchedUser?.phone || '',
-              workspace: 'advocate',
-              tier: tier,
-              plan_name: `Advocate ${tier.charAt(0) + tier.slice(1).toLowerCase()} Plan`,
-              billing_cycle: 'monthly',
-              billing_type: 'individual',
-              amount: amt,
-              currency: p.currency || 'INR',
-              status: 'active',
-              platform: 'web',
-              provider: 'razorpay',
-              transaction_id: p.id,
-              order_id: p.order_id || '',
-              invoice_id: p.invoice_id || '',
-              start_date: txDate,
-              expiry_date: expiry,
-              auto_renew: false,
-              created_at: txDate,
-              updated_at: new Date()
+          const [userDocs, planDocs, invoiceDocs, rawAisaSubs] = await Promise.all([
+            needUsers
+              ? aisaDb.collection('users').find({}, { projection: { _id: 1, name: 1, fullName: 1, email: 1, phone: 1 } }).toArray().catch(() => [])
+              : Promise.resolve([]),
+            needPlans
+              ? aisaDb.collection('plans').find({}).toArray().catch(() => [])
+              : Promise.resolve([]),
+            needInvoices
+              ? aisaDb.collection('invoices').find({}).toArray().catch(() => [])
+              : Promise.resolve([]),
+            aisaDb.collection('subscriptions').find({}).toArray().catch(() => [])
+          ]);
+
+          aisaSubs = rawAisaSubs;
+
+          for (const u of userDocs) {
+            usersMap[String(u._id)] = {
+              name: (u.fullName || u.name || '').trim() || (u.email ? u.email.split('@')[0] : 'Subscriber'),
+              email: u.email || 'customer@uwo24.com',
+              phone: u.phone || ''
             };
+          }
 
-            const { _id: rzpDocId, ...rzpWithoutId } = rzpSubDoc;
-            subOps.push({
-              updateOne: {
-                filter: {
-                  $or: [
-                    { _id: rzpDocId },
-                    { transaction_id: p.id },
-                    { subscription_id: sid }
-                  ]
-                },
-                update: {
-                  $set: rzpWithoutId,
-                  $setOnInsert: { _id: rzpDocId }
-                },
-                upsert: true
+          for (const p of planDocs) {
+            plansMap[String(p._id)] = p;
+            if (p.planId) plansMap[p.planId] = p;
+          }
+
+          for (const inv of invoiceDocs) {
+            if (inv.subscriptionId) invoicesBySubId[String(inv.subscriptionId)] = inv;
+            if (inv.paymentId) invoicesByTxId[String(inv.paymentId)] = inv;
+          }
+        }
+
+        // Preload existing subscriptions & revenue_transactions in parallel
+        const [rawExistingSubs, existingRevTxs] = await Promise.all([
+          unifiedDb.collection('subscriptions')
+            .find({}, { projection: { _id: 1, subscription_id: 1, transaction_id: 1, source: 1, product_code: 1, amount: 1 } })
+            .toArray()
+            .catch(() => []),
+          unifiedDb.collection('revenue_transactions')
+            .find({}, { projection: { external_transaction_id: 1, gross_amount: 1, product_code: 1, plan_name: 1, platform: 1, provider: 1 } })
+            .toArray()
+            .catch(() => [])
+        ]);
+
+        // Pre-deduplicate legacy redundant records before building bulkWrite
+        const byTx = new Map();
+        const bySubId = new Map();
+        const idsToDelete = new Set();
+
+        for (const doc of rawExistingSubs) {
+          // Purge non-subscription products or ₹1-₹5 dev tests
+          if (
+            ['efvframework', 'aimall', 'uwo', 'uwoconnect'].includes(doc.product_code) ||
+            (['razorpay_live', 'razorpay_direct', 'aisa_payments'].includes(doc.source) && doc.amount > 0 && doc.amount < 50)
+          ) {
+            idsToDelete.add(doc._id);
+            continue;
+          }
+
+          const subIdKey = doc.subscription_id ? String(doc.subscription_id).trim() : null;
+          if (subIdKey) {
+            if (bySubId.has(subIdKey)) {
+              const prev = bySubId.get(subIdKey);
+              if (doc.source === 'aisa_db' && prev.source !== 'aisa_db') {
+                idsToDelete.add(prev._id);
+                bySubId.set(subIdKey, doc);
+              } else {
+                idsToDelete.add(doc._id);
+                continue;
               }
-            });
-            alreadyTrackedTxIds.add(p.id);
-
-            // Also record in unifiedDb revenue_transactions for accurate financial metrics
-            await unifiedDb.collection('revenue_transactions').updateOne(
-              { external_transaction_id: p.id },
-              {
-                $set: {
-                  source: 'razorpay',
-                  provider: 'razorpay',
-                  product_code: 'ailegal',
-                  platform: 'web',
-                  external_transaction_id: p.id,
-                  external_order_id: p.order_id || '',
-                  transaction_type: 'payment',
-                  gross_amount: amt,
-                  tax_amount: p.tax ? p.tax / 100 : 0,
-                  fee_amount: p.fee ? p.fee / 100 : 0,
-                  refund_amount: 0,
-                  net_amount: (p.amount - (p.fee || 0) - (p.tax || 0)) / 100,
-                  currency: p.currency || 'INR',
-                  reporting_amount: amt,
-                  reporting_currency: 'INR',
-                  exchange_rate: 1,
-                  transaction_date: txDate,
-                  country: 'IN',
-                  status: 'completed',
-                  customer_id: custId,
-                  customer_email: p.email,
-                  customer_name: custName,
-                  updated_at: new Date()
-                },
-                $setOnInsert: {
-                  _id: `rzp_tx_${p.id}`,
-                  created_at: txDate
-                }
-              },
-              { upsert: true }
-            );
-
-            // Also ensure primary AISA DB gets this payment doc so AISA app features unlock
-            if (aisaDb) {
-              await aisaDb.collection('payments').updateOne(
-                { transactionId: p.id },
-                {
-                  $setOnInsert: {
-                    userId: custId ? new ObjectId(custId) : null,
-                    planId: tier === 'PROFESSIONAL' ? 'advocate_pro' : 'advocate_basic',
-                    invoiceNumber: p.invoice_id || `INV-${p.created_at}`,
-                    amount: amt,
-                    gst: p.tax ? p.tax / 100 : Math.round(amt * 0.18 * 100) / 100,
-                    gateway: 'Razorpay',
-                    transactionId: p.id,
-                    status: 'success',
-                    createdAt: txDate,
-                    updatedAt: new Date()
-                  }
-                },
-                { upsert: true }
-              ).catch(e => console.warn('[SubscriptionSyncService] Could not write to aisaDb.payments:', e.message));
+            } else {
+              bySubId.set(subIdKey, doc);
             }
           }
-        } catch (rzpErr) {
-          console.warn('[SubscriptionSyncService] Razorpay direct reconciliation non-blocking notice:', rzpErr.message);
+
+          const tx = doc.transaction_id ? String(doc.transaction_id).trim() : '';
+          if (tx && !tx.includes('mock') && !tx.includes('bypass') && !tx.includes('test')) {
+            if (byTx.has(tx)) {
+              const prev = byTx.get(tx);
+              if (doc.source === 'aisa_db' && prev.source !== 'aisa_db') {
+                idsToDelete.add(prev._id);
+                byTx.set(tx, doc);
+              } else if (prev._id !== doc._id) {
+                idsToDelete.add(doc._id);
+                continue;
+              }
+            } else {
+              byTx.set(tx, doc);
+            }
+          }
+        }
+
+        if (idsToDelete.size > 0) {
+          await unifiedDb.collection('subscriptions').deleteMany({ _id: { $in: Array.from(idsToDelete) } }).catch(() => {});
+          console.log(`[SubscriptionSyncService] Cleaned ${idsToDelete.size} redundant/legacy subscription record(s).`);
+        }
+
+        const existingSubById = new Map();
+        const existingSubBySubId = new Map();
+        const existingSubByTxId = new Map();
+        for (const doc of rawExistingSubs) {
+          if (idsToDelete.has(doc._id)) continue;
+          existingSubById.set(String(doc._id), doc);
+          if (doc.subscription_id) existingSubBySubId.set(String(doc.subscription_id), doc);
+          if (doc.transaction_id) existingSubByTxId.set(String(doc.transaction_id), doc);
+        }
+
+        const revTxMap = new Map();
+        for (const rt of existingRevTxs) {
+          if (rt.external_transaction_id) {
+            revTxMap.set(String(rt.external_transaction_id), rt);
+          }
+        }
+
+        let processed = 0;
+        let created = 0;
+        let updated = 0;
+        const subOps = [];
+        const trackedTxIds = new Set();
+
+        // 3. Process All Subscriptions from AISA MongoDB
+        for (const s of aisaSubs) {
+          processed++;
+          const sid = String(s._id);
+          const accId = (s.accountId || s.userId) ? String(s.accountId || s.userId) : null;
+          const user = (accId && usersMap[accId]) ? usersMap[accId] : { name: 'Subscriber', email: 'customer@uwo24.com', phone: '' };
+
+          const planObj = (s.planId && plansMap[String(s.planId)]) ? plansMap[String(s.planId)] : {};
+          const invoiceObj = invoicesBySubId[sid] || (s.paymentId && invoicesByTxId[String(s.paymentId)]) || null;
+          const txId = String(s.transactionId || s.paymentId || s.transaction_id || '').trim();
+          const matchedRevTx = txId ? revTxMap.get(txId) : null;
+
+          // Resolve plan name and tier accurately from AISA.plans or subscription fields
+          const rawPlanName = String(planObj.planName || s.plan_name || matchedRevTx?.plan_name || s.tier || 'Basic').trim();
+          const rawPlanLower = rawPlanName.toLowerCase();
+
+          let tierNormalized = 'BASIC';
+          if (rawPlanLower.includes('free') || String(s.tier || '').toUpperCase() === 'FREE') {
+            tierNormalized = 'FREE';
+          } else if (rawPlanLower.includes('enterprise') || String(s.tier || '').toUpperCase().includes('ENTERPRISE')) {
+            tierNormalized = 'ENTERPRISE';
+          } else if (rawPlanLower.includes('startup') || rawPlanLower.includes('pro') || String(s.tier || '').toUpperCase().includes('PRO')) {
+            tierNormalized = 'PROFESSIONAL';
+          } else if (rawPlanLower.includes('starter') || String(s.tier || '').toUpperCase().includes('STARTER')) {
+            tierNormalized = 'STARTER';
+          } else {
+            tierNormalized = 'BASIC';
+          }
+
+          const isFreeTier = tierNormalized === 'FREE';
+          const isFakeOrAdminTx = !txId ||
+                                  txId.includes('mock') ||
+                                  txId.includes('bypass') ||
+                                  txId.includes('test') ||
+                                  txId.startsWith('txn_admin') ||
+                                  txId.startsWith('pay_fake') ||
+                                  txId.startsWith('pay_mock') ||
+                                  txId.startsWith('manual');
+          const isDirectAdmin = s.platform === 'admin' ||
+                                s.provider === 'direct_invoice' ||
+                                s.source === 'direct_invoice' ||
+                                s.is_manual === true ||
+                                s.manually_assigned === true;
+
+          const catalogPrice = Number(planObj.priceMonthly ?? s.plan_amount ?? (isFreeTier ? 0 : (tierNormalized === 'ENTERPRISE' ? 2499 : (tierNormalized === 'PROFESSIONAL' ? 999 : 499))));
+          const invoiceAmount = invoiceObj ? Number(invoiceObj.totalAmount || invoiceObj.amount || 0) : 0;
+          const revTxAmount = matchedRevTx ? Number(matchedRevTx.gross_amount || 0) : 0;
+          const explicitSubAmount = Number(s.amount || 0);
+          const resolvedPaidAmount = invoiceAmount || revTxAmount || explicitSubAmount || catalogPrice;
+
+          const isManuallyAssigned = isFreeTier || isFakeOrAdminTx || isDirectAdmin || resolvedPaidAmount === 0;
+          const isPaid = !isManuallyAssigned;
+
+          if (txId && !isFakeOrAdminTx) {
+            trackedTxIds.add(txId);
+          }
+
+          const amount = isPaid ? resolvedPaidAmount : 0;
+          const planAmount = isFreeTier ? 0 : (catalogPrice || 499);
+
+          // Determine product_code ('ailegal' vs 'aisa')
+          const isExplicitLegal = s.workspace === 'advocate' ||
+                                  s.workspace === 'student' ||
+                                  rawPlanLower.includes('advocate') ||
+                                  rawPlanLower.includes('student') ||
+                                  rawPlanLower.includes('legal') ||
+                                  rawPlanLower.includes('firm') ||
+                                  txId.startsWith('APPLE-') ||
+                                  s.platform === 'ios' ||
+                                  matchedRevTx?.product_code === 'ailegal';
+          const isExplicitAisa = rawPlanLower === 'creator' ||
+                                 rawPlanLower === 'startup' ||
+                                 rawPlanLower.includes('aisa') ||
+                                 matchedRevTx?.product_code === 'aisa';
+          const productCode = isExplicitLegal ? 'ailegal' : (isExplicitAisa ? 'aisa' : 'ailegal');
+          const productName = productCode === 'aisa' ? 'AISA Assistant' : 'AI Legal';
+
+          let displayPlanName = rawPlanName;
+          if (productCode === 'aisa') {
+            if (isFreeTier) displayPlanName = 'AISA Free Plan';
+            else if (!rawPlanLower.includes('plan')) displayPlanName = `AISA ${rawPlanName} Plan`;
+          } else {
+            if (isFreeTier) displayPlanName = 'Advocate Free Plan';
+            else if (!rawPlanLower.includes('plan')) displayPlanName = `Advocate ${rawPlanName} Plan`;
+          }
+
+          // Map real status & dates from AISA.subscriptions (`subscriptionStatus`, `subscriptionStart`, `renewalDate`)
+          const rawStatus = String(s.subscriptionStatus || s.status || 'active').toLowerCase().trim();
+          const startDate = (s.subscriptionStart || s.startDate || s.createdAt)
+            ? new Date(s.subscriptionStart || s.startDate || s.createdAt)
+            : new Date();
+          const expiryDate = (s.renewalDate || s.expiryDate)
+            ? new Date(s.renewalDate || s.expiryDate)
+            : null;
+
+          const resolvedPlatform = txId.startsWith('APPLE-') || s.platform === 'ios'
+            ? 'ios'
+            : (s.platform || matchedRevTx?.platform || 'web');
+          const resolvedProvider = resolvedPlatform === 'ios'
+            ? 'app_store'
+            : (s.provider || matchedRevTx?.provider || 'razorpay');
+
+          const defaultDocId = `aisa_sub_${sid}`;
+          const existingDoc = existingSubById.get(defaultDocId) || existingSubBySubId.get(sid);
+          const targetDocId = existingDoc ? existingDoc._id : defaultDocId;
+          const targetSubId = existingDoc?.subscription_id || sid;
+
+          const subDataWithoutId = {
+            subscription_id: targetSubId,
+            source: 'aisa_db',
+            product_code: productCode,
+            product_name: productName,
+            customer_id: accId,
+            customer_email: invoiceObj?.billingDetails?.email || user.email,
+            customer_name: invoiceObj?.billingDetails?.name || user.name,
+            customer_phone: user.phone,
+            workspace: s.workspace || (productCode === 'aisa' ? 'default' : 'advocate'),
+            tier: isFreeTier ? 'FREE' : tierNormalized,
+            plan_name: displayPlanName,
+            billing_cycle: s.billingCycle || 'monthly',
+            billing_type: s.billingType || 'individual',
+            amount: amount,
+            plan_amount: planAmount,
+            is_paid: isPaid,
+            is_manually_assigned: isManuallyAssigned,
+            payment_status: isPaid ? 'verified_paid' : 'manually_assigned',
+            currency: s.currency || 'INR',
+            status: rawStatus,
+            platform: resolvedPlatform,
+            provider: resolvedProvider,
+            transaction_id: txId,
+            order_id: s.orderId || '',
+            invoice_id: invoiceObj?.invoiceNumber || s.invoiceId || '',
+            start_date: startDate,
+            expiry_date: expiryDate,
+            auto_renew: !!s.autoRenew,
+            created_at: s.createdAt ? new Date(s.createdAt) : startDate,
+            updated_at: new Date()
+          };
+
+          subOps.push({
+            updateOne: {
+              filter: { _id: targetDocId },
+              update: {
+                $set: subDataWithoutId,
+                $setOnInsert: { _id: targetDocId }
+              },
+              upsert: true
+            }
+          });
+        }
+
+        // 4. Process Real Completed Revenue Transactions that are not yet tracked in AISA.subscriptions
+        const completedTxs = await unifiedDb.collection('revenue_transactions').find({
+          product_code: { $in: ['ailegal', 'aisa'] },
+          status: 'completed',
+          is_test: { $ne: true },
+          gross_amount: { $gte: 50 }
+        }).sort({ transaction_date: -1 }).toArray().catch(() => []);
+
+        for (const t of completedTxs) {
+          const txId = String(t.external_transaction_id || '').trim();
+          if (!txId || trackedTxIds.has(txId)) continue;
+          if (/^(txn_admin_|pay_fake|pay_mock|mock_|manual_|test_)/i.test(txId) || txId.includes('bypass')) continue;
+
+          trackedTxIds.add(txId);
+          processed++;
+
+          const amt = Number(t.reporting_amount || t.gross_amount) || 99;
+          const prod = t.product_code === 'aisa' ? 'aisa' : 'ailegal';
+          const tier = determineTier(amt, prod);
+          const txDate = t.transaction_date ? new Date(t.transaction_date) : new Date();
+          const expiry = new Date(txDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+          const defaultSid = `rzp_sub_${txId}`;
+          const existingDoc = existingSubByTxId.get(txId) || existingSubBySubId.get(defaultSid) || existingSubById.get(defaultSid);
+          const targetDocId = existingDoc ? existingDoc._id : defaultSid;
+          const targetSubId = existingDoc?.subscription_id || defaultSid;
+
+          const email = t.customer_email || 'customer@uwo24.com';
+          const matchedUser = Object.values(usersMap).find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
+          const custName = t.customer_name && t.customer_name !== 'Valued Customer'
+            ? t.customer_name
+            : (matchedUser?.name || formatNameFromEmail(email));
+
+          let planName = t.plan_name;
+          if (!planName) {
+            planName = prod === 'aisa'
+              ? `AISA Assistant ${tier.charAt(0) + tier.slice(1).toLowerCase()} Plan`
+              : `Advocate ${tier.charAt(0) + tier.slice(1).toLowerCase()} Plan`;
+          }
+
+          const withoutId = {
+            subscription_id: targetSubId,
+            source: t.provider === 'app_store' ? 'apple_storekit' : 'razorpay_live',
+            product_code: prod,
+            product_name: prod === 'aisa' ? 'AISA Assistant' : 'AI Legal',
+            customer_id: t.customer_id || null,
+            customer_email: email,
+            customer_name: custName,
+            customer_phone: t.customer_phone || matchedUser?.phone || '',
+            workspace: prod === 'aisa' ? 'default' : (String(planName).toLowerCase().includes('student') ? 'student' : 'advocate'),
+            tier: tier,
+            plan_name: planName,
+            billing_cycle: 'monthly',
+            billing_type: 'individual',
+            amount: amt,
+            plan_amount: amt,
+            is_paid: true,
+            is_manually_assigned: false,
+            payment_status: 'verified_paid',
+            currency: t.currency || 'INR',
+            status: 'active',
+            platform: t.platform || (txId.startsWith('APPLE-') ? 'ios' : 'web'),
+            provider: t.provider || (txId.startsWith('APPLE-') ? 'app_store' : 'razorpay'),
+            transaction_id: txId,
+            order_id: t.external_order_id || '',
+            invoice_id: t.metadata?.invoice_number || '',
+            start_date: txDate,
+            expiry_date: expiry,
+            auto_renew: false,
+            created_at: txDate,
+            updated_at: new Date()
+          };
+
+          subOps.push({
+            updateOne: {
+              filter: { _id: targetDocId },
+              update: {
+                $set: withoutId,
+                $setOnInsert: { _id: targetDocId }
+              },
+              upsert: true
+            }
+          });
+        }
+
+        // 5. Direct Razorpay Reconciler (uses pre-fetched livePayments if provided, or fetches from Razorpay)
+        const rzpKeyId = process.env.RAZORPAY_KEY_ID;
+        const rzpKeySecret = process.env.RAZORPAY_KEY_SECRET;
+        if (rzpKeyId && rzpKeySecret) {
+          try {
+            let rawRzpItems = options.livePayments;
+            if (!Array.isArray(rawRzpItems)) {
+              const Razorpay = require('razorpay');
+              const rzp = new Razorpay({
+                key_id: rzpKeyId,
+                key_secret: rzpKeySecret
+              });
+              const [p1, p2] = await Promise.all([
+                rzp.payments.all({ count: 100, skip: 0 }),
+                rzp.payments.all({ count: 100, skip: 100 }).catch(() => ({ items: [] }))
+              ]);
+              rawRzpItems = [...(p1.items || []), ...(p2.items || [])];
+            }
+
+            const capturedPayments = rawRzpItems.filter(p => p.status === 'captured');
+            const revTxUpsertOps = [];
+
+            for (const p of capturedPayments) {
+              if (trackedTxIds.has(p.id)) continue;
+
+              const amt = (p.amount || 0) / 100;
+              if (amt < 50) continue;
+
+              const desc = (p.description || '').toLowerCase();
+              const notesStr = JSON.stringify(p.notes || {}).toLowerCase();
+              const isEfvOrMall = desc.includes('efv') || notesStr.includes('efv') || desc.includes('mall') || notesStr.includes('mall');
+              if (isEfvOrMall) continue;
+
+              const isAisa = desc.includes('creator') || desc.includes('startup') || desc.includes('starter') || desc.includes('king') || desc.includes('aisa') ||
+                             notesStr.includes('creator') || notesStr.includes('startup') || notesStr.includes('aisa');
+              const prod = isAisa ? 'aisa' : 'ailegal';
+
+              processed++;
+              trackedTxIds.add(p.id);
+
+              const tier = determineTier(amt, prod);
+              const txDate = p.created_at ? new Date(p.created_at * 1000) : new Date();
+              const expiry = new Date(txDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+              const defaultSid = `rzp_sub_${p.id}`;
+              const existingDoc = existingSubByTxId.get(p.id) || existingSubBySubId.get(defaultSid) || existingSubById.get(defaultSid);
+              const targetDocId = existingDoc ? existingDoc._id : defaultSid;
+              const targetSubId = existingDoc?.subscription_id || defaultSid;
+
+              const matchedUser = Object.values(usersMap).find(u => u.email && u.email.toLowerCase() === (p.email || '').toLowerCase());
+              const custName = p.notes?.name || p.notes?.userName || matchedUser?.name || formatNameFromEmail(p.email);
+              const custId = p.notes?.userId || (matchedUser ? Object.keys(usersMap).find(k => usersMap[k] === matchedUser) : null);
+
+              const planName = p.notes?.plan_name || p.description || (
+                prod === 'aisa'
+                  ? `AISA ${tier.charAt(0) + tier.slice(1).toLowerCase()} Plan`
+                  : (desc.includes('student') ? 'Student Basic Plan' : `Advocate ${tier.charAt(0) + tier.slice(1).toLowerCase()} Plan`)
+              );
+
+              const rzpWithoutId = {
+                subscription_id: targetSubId,
+                source: 'razorpay_direct',
+                product_code: prod,
+                product_name: prod === 'aisa' ? 'AISA Assistant' : 'AI Legal',
+                customer_id: custId,
+                customer_email: p.email || 'customer@uwo24.com',
+                customer_name: custName,
+                customer_phone: p.contact || matchedUser?.phone || '',
+                workspace: prod === 'aisa' ? 'default' : (desc.includes('student') ? 'student' : 'advocate'),
+                tier: tier,
+                plan_name: planName,
+                billing_cycle: 'monthly',
+                billing_type: 'individual',
+                amount: amt,
+                plan_amount: amt,
+                is_paid: true,
+                is_manually_assigned: false,
+                payment_status: 'verified_paid',
+                currency: p.currency || 'INR',
+                status: 'active',
+                platform: 'web',
+                provider: 'razorpay',
+                transaction_id: p.id,
+                order_id: p.order_id || '',
+                invoice_id: p.invoice_id || '',
+                start_date: txDate,
+                expiry_date: expiry,
+                auto_renew: false,
+                created_at: txDate,
+                updated_at: new Date()
+              };
+
+              subOps.push({
+                updateOne: {
+                  filter: { _id: targetDocId },
+                  update: {
+                    $set: rzpWithoutId,
+                    $setOnInsert: { _id: targetDocId }
+                  },
+                  upsert: true
+                }
+              });
+
+              if (!Array.isArray(options.livePayments)) {
+                revTxUpsertOps.push({
+                  updateOne: {
+                    filter: { external_transaction_id: p.id },
+                    update: {
+                      $set: {
+                        source: 'razorpay',
+                        provider: 'razorpay',
+                        product_code: prod,
+                        platform: 'web',
+                        external_transaction_id: p.id,
+                        external_order_id: p.order_id || '',
+                        transaction_type: 'payment',
+                        gross_amount: amt,
+                        tax_amount: p.tax ? p.tax / 100 : 0,
+                        fee_amount: p.fee ? p.fee / 100 : 0,
+                        refund_amount: 0,
+                        net_amount: (p.amount - (p.fee || 0) - (p.tax || 0)) / 100,
+                        currency: p.currency || 'INR',
+                        reporting_amount: amt,
+                        reporting_currency: 'INR',
+                        exchange_rate: 1,
+                        transaction_date: txDate,
+                        country: 'IN',
+                        status: 'completed',
+                        is_test: false,
+                        customer_id: custId,
+                        customer_email: p.email,
+                        customer_name: custName,
+                        plan_name: planName,
+                        subscription_id: targetSubId,
+                        updated_at: new Date()
+                      },
+                      $setOnInsert: {
+                        _id: `rzp_pay_${p.id}`,
+                        created_at: txDate
+                      }
+                    },
+                    upsert: true
+                  }
+                });
+              }
+            }
+
+            if (revTxUpsertOps.length > 0) {
+              await unifiedDb.collection('revenue_transactions').bulkWrite(revTxUpsertOps, { ordered: false }).catch(() => {});
+            }
+          } catch (rzpErr) {
+            console.warn('[SubscriptionSyncService] Razorpay direct reconciliation non-blocking notice:', rzpErr.message);
+          }
+        }
+
+        if (subOps.length > 0) {
+          const res = await unifiedDb.collection('subscriptions').bulkWrite(subOps, { ordered: false }).catch(err => {
+            console.warn('[SubscriptionSyncService] bulkWrite partial notice:', err.message);
+            return err.result || {};
+          });
+          created += (res.upsertedCount || 0);
+          updated += (res.modifiedCount || 0) + (res.matchedCount || 0);
+        }
+
+        // Check current counts
+        const totalSubs = await unifiedDb.collection('subscriptions').countDocuments().catch(() => 0);
+        const metrics = await subscriptionRepository.getMetrics({}, unifiedDb);
+
+        syncState.lastSyncedAt = new Date();
+        syncState.lastDurationMs = Date.now() - startTime;
+        syncState.recordsProcessed = processed;
+        syncState.recordsCreated = created;
+        syncState.recordsUpdated = updated;
+        syncState.totalSubscriptions = totalSubs;
+        syncState.totalActiveSubscriptions = metrics.total_active_subscriptions;
+        syncState.lastError = null;
+        syncState.syncCount += 1;
+
+        console.log(`[SubscriptionSyncService] ✅ Subscription sync finished in ${syncState.lastDurationMs}ms. Processed: ${processed}, Active: ${syncState.totalActiveSubscriptions}/${totalSubs}`);
+
+        return {
+          success: true,
+          processed,
+          created,
+          updated,
+          total_subscriptions: totalSubs,
+          total_active_subscriptions: metrics.total_active_subscriptions,
+          duration_ms: syncState.lastDurationMs,
+          synced_at: syncState.lastSyncedAt
+        };
+      } catch (err) {
+        syncState.lastError = err.message;
+        console.error('[SubscriptionSyncService] ❌ Sync error:', err.message);
+        return { success: false, error: err.message };
+      } finally {
+        syncState.isRunning = false;
+        activeSubSyncPromise = null;
+        if (aisaClient) {
+          await aisaClient.close().catch(() => {});
         }
       }
+    })();
 
-      // Purge any accidental non-subscription products (EFV, AI Mall, UWO Web, UWO Connect)
-      await unifiedDb.collection('subscriptions').deleteMany({
-        product_code: { $in: ['efvframework', 'aimall', 'uwo', 'uwoconnect'] }
-      });
-
-      if (subOps.length > 0) {
-        const res = await unifiedDb.collection('subscriptions').bulkWrite(subOps, { ordered: false });
-        created += (res.upsertedCount || 0);
-        updated += (res.modifiedCount || 0) + (res.matchedCount || 0);
-      }
-
-      // Check current counts
-      const totalSubs = await unifiedDb.collection('subscriptions').countDocuments().catch(() => 0);
-      const metrics = await subscriptionRepository.getMetrics({}, unifiedDb);
-
-      syncState.lastSyncedAt = new Date();
-      syncState.lastDurationMs = Date.now() - startTime;
-      syncState.recordsProcessed = processed;
-      syncState.recordsCreated = created;
-      syncState.recordsUpdated = updated;
-      syncState.totalSubscriptions = totalSubs;
-      syncState.totalActiveSubscriptions = metrics.total_active_subscriptions;
-      syncState.lastError = null;
-      syncState.syncCount += 1;
-
-      console.log(`[SubscriptionSyncService] ✅ Subscription sync finished in ${syncState.lastDurationMs}ms. Processed: ${processed}, Active: ${syncState.totalActiveSubscriptions}/${totalSubs}`);
-
-      return {
-        success: true,
-        processed,
-        created,
-        updated,
-        total_subscriptions: totalSubs,
-        total_active_subscriptions: metrics.total_active_subscriptions,
-        duration_ms: syncState.lastDurationMs,
-        synced_at: syncState.lastSyncedAt
-      };
-    } catch (err) {
-      syncState.lastError = err.message;
-      console.error('[SubscriptionSyncService] ❌ Sync error:', err.message);
-      return { success: false, error: err.message };
-    } finally {
-      syncState.isRunning = false;
-      if (aisaClient) {
-        await aisaClient.close().catch(() => {});
-      }
-    }
+    return activeSubSyncPromise;
   }
 
   /**
@@ -548,12 +730,10 @@ class SubscriptionSyncService {
   async handleAppleWebhook(payload = {}) {
     try {
       const unifiedDb = await getUnifiedDb();
-      // Apple Server Notification V2 can deliver signedPayload (JWS) or payload fields
       let notificationType = payload.notificationType;
       let subtype = payload.subtype;
       let data = payload.data || {};
 
-      // Parse payload if provided as string
       if (typeof payload === 'string') {
         try { payload = JSON.parse(payload); } catch (e) {}
       }
@@ -629,7 +809,6 @@ class SubscriptionSyncService {
 
       const name = subEntity.notes?.customer_name || paymentEntity?.notes?.customer_name || (email ? formatNameFromEmail(email) : 'Razorpay Subscriber');
 
-      // Accurate status determination from event and entity status
       const entityStatus = String(subEntity.status || paymentEntity?.status || '').toLowerCase();
       let status = 'active';
 
@@ -651,7 +830,6 @@ class SubscriptionSyncService {
         ? new Date(subEntity.current_end * 1000)
         : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-      // Determine correct tier (₹499 is BASIC, ₹999 is PROFESSIONAL, ₹2399 is ENTERPRISE)
       const tier = subEntity.notes?.tier || paymentEntity?.notes?.tier || determineTier(amount, productCode);
 
       let defaultPlanName = `Advocate ${tier.charAt(0) + tier.slice(1).toLowerCase()} Plan`;

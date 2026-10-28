@@ -16,7 +16,7 @@
 const { MongoClient } = require('mongodb');
 const { getUnifiedDb } = require('./db');
 
-const AISA_URI = process.env.AISA_MONGODB_URI || 'mongodb+srv://admin_db_user:ailegal050804@cluster0.265idhx.mongodb.net/AISA?appName=Cluster0';
+const getAisaUri = () => process.env.AISA_MONGODB_URI || (process.env.MONGO_URI ? process.env.MONGO_URI.replace('/UWO-web', '/AISA') : '');
 
 // Global state for monitoring
 let syncState = {
@@ -75,7 +75,11 @@ async function runTelemetrySync(options = {}) {
 
   try {
     const unifiedDb = await getUnifiedDb();
-    aisaClient = await MongoClient.connect(AISA_URI, { 
+    const aisaUri = getAisaUri();
+    if (!aisaUri) {
+      throw new Error('AISA_MONGODB_URI is not configured in environment variables.');
+    }
+    aisaClient = await MongoClient.connect(aisaUri, { 
       serverSelectionTimeoutMS: 10000,
       connectTimeoutMS: 10000 
     });

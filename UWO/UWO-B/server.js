@@ -4867,4 +4867,11 @@ app.post('/api/team-members', auth, checkPermission('team.create'), (req, res, n
             res.status(500).json({ error: "An internal server error occurred.", details: err.message });
         });
 
-        app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Server running on port ${PORT}`));
+        const server = app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Server running on port ${PORT}`));
+        server.on('error', (err) => {
+            if (err.code === 'EADDRINUSE') {
+                console.error(`🚨 [PORT CONFLICT] Port ${PORT} is already in use by another process! Free port ${PORT} or check running services.`);
+            } else {
+                console.error('🚨 [Server Error]:', err);
+            }
+        });

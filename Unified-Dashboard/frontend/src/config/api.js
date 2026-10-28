@@ -10,14 +10,13 @@
  */
 
 const resolveBaseUrl = () => {
-  // If running in browser and accessed via LAN IP (e.g. 192.168.x.x) or tunnel (loca.lt)
+  // If running in browser, connect to current origin locally or relative path in production
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
-    // On phones or remote LAN devices, return '' so requests go through Vite's dev server proxy (/api -> 8080)
-    // rather than trying to connect to 127.0.0.1 on the phone itself!
-    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-      return '';
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return window.location.origin;
     }
+    return '';
   }
 
   const envUrl = 
@@ -28,9 +27,8 @@ const resolveBaseUrl = () => {
     return envUrl;
   }
 
-  return (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV ? 'http://localhost:8080' : 'https://uwo24.com');
+  return (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV ? 'http://localhost:8080' : '');
 };
-
 const rawBaseUrl = resolveBaseUrl();
 
 // Clean trailing slashes

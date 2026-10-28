@@ -23,7 +23,7 @@ async function getUnifiedDb() {
     if (sharedDb) return sharedDb;
   } catch (e) {}
 
-  const uri = process.env.UNIFIED_MONGODB_URI || process.env.MONGODB_URL || 'mongodb+srv://admin_db_user:uSYUbw06q4coR6Nv@unified-dashboard.wisisoq.mongodb.net/?appName=Unified-Dashboard';
+  const uri = process.env.UNIFIED_MONGODB_URI || process.env.MONGODB_URL || process.env.MONGO_URI;
   const dbName = process.env.UNIFIED_MONGODB_DB_NAME || process.env.MONGODB_DB_NAME || 'unified_service_db';
 
   if (!unifiedClient) {
