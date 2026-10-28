@@ -14,8 +14,8 @@ export default function OurTeamPage() {
         if (!res.ok) throw new Error('Failed to fetch team');
         const data = await res.json();
         if (isMounted && Array.isArray(data) && data.length > 0) {
-          // Explicitly exclude Bhumika Patel, Sakshi Jain, and Aman Patel
-          const excludedNames = ['bhumika patel', 'sakshi jain', 'aman patel'];
+          // Explicitly exclude Bhumika Patel, Sakshi Jain, Aman Patel, and Prateek Sharma
+          const excludedNames = ['bhumika patel', 'sakshi jain', 'aman patel', 'prateek sharma', 'prateek'];
           let filtered = data.filter(m => {
             const n = (m.name || '').toLowerCase().trim();
             return !excludedNames.some(ex => n.includes(ex));
@@ -24,94 +24,87 @@ export default function OurTeamPage() {
           // Required members list to guarantee presence and clean photos
           const requiredMembers = [
             {
-              _id: '6a5e00699ddaa85d98cb10de',
-              name: 'Prateek Sharma',
-              designation: 'Human Resources',
-              category: 'Finance',
-              is_leadership: false,
-              image: 'images/prateek-sharma..webp',
-              short_description: 'Strategic HR leader managing talent lifecycle, compliance, and employee success.',
-              full_biography: '<p>The Human Resources (HR) department plays a strategic role in building a skilled, engaged, and high-performing workforce. HR oversees the complete employee lifecycle—from talent acquisition and onboarding to performance management, learning &amp; development, payroll coordination, policy compliance, and employee relations. By fostering a culture of collaboration, transparency, and continuous growth, HR ensures that both employees and the organization achieve long-term success.</p>',
-              skills: ['Human Resources', 'Talent Acquisition', 'Employee Relations', 'Performance Management'],
-              experience: ['HR Management', 'Policy Compliance & Culture'],
-              achievements: []
-            },
-            {
               _id: '6a55e1f67caa872f2ef0c81b',
               name: 'Ayush Dubey',
-              designation: 'Business Development Associate',
+              designation: 'EFV Distribution & Marketplace Head',
+              responsible_for: 'EFV Distribution Networks & Marketplace Operations',
               category: 'Business Development',
               is_leadership: false,
               image: 'images/ayush-dubey..webp',
-              short_description: 'Ayush Dubey helps UWO to grow by identifying new business opportunities, generating leads, building client relationships, and supporting sales efforts. He is closely works with his Sales Team to convert leads into customers.',
-              full_biography: '<p>Ayush Dubey helps UWO to grow by identifying new business opportunities, generating leads, building client relationships, and supporting sales efforts. He is closely works with his Sales Team to convert leads into customers.</p>',
-              skills: ['Lead Generation', 'Client Relations', 'Sales Strategy', 'Market Expansion'],
-              experience: ['Business Development', 'Sales Execution'],
+              short_description: 'Leads distribution channels, partner networks, and marketplace sales operations for the EFV™ ecosystem.',
+              full_biography: '<p>Ayush Dubey leads EFV™ Distribution and Marketplace operations at UWO™, orchestrating multi-channel distribution, strategic partner networks, and marketplace sales channels. He focuses on scaling the reach of the EFV™ framework across global platforms and driving commercial growth.</p>',
+              skills: ['EFV Distribution', 'Marketplace Management', 'Channel Partnerships', 'Sales Network Scaling', 'Commercial Operations'],
+              experience: ['Distribution & Marketplace Leadership', 'Channel Management'],
               achievements: []
             },
             {
               _id: '6a5e02f43a8cb2dea9839937',
               name: 'Sandeep Yadav',
-              designation: 'Business Development Associate',
-              category: 'Business Development',
+              designation: 'Human Resources',
+              responsible_for: 'People Operations & Talent Acquisition',
+              category: 'Human Resources',
               is_leadership: false,
               image: 'images/sandeep-yadav..webp',
-              short_description: 'Sandeep helps UWO to grow by identifying new business opportunities, generating leads, building client relationships, and supporting sales efforts. He is closely works with his Sales Team to convert leads into customers.',
-              full_biography: '<p>Sandeep helps UWO to grow by identifying new business opportunities, generating leads, building client relationships, and supporting sales efforts. He is closely works with his Sales Team to convert leads into customers.</p>',
-              skills: ['Client Outreach', 'B2B Partnerships', 'Lead Conversion', 'Sales Pipeline'],
-              experience: ['Business Outreach', 'Client Growth'],
+              short_description: 'Oversees talent acquisition, employee onboarding, HR operations, and workplace culture to support organizational growth.',
+              full_biography: '<p>Sandeep Yadav manages Human Resources at UWO™, overseeing talent acquisition, employee onboarding, performance management, and workplace culture. He works to cultivate an engaging, productive, and supportive work environment while driving organizational development, policy compliance, and employee relations.</p>',
+              skills: ['Human Resources', 'Talent Acquisition', 'Employee Relations', 'Onboarding', 'HR Operations', 'Workplace Culture'],
+              experience: ['Human Resources Management', 'People Operations & Culture'],
               achievements: []
             },
             {
               _id: '6a5e0f0c806e7889e3ea1c1d',
               name: 'Sukhmani Kaur',
               designation: 'Marketing Designer',
+              responsible_for: 'Visual Design & Brand Identity Assets',
               category: 'Design',
               is_leadership: false,
               image: 'images/sukhmani-kaur..webp',
               short_description: 'Creates impactful visual designs and marketing assets that strengthen brand identity, engage audiences, and support business growth.',
-              full_biography: '<p>Creates impactful visual designs and marketing assets that strengthen brand identity, engage audiences, and support business growth.</p>',
-              skills: ['Visual Design', 'Brand Identity', 'Marketing Collateral', 'Digital Assets'],
-              experience: ['Graphic Design', 'Brand Marketing'],
+              full_biography: '<p>Sukhmani Kaur creates impactful visual designs and marketing assets that strengthen brand identity, engage audiences, and support business growth across UWO channels. She designs marketing collateral, product visuals, and digital campaign creative.</p>',
+              skills: ['Visual Design', 'Brand Identity', 'Marketing Collateral', 'Digital Assets', 'Figma & Creative Suite'],
+              experience: ['Brand Identity & Visual Communications', 'Marketing Creative & Digital Asset Design'],
               achievements: []
             },
             {
               _id: '6a5e0f46806e7889e3ea1c26',
               name: 'Aman Kharare',
               designation: 'Business Development Associate',
+              responsible_for: 'Client Onboarding & Strategic Outreach',
               category: 'Business Development',
               is_leadership: false,
               image: 'images/aman-kharare..webp',
               short_description: 'Drives business growth by identifying new opportunities, building strong client relationships, and supporting strategic partnerships.',
-              full_biography: '<p>Drives business growth by identifying new opportunities, building strong client relationships, and supporting strategic partnerships.</p>',
-              skills: ['Strategic Partnerships', 'Client Acquisition', 'Business Growth', 'Negotiations'],
-              experience: ['Corporate Partnerships', 'Business Development'],
+              full_biography: '<p>Aman Kharare drives business growth by identifying new opportunities, building strong client relationships, and supporting strategic partnerships across UWO solutions. He conducts solution walkthroughs and coordinates onboarding for prospective enterprise partners.</p>',
+              skills: ['Strategic Partnerships', 'Client Acquisition', 'Business Growth', 'Negotiations', 'Client Onboarding'],
+              experience: ['Corporate Partnerships & Outreach', 'Client Onboarding & Solution Walkthroughs'],
               achievements: []
             },
             {
               _id: '6a5e0f50806e7889e3ea1c30',
               name: 'Sonali Gupta',
               designation: 'Junior AI Software Engineer',
+              responsible_for: 'AI Model Integration & Backend Services',
               category: 'Technology',
               is_leadership: false,
               image: 'images/sonali-gupta.jpg',
-              short_description: 'Develops AI-powered software applications, integrates intelligent models and APIs, and contributes to backend development and system optimization. Focuses on building reliable AI solutions, solving technical challenges, and improving application efficiency and user experience.',
-              full_biography: '<p>Develops AI-powered software applications, integrates intelligent models and APIs, and contributes to backend development and system optimization. Focuses on building reliable AI solutions, solving technical challenges, and improving application efficiency and user experience.</p>',
-              skills: ['AI Application Development', 'API Integration', 'Backend Development', 'System Optimization'],
-              experience: ['AI Solutions & Engineering'],
+              short_description: 'Develops AI-powered software applications, integrates intelligent models and APIs, and contributes to backend development and system optimization.',
+              full_biography: '<p>Sonali Gupta develops AI-powered software applications, integrates intelligent models and APIs, and contributes to backend development and system optimization. She focuses on building reliable AI solutions, solving technical challenges, and improving application efficiency and user experience.</p>',
+              skills: ['AI Application Development', 'Model & API Integration', 'Backend Development', 'System Optimization'],
+              experience: ['AI Application Development', 'Intelligent Systems & API Integration'],
               achievements: []
             },
             {
               _id: '6a5e0f50806e7889e3ea1c31',
               name: 'Anupama Awadhiya',
               designation: 'Junior AI Software Engineer',
+              responsible_for: 'AI Applications & Orchestration APIs',
               category: 'Technology',
               is_leadership: false,
               image: 'images/anupama-awadhiya.jpg',
-              short_description: 'Develops AI-powered software applications, integrates intelligent models and APIs, and contributes to backend development and system optimization. Focuses on building reliable AI solutions, solving technical challenges, and improving application efficiency and user experience.',
-              full_biography: '<p>Develops AI-powered software applications, integrates intelligent models and APIs, and contributes to backend development and system optimization. Focuses on building reliable AI solutions, solving technical challenges, and improving application efficiency and user experience.</p>',
-              skills: ['AI Application Development', 'API Integration', 'Backend Development', 'System Optimization'],
-              experience: ['AI Solutions & Engineering'],
+              short_description: 'Develops AI-powered software applications, integrates intelligent models and APIs, and contributes to backend development and system optimization.',
+              full_biography: '<p>Anupama Awadhiya develops AI-powered software applications, integrates intelligent models and APIs, and contributes to backend development and system optimization. She focuses on building reliable AI solutions, solving technical challenges, and improving application efficiency and user experience.</p>',
+              skills: ['AI Application Development', 'Model & API Integration', 'Backend Development', 'System Optimization'],
+              experience: ['AI Application Development', 'Intelligent Systems & API Integration'],
               achievements: []
             }
           ];
@@ -155,16 +148,35 @@ export default function OurTeamPage() {
               if (!updated.short_description) updated.short_description = defMem.short_description;
               if (!updated.full_biography || updated.full_biography.length < 30) updated.full_biography = defMem.full_biography;
               if (!updated.designation) updated.designation = defMem.designation;
+              if (!updated.category) updated.category = defMem.category;
+              if (!updated.skills || updated.skills.length === 0) updated.skills = defMem.skills;
+              if (!updated.experience || updated.experience.length === 0) updated.experience = defMem.experience;
             }
 
-            if (n.includes('prateek sharma')) {
-              return { ...updated, name: 'Prateek Sharma', image: 'images/prateek-sharma..webp', designation: 'Human Resources', responsible_for: 'People Operations & Talent Lifecycle' };
-            }
             if (n.includes('ayush dubey')) {
-              return { ...updated, image: 'images/ayush-dubey..webp', designation: 'Business Development Associate', responsible_for: 'Sales Operations & Client Acquisition' };
+              return { 
+                ...updated, 
+                image: 'images/ayush-dubey..webp', 
+                designation: 'EFV Distribution & Marketplace Head', 
+                responsible_for: 'EFV Distribution Networks & Marketplace Operations',
+                short_description: 'Leads distribution channels, partner networks, and marketplace sales operations for the EFV™ ecosystem.',
+                full_biography: '<p>Ayush Dubey leads EFV™ Distribution and Marketplace operations at UWO™, orchestrating multi-channel distribution, strategic partner networks, and marketplace sales channels. He focuses on scaling the reach of the EFV™ framework across global platforms and driving commercial growth.</p>',
+                skills: ['EFV Distribution', 'Marketplace Management', 'Channel Partnerships', 'Sales Network Scaling', 'Commercial Operations'],
+                experience: ['Distribution & Marketplace Leadership', 'Channel Management']
+              };
             }
             if (n.includes('sandeep yadav')) {
-              return { ...updated, image: 'images/sandeep-yadav..webp', designation: 'Business Development Associate', responsible_for: 'Corporate Outreach & Lead Generation' };
+              return { 
+                ...updated, 
+                image: 'images/sandeep-yadav..webp', 
+                designation: 'Human Resources', 
+                category: 'Human Resources',
+                responsible_for: 'People Operations & Talent Acquisition',
+                short_description: 'Oversees talent acquisition, employee onboarding, HR operations, and workplace culture to support organizational growth.',
+                full_biography: '<p>Sandeep Yadav manages Human Resources at UWO™, overseeing talent acquisition, employee onboarding, performance management, and workplace culture. He works to cultivate an engaging, productive, and supportive work environment while driving organizational development, policy compliance, and employee relations.</p>',
+                skills: ['Human Resources', 'Talent Acquisition', 'Employee Relations', 'Onboarding', 'HR Operations', 'Workplace Culture'],
+                experience: ['Human Resources Management', 'People Operations & Culture']
+              };
             }
             if (n.includes('sukhmani kaur')) {
               return { ...updated, image: 'images/sukhmani-kaur..webp', designation: 'Marketing Designer', responsible_for: 'Visual Design & Brand Identity Assets' };
@@ -216,14 +228,8 @@ export default function OurTeamPage() {
           const technology = filtered.filter(m => getMemberSection(m) === 'technology');
           const marketing = filtered.filter(m => getMemberSection(m) === 'marketing');
 
-          // Management ordering: Prateek Sharma (HR) first, then managers, then associates
-          management.sort((a, b) => {
-            const na = (a.name || '').toLowerCase();
-            const nb = (b.name || '').toLowerCase();
-            if (na.includes('prateek')) return -1;
-            if (nb.includes('prateek')) return 1;
-            return (a.display_order || 99) - (b.display_order || 99);
-          });
+          // Management ordering: managers, then associates
+          management.sort((a, b) => (a.display_order || 99) - (b.display_order || 99));
 
           // Technology ordering
           technology.sort((a, b) => (a.display_order || 99) - (b.display_order || 99));
@@ -331,78 +337,103 @@ export default function OurTeamPage() {
         _id: '1',
         name: 'Gurumukh P. Ahuja',
         designation: 'Founder & Managing Director',
-        responsible_for: 'Product Strategy & System Architecture',
+        responsible_for: 'Executive Strategy, AI Systems & Platform Architecture',
         category: 'Leadership',
         is_leadership: true,
         image: 'images/founder..webp',
         short_description: 'Leads executive strategy, technology architecture, and company building across UWO’s AI platforms.',
-        full_biography: '<p>Gurumukh P. Ahuja is the Founder &amp; Managing Director of Unified Web Options &amp; Services Pvt. Ltd. (UWO&trade;). He guides the company’s product vision, system architecture, and technology execution across work, business, legal workflows, and education ecosystems.</p><p>With a hands-on approach to company building, he coordinates multidisciplinary engineering and product teams to translate complex workflow challenges into practical, multi-tenant AI platforms.</p>'
+        full_biography: '<p>Gurumukh P. Ahuja is the Founder &amp; Managing Director of Unified Web Options &amp; Services Pvt. Ltd. (UWO&trade;). He architects the company’s long-term vision, systemic platform engineering, and enterprise AI ecosystems across digital workspaces, legal intelligence, automated marketing, and modern education. Author of the EFV&trade; (Exponential Financial Velocity) business methodology framework, he directs multidisciplinary engineering teams translating complex industry workflows into autonomous, scalable AI platforms.</p>',
+        experience: [
+          'Executive Leadership & Venture Building',
+          'AI Systems & Platform Architecture',
+          'Ecosystem Strategy & Framework Design'
+        ],
+        skills: ['AI Architecture', 'Product Strategy', 'System Design', 'Enterprise Technology', 'Executive Leadership']
       },
       {
         _id: '2',
         name: 'Anjali Ahuja',
         designation: 'Co-founder & Director',
-        responsible_for: 'Corporate Operations & Governance',
+        responsible_for: 'Corporate Governance, Operations & Strategic Alignment',
         category: 'Leadership',
         is_leadership: true,
         image: 'images/team-3..webp',
         short_description: 'Directs organizational operations, regulatory compliance, and cross-departmental alignment.',
-        full_biography: '<p>Anjali Ahuja is the Co-founder of Unified Web Options &amp; Services Pvt. Ltd. (UWO&trade;). With extensive leadership in business operations, she leads structural organization, corporate compliance, and team alignment across divisions, ensuring collaborative success across technical and business functions.</p>'
-      },
-      {
-        _id: '4',
-        name: 'Prateek Sharma',
-        designation: 'Human Resources',
-        responsible_for: 'People Operations & Talent Lifecycle',
-        category: 'Finance',
-        is_leadership: false,
-        image: 'images/prateek-sharma..webp',
-        short_description: 'Strategic HR professional managing talent acquisition, compliance, employee development, and culture.',
-        full_biography: '<p>The Human Resources (HR) department plays a strategic role in building a skilled, engaged, and high-performing workforce. HR oversees the complete employee lifecycle—from talent acquisition and onboarding to performance management, learning &amp; development, payroll coordination, policy compliance, and employee relations.</p>'
+        full_biography: '<p>Anjali Ahuja is the Co-founder &amp; Director of Unified Web Options &amp; Services Pvt. Ltd. (UWO&trade;). She steers executive governance, organizational operations, corporate regulatory compliance, and cross-functional alignment. Her leadership forms the operational pillar of UWO, ensuring structural agility, robust legal adherence, and synergy between technical and commercial divisions.</p>',
+        experience: [
+          'Corporate Governance & Operations',
+          'Organizational Scaling & Compliance',
+          'Executive Team Leadership'
+        ],
+        skills: ['Corporate Governance', 'Operational Strategy', 'Regulatory Compliance', 'Organizational Leadership', 'Cross-Functional Alignment']
       },
       {
         _id: '3',
         name: 'Sonali Jain',
         designation: 'Business Development Manager',
-        responsible_for: 'Enterprise Partnerships & Client Growth',
+        responsible_for: 'Enterprise Partnerships & Strategic Client Growth',
         category: 'Business Development',
         is_leadership: false,
         image: 'images/team-7..webp',
         short_description: 'Drives enterprise client relationships, corporate partnerships, and market expansion across UWO platforms.',
-        full_biography: '<p>Sonali Jain leads business development initiatives, identifying strategic market opportunities and establishing high-value partnerships for UWO’s enterprise software solutions.</p>'
+        full_biography: '<p>Sonali Jain leads business development initiatives at UWO&trade;, identifying high-value commercial opportunities, forging strategic corporate partnerships, and accelerating revenue growth. She collaborates closely with enterprise stakeholders and sales teams to drive adoption of UWO\'s intelligent software solutions across target markets.</p>',
+        experience: [
+          'Enterprise Business Development',
+          'Strategic Client Partnerships & Negotiations',
+          'Market Expansion & Revenue Growth'
+        ],
+        skills: ['Enterprise Sales', 'Partnership Strategy', 'Key Account Management', 'Commercial Negotiations', 'Market Expansion']
       },
       {
         _id: '6',
         name: 'Ritesh Shrivastav',
         designation: 'Product Manager',
-        responsible_for: 'Product Delivery & Roadmap Execution',
+        responsible_for: 'Product Delivery, Agile Roadmaps & User Experience',
         category: 'Operations',
         is_leadership: false,
         image: 'images/team-4..webp',
         short_description: 'Coordinates sprint planning, user requirement translation, and agile delivery across UWO product lines.',
-        full_biography: '<p>Ritesh coordinates sprint planning, user requirement translation, and agile delivery across UWO product lines, aligning product features with user needs.</p>'
+        full_biography: '<p>Ritesh Shrivastav manages sprint delivery, feature prioritization, and product lifecycle execution across UWO’s application suite. He translates business requirements into intuitive user workflows, coordinates agile engineering sprints, and ensures high usability and product reliability across platform releases.</p>',
+        experience: [
+          'Product Lifecycle Management',
+          'Agile & Scrum Delivery Frameworks',
+          'User Journey & Workflow Optimization'
+        ],
+        skills: ['Product Management', 'Sprint Planning', 'Roadmap Strategy', 'User Experience (UX)', 'Agile Methodologies']
       },
       {
         _id: '7',
         name: 'Vishal Vashani',
         designation: 'Accounts Executive',
-        responsible_for: 'Financial Operations & Corporate Reporting',
+        responsible_for: 'Financial Operations, Corporate Reporting & Compliance',
         category: 'Finance',
         is_leadership: false,
         image: 'images/team-2..webp',
         short_description: 'Manages corporate financial reporting, statutory filings, vendor reconciliations, and budgeting operations.',
-        full_biography: '<p>Vishal manages corporate financial reporting, statutory filings, vendor reconciliations, and budgeting operations to maintain transparent enterprise compliance.</p>'
+        full_biography: '<p>Vishal Vashani manages corporate financial reporting, statutory filings, vendor reconciliations, and budgeting operations at UWO&trade;. He maintains precise financial governance, transparent auditing controls, and statutory adherence across all corporate and business entities.</p>',
+        experience: [
+          'Corporate Accounting & Financial Control',
+          'Statutory Compliance & Auditing',
+          'Budgeting & Treasury Operations'
+        ],
+        skills: ['Financial Reporting', 'Tax Compliance', 'Budget Management', 'Accounts Reconciliation', 'Corporate Finance']
       },
       {
         _id: '8',
         name: 'Sakshi Thakur',
         designation: 'Full Stack Developer',
-        responsible_for: 'Web Platform Engineering & APIs',
+        responsible_for: 'Web Platform Engineering, APIs & Database Systems',
         category: 'Technology',
         is_leadership: false,
         image: 'images/team-10..webp',
         short_description: 'Builds responsive full-stack features, authentication workflows, and database integrations across enterprise web platforms.',
-        full_biography: '<p>Sakshi develops full-stack application features, secure authentication workflows, and robust database models powering UWO web platforms.</p>'
+        full_biography: '<p>Sakshi Thakur develops responsive full-stack features, authentication workflows, and robust database architectures across UWO’s web platforms. She specializes in crafting seamless front-to-back integration, ensuring high application security, scalability, and system performance.</p>',
+        experience: [
+          'Full Stack Web Application Development',
+          'RESTful API Architecture & Authentication',
+          'Database Modeling & State Management'
+        ],
+        skills: ['React.js', 'Node.js', 'MongoDB', 'REST APIs', 'Full Stack Architecture']
       },
       {
         _id: '9',
@@ -413,29 +444,47 @@ export default function OurTeamPage() {
         is_leadership: false,
         image: 'images/team-6..webp',
         short_description: 'Develops modern web components, API integrations, and real-time interface states for consumer and enterprise portals.',
-        full_biography: '<p>Sanskar specializes in responsive web interfaces, state management, and real-time data connectivity across UWO portals.</p>'
+        full_biography: '<p>Sanskar Sahu specializes in modern web development, state management, and real-time data connectivity across UWO portals. He engineers dynamic, high-responsiveness client interfaces and scalable backend services powering enterprise workflows.</p>',
+        experience: [
+          'MERN Stack Architecture & Development',
+          'Realtime Systems & WebSocket Integrations',
+          'Component-Driven Frontend Engineering'
+        ],
+        skills: ['React.js', 'Express.js', 'Node.js', 'MongoDB', 'Redux & State Architecture']
       },
       {
         _id: '10',
         name: 'Gauhar Iftekhar',
         designation: 'Web Developer',
-        responsible_for: 'Frontend Design & Web Performance',
+        responsible_for: 'Frontend Design, UI Performance & Web Accessibility',
         category: 'Technology',
         is_leadership: false,
         image: 'images/team-5..webp',
         short_description: 'Implements high-performance web interfaces, accessibility compliance, and modern responsive layouts across UWO websites.',
-        full_biography: '<p>Gauhar crafts clean, accessible, and high-performance user interfaces across UWO’s public web platforms and documentation portals.</p>'
+        full_biography: '<p>Gauhar Iftekhar implements accessible, high-performance web interfaces and modern responsive layouts across UWO’s public web platforms and documentation portals. He focuses on CSS animation, cross-browser compatibility, and core web vitals optimization.</p>',
+        experience: [
+          'Responsive Web UI Development',
+          'Frontend Performance Optimization',
+          'Modern CSS & Motion Systems'
+        ],
+        skills: ['HTML5/CSS3', 'JavaScript (ES6+)', 'Responsive Design', 'Web Performance', 'UI Frameworks']
       },
       {
         _id: '11',
         name: 'Aditi Lakhera',
         designation: 'Software Developer',
-        responsible_for: 'Frontend Components & User Journeys',
+        responsible_for: 'Frontend Components & Interactive User Journeys',
         category: 'Technology',
         is_leadership: false,
         image: 'images/aditi.jpeg',
         short_description: 'Builds modular frontend components, interface logic, and seamless platform workflows.',
-        full_biography: '<p>Aditi focuses on component reusability, clean interface styling, and intuitive interactive flows across UWO client applications.</p>'
+        full_biography: '<p>Aditi Lakhera develops modular frontend components, interactive interface logic, and seamless platform workflows across UWO client applications. She prioritizes clean code structure, component reusability, and intuitive interactive user journeys.</p>',
+        experience: [
+          'Frontend Application Engineering',
+          'Interactive Component Design',
+          'Cross-Platform Testing & Integration'
+        ],
+        skills: ['JavaScript', 'React.js', 'Component Systems', 'UI/UX Integration', 'Web Standards']
       },
       {
         _id: '12',
@@ -446,7 +495,13 @@ export default function OurTeamPage() {
         is_leadership: false,
         image: 'images/team-13..webp',
         short_description: 'Develops responsive CRM interfaces, client dashboard modules, and interactive catalog workflows for UWO Connect™.',
-        full_biography: '<p>Abha Jatav engineers responsive frontend dashboards, team collaboration views, and real-time conversation modules for UWO Connect&trade; enterprise users.</p>'
+        full_biography: '<p>Abha Jatav engineers responsive frontend dashboards, team collaboration views, and real-time conversation modules for UWO Connect&trade; enterprise users. She ensures data visualizations, client workspaces, and admin panels remain intuitive, responsive, and reliable.</p>',
+        experience: [
+          'Enterprise Dashboard Engineering',
+          'Data Visualization & UI Architecture',
+          'Client Portal Workflows'
+        ],
+        skills: ['React.js', 'UI/UX Architecture', 'Dashboard Engineering', 'API Integration', 'Frontend State']
       },
       {
         _id: '13',
@@ -457,7 +512,13 @@ export default function OurTeamPage() {
         is_leadership: false,
         image: 'images/team-14..webp',
         short_description: 'Builds backend microservices, WhatsApp Business API pipelines, and webhook event processing for UWO Connect™.',
-        full_biography: '<p>Devansh Tantway develops scalable server-side microservices, WhatsApp Business API integrations, and webhook event-driven pipelines for UWO Connect&trade; and connected business workflows.</p>'
+        full_biography: '<p>Devansh Tantway develops scalable server-side microservices, WhatsApp Business API integrations, and webhook event-driven pipelines for UWO Connect&trade; and connected business automation platforms. He specializes in low-latency backend engineering and asynchronous task processing.</p>',
+        experience: [
+          'Python Backend Microservices',
+          'Event-Driven Webhook Pipelines',
+          'Third-Party API & Messaging Integrations'
+        ],
+        skills: ['Python', 'FastAPI / Flask', 'PostgreSQL', 'Webhook Processing', 'WhatsApp Cloud API']
       },
       {
         _id: '18',
@@ -468,7 +529,12 @@ export default function OurTeamPage() {
         is_leadership: false,
         image: 'images/sonali-gupta.jpg',
         short_description: 'Develops AI-powered software applications, integrates intelligent models and APIs, and contributes to backend development and system optimization.',
-        full_biography: '<p>Develops AI-powered software applications, integrates intelligent models and APIs, and contributes to backend development and system optimization. Focuses on building reliable AI solutions, solving technical challenges, and improving application efficiency and user experience.</p>'
+        full_biography: '<p>Sonali Gupta develops AI-powered software applications, integrates intelligent models and APIs, and contributes to backend development and system optimization. She focuses on building reliable AI solutions, solving technical challenges, and improving application efficiency and user experience.</p>',
+        experience: [
+          'AI Application Development',
+          'Intelligent Systems & API Integration'
+        ],
+        skills: ['AI Application Development', 'Model & API Integration', 'Backend Development', 'System Optimization']
       },
       {
         _id: '19',
@@ -479,29 +545,44 @@ export default function OurTeamPage() {
         is_leadership: false,
         image: 'images/anupama-awadhiya.jpg',
         short_description: 'Develops AI-powered software applications, integrates intelligent models and APIs, and contributes to backend development and system optimization.',
-        full_biography: '<p>Develops AI-powered software applications, integrates intelligent models and APIs, and contributes to backend development and system optimization. Focuses on building reliable AI solutions, solving technical challenges, and improving application efficiency and user experience.</p>'
+        full_biography: '<p>Anupama Awadhiya develops AI-powered software applications, integrates intelligent models and APIs, and contributes to backend development and system optimization. She focuses on building reliable AI solutions, solving technical challenges, and improving application efficiency and user experience.</p>',
+        experience: [
+          'AI Application Development',
+          'Intelligent Systems & API Integration'
+        ],
+        skills: ['AI Application Development', 'Model & API Integration', 'Backend Development', 'System Optimization']
       },
       {
         _id: '14',
         name: 'Ayush Dubey',
-        designation: 'Business Development Associate',
-        responsible_for: 'Sales Operations & Client Acquisition',
+        designation: 'EFV Distribution & Marketplace Head',
+        responsible_for: 'EFV Distribution Networks & Marketplace Operations',
         category: 'Business Development',
         is_leadership: false,
         image: 'images/ayush-dubey..webp',
-        short_description: 'Identifies emerging business opportunities, conducts client outreach, and supports sales pipeline expansion.',
-        full_biography: '<p>Ayush Dubey helps UWO to grow by identifying new business opportunities, generating leads, building client relationships, and supporting sales efforts. He works closely with the Sales Team to convert leads into customers.</p>'
+        short_description: 'Leads distribution channels, partner networks, and marketplace sales operations for the EFV™ ecosystem.',
+        full_biography: '<p>Ayush Dubey leads EFV™ Distribution and Marketplace operations at UWO™, orchestrating multi-channel distribution, strategic partner networks, and marketplace sales channels. He focuses on scaling the reach of the EFV™ framework across global platforms and driving commercial growth.</p>',
+        experience: [
+          'Distribution & Marketplace Leadership',
+          'Channel Management'
+        ],
+        skills: ['EFV Distribution', 'Marketplace Management', 'Channel Partnerships', 'Sales Network Scaling', 'Commercial Operations']
       },
       {
         _id: '15',
         name: 'Sandeep Yadav',
-        designation: 'Business Development Associate',
-        responsible_for: 'Corporate Outreach & Lead Generation',
-        category: 'Business Development',
+        designation: 'Human Resources',
+        responsible_for: 'People Operations & Talent Acquisition',
+        category: 'Human Resources',
         is_leadership: false,
         image: 'images/sandeep-yadav..webp',
-        short_description: 'Connects with enterprise prospects, manages business client relationships, and conducts solution walk-throughs.',
-        full_biography: '<p>Sandeep helps UWO to grow by identifying new business opportunities, generating leads, building client relationships, and supporting sales efforts. He works closely with the Sales Team to convert leads into customers.</p>'
+        short_description: 'Oversees talent acquisition, employee onboarding, HR operations, and workplace culture to support organizational growth.',
+        full_biography: '<p>Sandeep Yadav manages Human Resources at UWO™, overseeing talent acquisition, employee onboarding, performance management, and workplace culture. He works to cultivate an engaging, productive, and supportive work environment while driving organizational development, policy compliance, and employee relations.</p>',
+        experience: [
+          'Human Resources Management',
+          'People Operations & Culture'
+        ],
+        skills: ['Human Resources', 'Talent Acquisition', 'Employee Relations', 'Onboarding', 'HR Operations', 'Workplace Culture']
       },
       {
         _id: '16',
@@ -512,7 +593,12 @@ export default function OurTeamPage() {
         is_leadership: false,
         image: 'images/sukhmani-kaur..webp',
         short_description: 'Creates impactful visual designs and marketing assets that strengthen brand identity, engage audiences, and support business growth.',
-        full_biography: '<p>Creates impactful visual designs and marketing assets that strengthen brand identity, engage audiences, and support business growth across UWO channels.</p>'
+        full_biography: '<p>Sukhmani Kaur creates impactful visual designs and marketing assets that strengthen brand identity, engage audiences, and support business growth across UWO channels. She designs marketing collateral, product visuals, and digital campaign creative.</p>',
+        experience: [
+          'Brand Identity & Visual Communications',
+          'Marketing Creative & Digital Asset Design'
+        ],
+        skills: ['Visual Design', 'Brand Identity', 'Marketing Collateral', 'Digital Assets', 'Figma & Creative Suite']
       },
       {
         _id: '17',
@@ -523,7 +609,12 @@ export default function OurTeamPage() {
         is_leadership: false,
         image: 'images/aman-kharare..webp',
         short_description: 'Facilitates customer consultations, prospective partner meetings, and smooth platform onboarding.',
-        full_biography: '<p>Drives business growth by identifying new opportunities, building strong client relationships, and supporting strategic partnerships across UWO solutions.</p>'
+        full_biography: '<p>Aman Kharare drives business growth by identifying new opportunities, building strong client relationships, and supporting strategic partnerships across UWO solutions. He conducts solution walkthroughs and coordinates onboarding for prospective enterprise partners.</p>',
+        experience: [
+          'Corporate Partnerships & Outreach',
+          'Client Onboarding & Solution Walkthroughs'
+        ],
+        skills: ['Strategic Partnerships', 'Client Acquisition', 'Business Growth', 'Negotiations', 'Client Onboarding']
       },
       {
         _id: '5',
@@ -534,7 +625,13 @@ export default function OurTeamPage() {
         is_leadership: false,
         image: 'images/team-8..webp',
         short_description: 'Oversees marketing communications, brand positioning, and digital campaign execution across products.',
-        full_biography: '<p>Sreshthi leads marketing communications, brand identity consistency, and multi-channel audience engagement across the UWO ecosystem.</p>'
+        full_biography: '<p>Sreshthi Sunpal leads marketing communications, brand identity consistency, and multi-channel audience engagement across the UWO ecosystem. She oversees strategic campaign execution, performance analytics, and content strategy to accelerate user acquisition.</p>',
+        experience: [
+          'Growth Marketing & Campaign Strategy',
+          'Brand Positioning & Multi-Channel Outreach',
+          'Audience Analytics & Engagement'
+        ],
+        skills: ['Brand Strategy', 'Growth Marketing', 'Campaign Analytics', 'Content Strategy', 'Digital Marketing']
       },
       {
         _id: '18',
@@ -545,7 +642,12 @@ export default function OurTeamPage() {
         is_leadership: false,
         image: 'images/milind-jha..webp',
         short_description: 'Coordinates digital marketing campaigns, social media engagement, and community outreach.',
-        full_biography: '<p>Milind Jha serves as a Marketing Executive at UWO, driving multi-channel marketing campaigns, user engagement strategies, and digital brand expansion across ecosystem platforms.</p>'
+        full_biography: '<p>Milind Jha serves as a Marketing Executive at UWO, driving multi-channel marketing campaigns, user engagement strategies, and digital brand expansion across ecosystem platforms. He manages content syndication and social media distribution pipelines.</p>',
+        experience: [
+          'Digital Marketing & Social Campaigns',
+          'Community Engagement & Content Syndication'
+        ],
+        skills: ['Digital Campaigns', 'Social Media Strategy', 'Community Outreach', 'Audience Engagement']
       }
     ];
   }
@@ -554,7 +656,7 @@ export default function OurTeamPage() {
     if (!img) return '/images/uwo-logo.png';
     if (img.includes('prateek-sharma')) return '/images/prateek-sharma..webp';
     if (img.includes('ayush-dubey')) return '/images/ayush-dubey..webp';
-    if (img.includes('sandeep-yadav')) return '/images/sandeep-yadav..webp';
+    if (img.includes('sandeep-yadav')) return '/images/sandeep-yadav..webp?v=2';
     if (img.includes('sukhmani-kaur')) return '/images/sukhmani-kaur..webp';
     if (img.includes('aman-kharare')) return '/images/aman-kharare..webp';
     if (img.includes('milind-jha')) return '/images/milind-jha..webp';

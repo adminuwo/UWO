@@ -68,7 +68,7 @@ export default function Navbar({ onOpenEarnRefer, onToggleDrawer }) {
     <header className={navbarClassNames}>
       <div className="nav-container">
         {/* LOGO */}
-        <Link to="/" className="nav-logo" title="UWO Home">
+        <Link to="/login" className="nav-logo" title="UWO™ Admin & Partner Access">
           <img 
             src={logoSrc} 
             alt="UWO™ Logo" 

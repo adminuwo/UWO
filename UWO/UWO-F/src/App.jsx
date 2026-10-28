@@ -16,6 +16,7 @@ import AiEducationPage from './pages/AiEducationPage';
 import AiAdsPage from './pages/AiAdsPage';
 import PartnerLoginPage from './pages/PartnerLoginPage';
 import PartnerDashboardPage from './pages/PartnerDashboardPage';
+import LoginPage from './pages/LoginPage';
 import AdminPage from './pages/AdminPage';
 
 // Auto-scroll to top on route change (except when opening legal modal overlay)
@@ -59,6 +60,8 @@ export default function App() {
           <Route path="/projects/uwo-connect" element={<UwoConnectPage />} />
           <Route path="/ai-education" element={<AiEducationPage />} />
           <Route path="/ai-ads" element={<AiAdsPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/login.html" element={<LoginPage />} />
           <Route path="/partner-login" element={<PartnerLoginPage />} />
           <Route path="/partner-dashboard" element={<PartnerDashboardPage />} />
 

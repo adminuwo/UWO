@@ -42,10 +42,10 @@ export default function MobileDrawer({ isOpen, onClose, onOpenEarnRefer }) {
         aria-hidden={!isOpen}
       >
         <div className="mobile-drawer-header">
-          <div className="mobile-drawer-logo">
+          <Link to="/login" className="mobile-drawer-logo" onClick={onClose} title="UWO™ Admin & Partner Access" style={{ textDecoration: 'none', color: 'inherit' }}>
             <img src="/images/uwo-logo.png" alt="UWO Logo" onError={(e) => { e.currentTarget.src = '/images/logo..webp'; }} />
             <span>UWO™</span>
-          </div>
+          </Link>
           <button type="button" className="mobile-drawer-close" onClick={onClose} aria-label="Close navigation">
             <i className="fa-solid fa-xmark"></i>
           </button>
