@@ -151,8 +151,14 @@ router.post('/ios-verify', async (req, res) => {
     await pending.save();
 
     const link = await ReferralLink.findById(pending.referralLink);
+    const alreadyDownloadedIos = await DownloadLog.exists({ referralLink: pending.referralLink, ip });
+    const isUniqueIos = !alreadyDownloadedIos;
+
     if (link) {
       link.downloads = (link.downloads || 0) + 1;
+      if (isUniqueIos) {
+        link.uniqueDownloads = (link.uniqueDownloads || 0) + 1;
+      }
       await link.save();
     }
 
@@ -219,9 +225,13 @@ router.post('/android-install', async (req, res) => {
     const rawIp = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress || '127.0.0.1';
     const ip = rawIp.replace('::ffff:', '').trim();
 
-    await ReferralLink.findByIdAndUpdate(link._id, {
-      $inc: { downloads: 1 },
-    });
+    const alreadyDownloadedAndroid = await DownloadLog.exists({ referralLink: link._id, ip });
+    const isUniqueAndroid = !alreadyDownloadedAndroid;
+    const incOps = { downloads: 1 };
+    if (isUniqueAndroid) {
+      incOps.uniqueDownloads = 1;
+    }
+    await ReferralLink.findByIdAndUpdate(link._id, { $inc: incOps });
 
     const downloadLog = await DownloadLog.create({
       referralLink: link._id,

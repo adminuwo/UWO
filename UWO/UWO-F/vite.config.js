@@ -67,6 +67,9 @@ export default defineConfig({
             '/blog-single', '/blog-single.html',
             '/partner-login', '/partner-login.html',
             '/partner-dashboard', '/partner-dashboard.html',
+            '/ai-education', '/ai-education.html', '/projects/ai-education',
+            '/ai-ads', '/ai-ads.html', '/projects/ai-ads',
+            '/projects/uwo-connect', '/uwo-connect.html', '/uwo-connect',
           ];
           const urlPath = req.url ? req.url.split('?')[0] : '';
           if (spaRoutes.includes(urlPath) || urlPath.startsWith('/blogs/')) {
@@ -78,7 +81,7 @@ export default defineConfig({
     }
   ],
   server: {
-    port: 3000,
+    port: 3030,
     host: true,
     strictPort: false,
     proxy: {

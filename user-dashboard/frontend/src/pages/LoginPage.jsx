@@ -9,7 +9,7 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
   const [error, setError] = useState('');
 
   const websiteUrl = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
-    ? 'http://localhost:3000'
+    ? 'http://localhost:3030'
     : (import.meta.env.VITE_WEBSITE_URL || 'https://uwo24.com');
   const earnReferUrl = `${websiteUrl}/?action=earn-refer`;
 

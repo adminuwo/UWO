@@ -43,6 +43,10 @@ const DownloadLogSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    isUnique: {
+      type: Boolean,
+      default: true,
+    },
     attributionMethod: {
       type: String,
       enum: ['google_play_referrer', 'ios_ip_fingerprint'],

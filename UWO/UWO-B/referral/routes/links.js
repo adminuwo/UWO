@@ -20,14 +20,14 @@ function generateNanoId(size = 5) {
 }
 
 function getReferralBaseUrl(req) {
-  if (process.env.REFERRAL_BASE_URL && !process.env.REFERRAL_BASE_URL.includes('admin.uwo24.com')) {
-    return process.env.REFERRAL_BASE_URL.replace(/\/+$/, '');
-  }
-  const host = req.get('host') || '';
-  if (host.includes('localhost') || host.includes('127.0.0.1')) {
+  const host = req.get("host") || "";
+  if (host.includes("localhost") || host.includes("127.0.0.1")) {
     return `${req.protocol}://${host}`;
   }
-  return 'https://uwo24.com';
+  if (process.env.REFERRAL_BASE_URL && !process.env.REFERRAL_BASE_URL.includes("admin.uwo24.com")) {
+    return process.env.REFERRAL_BASE_URL.replace(/\/+$/, "");
+  }
+  return "https://uwo24.com";
 }
 
 // @route   GET /api/links
@@ -73,9 +73,12 @@ router.get('/', protect, async (req, res) => {
           platform: 'ios',
         });
 
+        const distinctIps = await DownloadLog.distinct("ip", { referralLink: link._id, ip: { $ne: "" } });
+        const uniqueDl = Math.max(link.uniqueDownloads || 0, distinctIps.length || (androidDownloads + iosDownloads > 0 ? 1 : 0));
         return {
           ...link,
           uniqueClicks,
+          uniqueDownloads: uniqueDl,
           fullUrl: `${backendUrl}/r/${link.code}`,
           deviceStats: {
             desktop: desktopClicks,
@@ -88,6 +91,7 @@ router.get('/', protect, async (req, res) => {
             android: androidDownloads,
             ios: iosDownloads,
             total: link.downloads || androidDownloads + iosDownloads,
+            unique: uniqueDl,
           },
         };
       })

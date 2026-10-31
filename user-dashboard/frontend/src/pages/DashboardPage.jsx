@@ -78,8 +78,28 @@ export default function DashboardPage({ user, onLogout }) {
   };
 
   const sanitizeReferralUrl = (url, code) => {
-    if (!url) return code ? `https://uwo24.com/r/${code}` : '';
-    return url.replace(/^https?:\/\/admin\.uwo24\.com\/r\//i, 'https://uwo24.com/r/');
+    const isLocal = typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+    const localBase = "http://localhost:8080/r/";
+    const prodBase = "https://uwo24.com/r/";
+    const base = isLocal ? localBase : prodBase;
+
+    if (!url) return code ? `${base}${code}` : "";
+
+    if (isLocal) {
+      return url
+        .replace(/^https?:\/\/uwo24\.com\/r\//i, localBase)
+        .replace(/^https?:\/\/admin\.uwo24\.com\/r\//i, localBase);
+    }
+    return url.replace(/^https?:\/\/admin\.uwo24\.com\/r\//i, prodBase);
+  };
+
+  const getProductWebUrl = (prod) => {
+    if (!prod || !prod.webUrl) return "";
+    const isLocal = typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+    if (isLocal && (prod.slug === "uwo" || prod.webUrl.replace(/\/+$/, "") === "https://uwo24.com")) {
+      return "http://localhost:3030";
+    }
+    return prod.webUrl;
   };
 
   const loadLinks = async () => {
@@ -255,6 +275,7 @@ export default function DashboardPage({ user, onLogout }) {
   const totalClicks = links.reduce((acc, curr) => acc + (curr.deviceStats?.total || curr.clicks || 0), 0);
   const totalUniqueClicks = links.reduce((acc, curr) => acc + (curr.deviceStats?.unique || curr.uniqueClicks || 0), 0);
   const totalDownloads = links.reduce((acc, curr) => acc + (curr.downloadStats?.total || curr.downloads || 0), 0);
+  const totalUniqueDownloads = links.reduce((acc, curr) => acc + (curr.downloadStats?.unique || curr.uniqueDownloads || 0), 0);
   const desktopClicks = links.reduce((acc, curr) => acc + (curr.deviceStats?.desktop || 0), 0);
   const androidClicks = links.reduce((acc, curr) => acc + (curr.deviceStats?.android || 0), 0);
   const iosClicks = links.reduce((acc, curr) => acc + (curr.deviceStats?.ios || 0), 0);
@@ -366,7 +387,12 @@ export default function DashboardPage({ user, onLogout }) {
               <span>App Downloads</span>
               <Download className="w-4 h-4 text-emerald-400" />
             </div>
-            <div className="text-2xl font-bold text-emerald-400">{totalDownloads}</div>
+            <div className="text-2xl font-bold text-emerald-400 flex items-baseline gap-2">
+              <span>{totalDownloads}</span>
+              <span className="text-xs font-semibold text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                {totalUniqueDownloads} unique
+              </span>
+            </div>
             <div className="text-[10px] text-emerald-500/80 mt-1">Android: {androidDownloads} | iOS: {iosDownloads}</div>
           </div>
 
@@ -619,16 +645,21 @@ export default function DashboardPage({ user, onLogout }) {
 
                         {/* Verified Downloads */}
                         <td className="py-4 px-6 text-center">
-                          <div className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-emerald-950/40 border border-emerald-800/40 text-[11px]">
-                            <span className="text-green-400 font-medium flex items-center gap-1" title="Android Google Play Installs">
-                              <Smartphone className="w-3 h-3" /> {dlStats.android}
-                            </span>
-                            <span className="text-slate-400">|</span>
-                            <span className="text-slate-200 font-medium flex items-center gap-1" title="iOS First-Open Installs">
-                              <Apple className="w-3 h-3" /> {dlStats.ios}
-                            </span>
-                            <span className="font-bold text-emerald-400 ml-1">
-                              ({dlStats.total} total)
+                          <div className="flex flex-col items-center gap-1">
+                            <div className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-emerald-950/40 border border-emerald-800/40 text-[11px]">
+                              <span className="text-green-400 font-medium flex items-center gap-1" title="Android Google Play Installs">
+                                <Smartphone className="w-3 h-3" /> {dlStats.android}
+                              </span>
+                              <span className="text-slate-400">|</span>
+                              <span className="text-slate-200 font-medium flex items-center gap-1" title="iOS First-Open Installs">
+                                <Apple className="w-3 h-3" /> {dlStats.ios}
+                              </span>
+                              <span className="font-bold text-emerald-400 ml-1">
+                                ({dlStats.total} total)
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-emerald-400 font-medium">
+                              ★ {dlStats.unique || (dlStats.total > 0 ? 1 : 0)} unique devices
                             </span>
                           </div>
                         </td>
@@ -1173,11 +1204,11 @@ Body: { "referralCode": "code_from_play_store" }`}
                       <div className="flex flex-wrap items-center gap-2 pt-1 text-[10px]">
                         {prod.webUrl ? (
                           <a
-                            href={prod.webUrl}
+                            href={getProductWebUrl(prod)}
                             target="_blank"
                             rel="noreferrer"
                             className="px-2 py-0.5 rounded flex items-center gap-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:underline"
-                            title={prod.webUrl}
+                            title={getProductWebUrl(prod)}
                           >
                             <Laptop className="w-3 h-3" /> Web App
                           </a>

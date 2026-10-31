@@ -5,7 +5,7 @@
  */
 
 (function () {
-    const API_BASE = (window.location.hostname === 'localhost' && window.location.port === '3000')
+    const API_BASE = (window.location.hostname === 'localhost' && (window.location.port === '3000' || window.location.port === '3030'))
         ? 'http://localhost:8080/api/affiliate'
         : '/api/affiliate';
 

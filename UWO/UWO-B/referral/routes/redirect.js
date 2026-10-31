@@ -26,6 +26,39 @@ router.use((req, res, next) => {
 });
 
 // Helper to determine if client wants JSON resolution
+// Adjust destination URL for local development environments (e.g. redirecting to port 3030 instead of 3000)
+// CRITICAL RULE: Ensure education (https://education.uwo24.com) and other specialized products remain completely unaffected!
+function adjustLocalRedirectUrl(url, req) {
+  if (!url || typeof url !== 'string') return url;
+
+  // Always rewrite explicit port 3000 to port 3030
+  if (url.includes(':3000')) {
+    url = url.replace(':3000', ':3030');
+  }
+
+  // When developing or testing locally, route main UWO web links (uwo24.com) to http://localhost:3030
+  // Note: Only root uwo24.com is adjusted — subdomains like education.uwo24.com remain untouched!
+  const isLocal =
+    (req && req.headers && req.headers.host && (req.headers.host.includes('localhost') || req.headers.host.includes('127.0.0.1'))) ||
+    process.env.NODE_ENV === 'development';
+
+  if (isLocal) {
+    try {
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        const parsed = new URL(url);
+        // Exclude education (education.uwo24.com) and any other subdomain
+        if (parsed.hostname === 'uwo24.com' || parsed.hostname === 'www.uwo24.com') {
+          parsed.protocol = 'http:';
+          parsed.host = 'localhost:3030';
+          return parsed.toString();
+        }
+      }
+    } catch (e) {}
+  }
+
+  return url;
+}
+
 function wantsJson(req) {
   return (
     (req.headers.accept && req.headers.accept.includes('application/json')) ||
@@ -198,6 +231,8 @@ async function handleReferralRouting(req, res) {
         })();
       }
 
+      targetUrl = adjustLocalRedirectUrl(targetUrl, req);
+
       if (isJson) {
         return res.json({
           success: true,
@@ -324,6 +359,8 @@ async function handleReferralRouting(req, res) {
         }
       })();
     }
+
+    targetUrl = adjustLocalRedirectUrl(targetUrl, req);
 
     if (isJson) {
       return res.json({

@@ -308,7 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
             submitBtn.disabled = true;
             submitBtn.innerText = "Registering...";
             try {
-                const API_URL = (window.location.hostname === "localhost" && window.location.port === "3000")
+                const API_URL = (window.location.hostname === "localhost" && (window.location.port === "3000" || window.location.port === "3030"))
                     ? "http://localhost:8080/api/register-email"
                     : "/api/register-email";
                 const res = await fetch(API_URL, {
@@ -375,7 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (suggestions) suggestions.remove();
         showLoading();
         try {
-            const API_URL = (window.location.hostname === "localhost" && window.location.port === "3000")
+            const API_URL = (window.location.hostname === "localhost" && (window.location.port === "3000" || window.location.port === "3030"))
                 ? "http://localhost:8080/api/chat"
                 : "/api/chat";
             const res = await fetch(API_URL, {
